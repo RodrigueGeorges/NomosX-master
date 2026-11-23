@@ -66,6 +66,10 @@ export interface CitanceReport {
 
 export interface FactCheckerOutput {
   totalClaims: number;
+  /** Rows actually evaluated (numerical + citance verdicts). totalClaims
+   *  counts only extracted numerical claims — issue counters run over
+   *  allResults, so ratios must use this denominator or they collapse to 0. */
+  evaluatedClaims: number;
   verified: number;
   minorIssues: number;
   majorIssues: number;
@@ -425,6 +429,7 @@ export async function factChecker(
   if (claims.length === 0) {
     return {
       totalClaims: 0,
+      evaluatedClaims: 0,
       verified: 0,
       minorIssues: 0,
       majorIssues: 0,
@@ -598,6 +603,7 @@ export async function factChecker(
 
   return {
     totalClaims: claims.length,
+    evaluatedClaims: allResults.length,
     verified,
     minorIssues,
     majorIssues,

@@ -190,6 +190,7 @@ export async function runVerificationBlock(deps: VerificationBlockDeps): Promise
       const r = await factChecker(htmlToCheck, topSources, producerFamily, readings);
       stats.factChecker = tagEval({
         totalClaims: r.totalClaims,
+        evaluatedClaims: r.evaluatedClaims,
         verified: r.verified,
         majorIssues: r.majorIssues,
         fatalIssues: r.fatalIssues,

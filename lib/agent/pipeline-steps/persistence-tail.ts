@@ -414,6 +414,7 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
           addCost(r.costUsd, 'FACT_RECHECK_TAIL');
           stats.factChecker = tagEval({
             totalClaims: r.totalClaims,
+            evaluatedClaims: r.evaluatedClaims,
             verified: r.verified,
             majorIssues: r.majorIssues,
             fatalIssues: r.fatalIssues,

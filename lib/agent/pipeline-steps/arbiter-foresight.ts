@@ -233,11 +233,23 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
 
     if (election && electedChainScenario) {
       // Source refs for the rationale: the uncertainty links' own sourceRefs.
-      const chainLinks = Array.isArray(analysis.causalChain) ? analysis.causalChain as Array<{ id?: number; sourceRef?: number }> : [];
+      const chainLinks = Array.isArray(analysis.causalChain) ? analysis.causalChain as Array<{ id?: number; sourceRef?: number | string }> : [];
+      // sourceRef arrives as "SRC-6" / "[SRC-6]" / 6 depending on which
+      // analyst path wrote the chain — a typeof-number filter silently
+      // dropped every citation, leaving the rationale evidence-free and
+      // failing the gate's central_scenario check on every swarm-elected run.
+      const parseSourceRef = (v: unknown): number | null => {
+        if (typeof v === 'number' && v > 0) return v;
+        if (typeof v === 'string') {
+          const n = parseInt(v.replace(/\D/g, ''), 10);
+          return Number.isFinite(n) && n > 0 ? n : null;
+        }
+        return null;
+      };
       const srcRefs = [...new Set(
         electedChainScenario.uncertaintyIds
-          .map(id => chainLinks.find(l => l.id === id)?.sourceRef)
-          .filter((n): n is number => typeof n === 'number' && n > 0)
+          .map(id => parseSourceRef(chainLinks.find(l => l.id === id)?.sourceRef))
+          .filter((n): n is number => n !== null)
       )];
       const srcSuffix = srcRefs.length ? ` Supporting links: ${srcRefs.map(n => `[SRC-${n}]`).join(' ')}.` : '';
       // Published name = the arbiter's name for the elected cell.

@@ -1738,6 +1738,8 @@ export async function analystAgentV3(
         const lastId = chain[chain.length - 1]?.id ?? chain.length;
         const nextId = () => Math.max(...chain.map(l => l.id), 0) + 1;
         const existingClaims = new Set(chain.map(l => String(l.claim ?? '').slice(0, 120).toLowerCase()));
+        const parentLink = chain.find(l => l.id === lastId);
+        const inheritedRef = (parentLink as any)?.sourceRef;
         const pushIfNew = (claim: string, warrant: string) => {
           const c = claim.trim();
           if (!c || c.length < 20) return;
@@ -1750,6 +1752,10 @@ export async function analystAgentV3(
             warrant: warrant.slice(0, 400),
             temporalStatus: 'future_extrapolation',
             derivesFrom: lastId,
+            // Inherit the parent link's citation — an uncited extrapolation
+            // reads as fabricated foresight downstream (chain-scenario source
+            // refs and the central-scenario evidence check both consume it).
+            ...(inheritedRef != null ? { sourceRef: inheritedRef } : {}),
           } as CausalLink);
         };
         const traj = (prunedAnalysis as any).trajectory;

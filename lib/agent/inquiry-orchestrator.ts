@@ -987,10 +987,16 @@ export async function runAndPublishInquiry(
     // major or fatal discrepancy against their cited source. An errored or
     // absent fact-check stays 'no data' and fails.
     numbersTracedRatio: (() => {
-      const fcStats = pipeline.stats.factChecker as { totalClaims?: number; majorIssues?: number; fatalIssues?: number; error?: string } | undefined;
-      if (!fcStats || fcStats.error || typeof fcStats.totalClaims !== 'number') return undefined;
-      if (fcStats.totalClaims === 0) return 1;
-      return Math.max(0, fcStats.totalClaims - (fcStats.majorIssues ?? 0) - (fcStats.fatalIssues ?? 0)) / fcStats.totalClaims;
+      const fcStats = pipeline.stats.factChecker as { totalClaims?: number; evaluatedClaims?: number; majorIssues?: number; fatalIssues?: number; error?: string } | undefined;
+      if (!fcStats || fcStats.error) return undefined;
+      // Denominator must be evaluatedClaims (all verdict rows: numerical +
+      // citance). totalClaims counts only extracted numerical claims — with
+      // the citance path dominant, issues outnumbered it and the ratio
+      // collapsed to 0% on every run regardless of actual support.
+      const denom = fcStats.evaluatedClaims ?? fcStats.totalClaims;
+      if (typeof denom !== 'number') return undefined;
+      if (denom === 0) return 1;
+      return Math.max(0, denom - (fcStats.majorIssues ?? 0) - (fcStats.fatalIssues ?? 0)) / denom;
     })(),
     centralScenarioSelectedBy:
       (pipeline.stats.swarmElection as { selectedBy?: string } | undefined)?.selectedBy ??

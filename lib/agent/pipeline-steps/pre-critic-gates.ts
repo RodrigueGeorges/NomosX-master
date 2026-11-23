@@ -107,6 +107,17 @@ export async function runPreCriticGates(deps: PreCriticGatesDeps): Promise<PreCr
       const srcText = `${src?.title || ''} ${src?.abstract || ''} ${readingsByIdPre.get(src?.id)?.extractedText || ''}`.toLowerCase();
       if (srcText.length < 100) continue; // can't verify against empty source
       const claimText = `${link?.claim || ''} ${link?.evidence || ''}`.toLowerCase();
+      // Cross-lingual guard: the overlap test is lexical — a French claim
+      // cited to an English source shares ~0 content words by construction
+      // and was flagged "weak" on every non-EN run (observed: 5/10 links on
+      // the CBAM fr publication). When the claim is Romance-language and
+      // the source shows no French function words, the binding is
+      // unverifiable lexically — skip it rather than count it weak.
+      const FR_STOP = new Set(['les', 'des', 'une', 'est', 'pour', 'dans', 'avec', 'sur', 'pas', 'plus', 'aux', 'par', 'son', 'sa', 'ses', 'qui', 'que', 'ces', 'leur', 'leurs', 'être', 'avoir', 'fait', 'cette', 'comme', 'après', 'entre', 'sans', 'sous', 'chez', 'vers', 'dont', 'tout', 'tous', 'toute', 'toutes', 'même', 'aussi', 'alors', 'ainsi', 'donc', 'mais', 'ou', 'et', 'en', 'de', 'du', 'la', 'le', 'un', 'au', 'ce', 'se', 'ne', 'il', 'elle', 'nous', 'vous', 'ils', 'elles', 'leur', 'y', 'ont', 'été', 'sont', 'été', 'peut', 'doit', 'tout', 'encore', 'déjà', 'très', 'bien', 'mieux', 'peu', 'beaucoup', 'trop', 'assez', 'comment', 'pourquoi', 'quand', 'où', 'quel', 'quelle', 'quels', 'quelles', 'chaque', 'autre', 'autres', 'même', 'memes', 'contre', 'depuis', 'pendant', 'selon', 'malgré', 'voici', 'voilà', 'afin', 'lors', 'lorsque', 'puisque', 'quoique', 'tandis', 'certes', 'néanmoins', 'cependant', 'pourtant', 'effectivement', 'notamment', 'surtout', 'particulièrement', 'essentiellement', 'globalement', 'généralement', 'habituellement', 'actuellement', 'finalement', 'éventuellement', 'probablement', 'certainement', 'vraisemblablement', 'manifestement', 'évidemment', 'clairement', 'précisément', 'exactement', 'notamment']);
+      const claimWords = claimText.split(/\s+/).filter(w => w.length > 2);
+      const frHits = claimWords.filter(w => FR_STOP.has(w)).length;
+      const srcFrHits = srcText.split(/\s+/).filter(w => FR_STOP.has(w)).length;
+      if (frHits >= 4 && srcFrHits < 3) continue; // cross-lingual: cannot verify lexically
       const claimTerms = new Set(
         claimText.replace(/[^\w\s]/g, ' ').split(/\s+/).filter((w: string) => w.length > 4)
       );

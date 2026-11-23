@@ -151,8 +151,20 @@ export function runNumericalGate(html: string, sourceCount: number): { violation
   // Also convert standalone <a href="#ref-N"> to [SRC-N]
   normalized = normalized.replace(/<a href="#ref-(\d+)"[^>]*>[^<]*<\/a>/g, ' [SRC-$1] ');
 
-  // Remove <style>/<script> blocks entirely (CSS values are not statistics)
-  normalized = normalized.replace(/<(style|script)\b[^>]*>[\s\S]*?(<\/\1>|(?=<\/head>)|(?=<body\b)|$)/gi, ' ');
+  // Remove <style>/<script>/<svg> blocks entirely (CSS values, chart axis
+  // tick labels are not statistics)
+  normalized = normalized.replace(/<(style|script|svg)\b[^>]*>[\s\S]*?(<\/\1>|(?=<\/head>)|(?=<body\b)|$)/gi, ' ');
+
+  // Honor the data-no-cite contract: elements explicitly marked as
+  // non-claim content (scenario probabilities, horizons, computed-exhibit
+  // telemetry) are not empirical claims and must not be scanned. Renderers
+  // already emit this attribute precisely for this distinction.
+  let prevLen = -1;
+  while (prevLen !== normalized.length) {
+    prevLen = normalized.length;
+    normalized = normalized.replace(/<(\w+)\b[^>]*\bdata-no-cite\b[^>]*>[\s\S]*?<\/\1>/gi, ' ');
+  }
+  normalized = normalized.replace(/<(\w+)\b[^>]*\bdata-no-cite\b[^>]*\/>/gi, ' ');
 
   // Remove sections that contain calibrated/model-generated numbers, not empirical claims:
   //   - Scenario sections (Delphi-calibrated probabilities like "30%", "90% CI: [21%, 21%]")
@@ -167,6 +179,14 @@ export function runNumericalGate(html: string, sourceCount: number): { violation
   normalized = normalized.replace(/<div\b[^>]*class="brief-meta"[^>]*>[\s\S]*?<\/div>/gi, ' ');
   normalized = normalized.replace(/<section\b[^>]*class="[^"]*trajectory[^"]*"[^>]*>[\s\S]*?<\/section>/gi, ' ');
   normalized = normalized.replace(/<section\b[^>]*class="[^"]*what-to-watch[^"]*"[^>]*>[\s\S]*?<\/section>/gi, ' ');
+  // Central-scenario rationale carries swarm/Monte-Carlo provenance
+  // (p-values, confidence intervals, draw counts) — pipeline telemetry, not
+  // empirical claims; same category as scenarios-block above.
+  normalized = normalized.replace(/<div\b[^>]*class="central-rationale"[^>]*>[\s\S]*?<\/div>/gi, ' ');
+  // Computed exhibits (evidence-base coverage, provider shares) are
+  // pipeline-computed telemetry about the corpus itself — never empirical
+  // claims about the world.
+  normalized = normalized.replace(/<(section|div)\b[^>]*class="[^"]*(?:nx-)?computed-(?:exhibit|evidence-base)[^"]*"[^>]*>[\s\S]*?<\/\1>/gi, ' ');
 
   const text = normalized.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 
