@@ -310,6 +310,51 @@ export function createGapRequestProcessor(deps: GapFillDeps) {
 }
 
 /**
+ * Required-elements barrier (think-tank floor, Claude review lot C): before
+ * gap retrieval spends calls, check the analysis carries the seven mandatory
+ * elements. Deterministic heuristics over ProspectiveNote fields — the
+ * pre-mortem is advisory because it is injected into pass 3 but not persisted
+ * in the output (the DA pass covers it adversarially downstream).
+ * Missing elements become NOT_REACHED research gaps → targeted retrieval.
+ */
+export function checkRequiredElements(analysisObj: Record<string, any>): {
+  present: string[]; missing: string[]; advisory: string[]; gaps: string[];
+} {
+  const str = (v: unknown) => (typeof v === 'string' ? v : '');
+  const chain: any[] = Array.isArray(analysisObj?.causalChain) ? analysisObj.causalChain : [];
+  const findings: string[] = Array.isArray(analysisObj?.keyFindings) ? analysisObj.keyFindings.filter((f: any) => typeof f === 'string') : [];
+  const rejected: any[] = Array.isArray(analysisObj?.rejectedAlternatives) ? analysisObj.rejectedAlternatives : [];
+  const watch = analysisObj?.whatToWatch ?? {};
+  const watchSignals: string[] = Array.isArray(watch?.signals) ? watch.signals.filter((s: any) => typeof s === 'string' && s.trim()) : [];
+  const allText = [
+    str(analysisObj?.anchoringBasis), str(analysisObj?.verdict), str(analysisObj?.throughLine),
+    ...findings,
+    ...chain.flatMap((l: any) => [str(l?.claim), str(l?.evidence), str(l?.warrant)]),
+  ].join('\n');
+  const hasNumber = /\d/.test(allText);
+  const hasActorMap = /(incitat|incentive|actor|acteurs?|décideur|decision[- ]?maker|stakeholder|regulator|gouvernement|banque centrale|central bank)/i.test(allText);
+  const hasWatch = watchSignals.length >= 2 && str(watch?.whatWouldChangeMind).trim().length > 10;
+  const hasConsequences = /(should|doit|surveiller|monitor|watch|action|recommen|decision|décision|implication)/i.test(str(watch?.horizonCheck) + '\n' + str(analysisObj?.verdict));
+
+  const checks: Array<{ id: string; label: string; ok: boolean; gap: string }> = [
+    { id: 'base_rate', label: 'base rate with named reference class', ok: str(analysisObj?.anchoringBasis).trim().length > 30 || /(base rate|taux de base|historical|historique|analogue|référence)/i.test(str(analysisObj?.anchoringBasis)), gap: 'historical base rate and named reference class for comparable cases' },
+    { id: 'quantitative_core', label: 'quantitative core (real series with numbers)', ok: hasNumber && chain.length >= 2, gap: 'quantitative series, figures with units and periods' },
+    { id: 'actor_map', label: 'actor map (incentives, binding vs non-binding commitments)', ok: hasActorMap, gap: 'key actors, their incentives and whether commitments are binding' },
+    { id: 'tipping_points', label: 'two tipping points from disagreements', ok: chain.length >= 2 && rejected.length >= 1, gap: 'alternative scenarios and what would tip the central scenario' },
+    { id: 'watch_indicators', label: 'what would change our mind (dated indicators)', ok: hasWatch, gap: 'dated indicators that would change the assessment' },
+    { id: 'decision_consequences', label: 'consequences for a decision-maker', ok: hasConsequences, gap: 'actionable implications for a decision-maker under each scenario' },
+  ];
+  const present = checks.filter(c => c.ok).map(c => c.label);
+  const missingChecks = checks.filter(c => !c.ok);
+  return {
+    present,
+    missing: missingChecks.map(c => c.label),
+    advisory: ['pre-mortem of the central scenario (covered by the adversarial pass downstream)'],
+    gaps: missingChecks.map(c => c.gap),
+  };
+}
+
+/**
  * The full post-analyst gap stage: orchestrator RE_ANALYZE → gap-aware
  * evidence append → typed research gaps → processGapRequests('ANALYST') →
  * post-analyst enrichment checkpoint. Mutates deps.state in place.
@@ -446,6 +491,21 @@ export async function runGapFillStage(deps: GapFillDeps): Promise<void> {
       researchGaps.push({ type: 'INEXISTANT', description: 'Analysis identifies areas with no existing research' });
     }
 
+    // Required-elements barrier: missing mandatory elements become targeted
+    // NOT_REACHED gaps so the enrichment checkpoint retrieves their evidence.
+    const elements = checkRequiredElements(analysisObj);
+    stats.requiredElements = {
+      present: elements.present, missing: elements.missing, advisory: elements.advisory,
+    };
+    if (elements.missing.length > 0) {
+      console.log(`${label} REQUIRED ELEMENTS: ${elements.present.length}/6 present — missing: ${elements.missing.join('; ')}`);
+      for (const g of elements.gaps.slice(0, 3)) {
+        researchGaps.push({ type: 'NOT_REACHED', description: `Required element missing — needs ${g}` });
+      }
+    } else {
+      console.log(`${label} REQUIRED ELEMENTS: all 6 checkable elements present`);
+    }
+
     if (researchGaps.length > 0) {
       stats.researchGaps = researchGaps;
       console.log(`${label} RESEARCH GAPS: ${researchGaps.length} typed gaps identified`);
@@ -468,7 +528,8 @@ export async function runGapFillStage(deps: GapFillDeps): Promise<void> {
   if (stats.researchGaps && Array.isArray(stats.researchGaps)) {
     const criticalGaps = (stats.researchGaps as Array<{ type: string; description: string }>)
       .filter(g => g.type === 'NOT_REACHED');
-    if (criticalGaps.length > 0 && !skipRetrieval && topSources.length < (isStrategic ? 20 : 12)) {
+    const elementGaps = (stats.requiredElements as { missing?: string[] } | undefined)?.missing?.length ?? 0;
+    if (criticalGaps.length > 0 && !skipRetrieval && (elementGaps > 0 || topSources.length < (isStrategic ? 20 : 12))) {
       console.log(`${label} POST-ANALYST ENRICHMENT: ${criticalGaps.length} critical gaps — attempting targeted search`);
       try {
         // Generate targeted queries from gap descriptions + original query

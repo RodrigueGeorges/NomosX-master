@@ -1036,7 +1036,7 @@ export async function runAndPublishInquiry(
           .map(u => u.linkId).filter((n): n is number => typeof n === 'number')
       );
       const sf = pipeline.stats.swarmForecasts as { forecasts?: Array<{ linkId?: number; validVotes: number; families: number }> } | undefined;
-      const health = pipeline.stats.swarmHealth as { healthy?: boolean } | undefined;
+      const health = pipeline.stats.swarmHealth as { healthy?: boolean; splitElectable?: boolean } | undefined;
       const fc = (sf?.forecasts ?? []).filter(f =>
         // Sentinels ride linkId >= SENTINEL_VOTE_ID_BASE (9000) — exclude even
         // when the chain-link set is unavailable (fail-closed on sentinels).
@@ -1046,7 +1046,8 @@ export async function runAndPublishInquiry(
         ? {
             valid: Math.min(...fc.map(f => f.validVotes)),
             families: Math.min(...fc.map(f => f.families)),
-            converged: health?.healthy === true,
+            converged: health?.healthy === true || health?.splitElectable === true,
+            split: health?.healthy !== true && health?.splitElectable === true,
           }
         : undefined;
     })(),

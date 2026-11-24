@@ -220,7 +220,10 @@ export function electScenario(input: {
 
   return {
     scenarioId: leader.s.id,
-    probability: point[leader.i],
+    // Published probabilities respect the same [0.05, 0.95] floor/ceiling as
+    // the link means — a near-unanimous swarm still isn't certainty (BLF:
+    // unbounded tail probabilities are systematically overconfident).
+    probability: Math.min(0.95, Math.max(0.05, point[leader.i])),
     confidenceInterval: ci,
     selectedBy: 'swarm',
     contested,

@@ -39,7 +39,7 @@ export interface BinaryGateInput {
   scenariosFromChain?: boolean;
   /** Swarm vote telemetry (OT-4): valid votes, distinct model families, MC
    *  convergence flag. */
-  swarmVotes?: { valid: number; families: number; converged: boolean };
+  swarmVotes?: { valid: number; families: number; converged: boolean; split?: boolean };
   /** Unanswered sourced objections from the red team / DA. */
   unansweredObjections?: number;
   /** Count of OPEN predictions with a resolvable dueAt/horizon. */
@@ -79,7 +79,7 @@ export function evaluateBinaryGate(input: BinaryGateInput): BinaryGateCheck[] {
     id: 'swarm_healthy',
     passed: !!s && s.valid >= 8 && s.families >= 2 && s.converged,
     detail: s
-      ? `min ${s.valid} valid votes per link / min ${s.families} families per link / healthy=${s.converged} (need ≥8, ≥2, healthy)`
+      ? `min ${s.valid} valid votes per link / min ${s.families} families per link / ${s.split ? 'contested (IQR split, participation floors held)' : `healthy=${s.converged}`} (need ≥8, ≥2, healthy-or-contested)`
       : 'no data — swarm voter not yet active (OT-4)',
   });
 

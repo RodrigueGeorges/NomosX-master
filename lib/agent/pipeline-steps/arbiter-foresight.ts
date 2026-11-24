@@ -88,6 +88,31 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
         });
         sentinelDrafts = drafted.sentinels;
         addCost(drafted.costUsd, 'SENTINEL_WRITER');
+        // Market reference for the ballots: crowd odds on the mother question
+        // are information, not evidence — voters still must ground in cards.
+        // Frozen channel keeps record/replay deterministic (same pattern as
+        // delphi:markets).
+        let marketContext: string | undefined;
+        try {
+          const { fetchPredictionMarketData } = await import('../prediction-markets');
+          const { captureInput } = await import('../frozen-inputs');
+          const scenarioNames = chainDerivation.scenarios.map(s => s.name).filter(Boolean).slice(0, 5);
+          const md = await captureInput('swarm:markets', () => fetchPredictionMarketData(query, scenarioNames));
+          if (md.avgProbability != null || md.predictions.length > 0) {
+            stats.swarmMarkets = {
+              avgProbability: md.avgProbability,
+              markets: md.predictions.slice(0, 5).map(p => ({
+                source: p.source, question: p.marketQuestion?.slice(0, 120),
+                probability: p.probability, volume: p.volume,
+              })),
+            };
+            const top = md.predictions.slice(0, 3)
+              .map(p => `${p.source}: "${String(p.marketQuestion ?? '').slice(0, 80)}" → ${(p.probability * 100).toFixed(0)}%`).join(' | ');
+            marketContext = `Prediction-market odds on this question (avg ${(md.avgProbability! * 100).toFixed(0)}%): ${top || 'see stats'}`;
+          }
+        } catch (mktErr) {
+          console.warn(`${label} SWARM markets fetch failed (non-blocking):`, mktErr);
+        }
         const swarm = await runSwarmVote({
           question: query,
           uncertainties: [
@@ -99,6 +124,7 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
           horizon: typeof analysis.trajectory === 'object' && analysis.trajectory
             ? String((analysis.trajectory as { horizon?: string }).horizon ?? '') : undefined,
           runId: pipelineRunId,
+          marketContext,
         });
         stats.swarmForecasts = {
           forecasts: swarm.forecasts.map(f => ({
@@ -131,12 +157,21 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
         addCost(swarm.costUsd, 'SWARM_FORECAST');
         console.log(`${label} SWARM: ${swarm.validVotes} valid votes / ${swarm.familiesUsed.length} families / $${swarm.costUsd.toFixed(4)}`);
 
-        if (!swarmHealth.healthy) {
-          // Thin, single-family or split vote: no election. The run falls to
+        const electable = swarmHealth.healthy || swarmHealth.splitElectable === true;
+        if (!electable) {
+          // Thin or single-family vote: no election. The run falls to
           // the legacy path, which can never claim selectedBy:'swarm'.
           stats.swarmElection = { skipped: 'swarm_unhealthy', issues: swarmHealth.issues };
           console.log(`${label} SWARM unhealthy — no election: ${swarmHealth.issues.join('; ')}`);
-        } else if (swarm.forecasts.length >= 2) {
+        } else {
+          if (!swarmHealth.healthy) {
+            // Participation floors held; voters genuinely disagree (IQR split).
+            // Disagreement is signal, not dysfunction — the election proceeds
+            // but is forced contested and the split is disclosed downstream.
+            stats.swarmSplit = { issues: swarmHealth.issues, electable: true };
+            console.log(`${label} SWARM split-electable — proceeding contested: ${swarmHealth.issues.join('; ')}`);
+          }
+          if (swarm.forecasts.length >= 2) {
           try {
             // OT-7: fold the resolved track record into the forecasts —
             // systematic overconfidence (avg Brier > 0.20 over ≥20 resolved)
@@ -160,6 +195,12 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
               question: query,
             });
             stats.swarmElection = election ?? { skipped: 'insufficient_link_distributions' };
+            if (election && swarmHealth.splitElectable) {
+              // Voters split on at least one link — the elected scenario is
+              // published contested even if the MC margin looked clean.
+              election.contested = true;
+              (stats.swarmElection as Record<string, unknown>).contestedBySplit = true;
+            }
             if (election) {
               // Snapshot the election inputs with the run: a resolved
               // sentinel can then re-elect without the pipeline.
@@ -172,6 +213,7 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
           } catch (electErr) {
             stats.swarmElection = { error: electErr instanceof Error ? electErr.message : String(electErr) };
             recordDegradedStep(stats, 'SWARM_ELECTION', electErr);
+          }
           }
         }
       } catch (swarmErr) {
@@ -252,6 +294,17 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
           .filter((n): n is number => n !== null)
       )];
       const srcSuffix = srcRefs.length ? ` Supporting links: ${srcRefs.map(n => `[SRC-${n}]`).join(' ')}.` : '';
+      // Crowd price published NEXT TO our number (not blended): the reader
+      // sees both the swarm estimate and what the market charges — the
+      // divergence is itself signal.
+      const swarmMkt = stats.swarmMarkets as { avgProbability?: number | null } | undefined;
+      const mktSuffix = typeof swarmMkt?.avgProbability === 'number'
+        ? ` Market reference: ${(swarmMkt.avgProbability * 100).toFixed(0)}% (prediction-market odds, not our estimate).`
+        : '';
+      const swarmSplit = stats.swarmSplit as { issues?: string[] } | undefined;
+      const splitSuffix = swarmSplit?.issues?.length
+        ? ` NOTE: independent voters split on at least one link (${swarmSplit.issues.filter(i => i.includes('split')).join('; ')}) — treat this election as contested.`
+        : '';
       // Published name = the arbiter's name for the elected cell.
       const electedOutlook = institutePosition.scenarios.find(s => s.cellId === election!.scenarioId);
       stats.centralScenario = {
@@ -262,7 +315,7 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
           `uncertainties (p=${election.probability.toFixed(3)}, 90% interval ` +
           `${election.confidenceInterval[0].toFixed(2)}-${election.confidenceInterval[1].toFixed(2)}, ` +
           `leads in ${Math.round(election.winShare * 100)}% of ${election.monteCarloRuns} draws` +
-          `${election.contested ? `, CONTESTED — runner-up ${election.runnerUpId ?? 'n/a'}` : ''}).${srcSuffix}`,
+          `${election.contested ? `, CONTESTED — runner-up ${election.runnerUpId ?? 'n/a'}` : ''}).${srcSuffix}${mktSuffix}${splitSuffix}`,
         horizon: electedChainScenario.observableAt,
         // Prefer the arbiter's own implications (written for the elected
         // branch); fallback truncates at a sentence boundary — a mid-word

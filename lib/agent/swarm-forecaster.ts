@@ -206,6 +206,12 @@ export interface SwarmHealth {
   healthy: boolean;
   /** Per-link reasons; empty when healthy. */
   issues: string[];
+  /** True when participation minimums hold (≥8 votes, ≥2 families per link)
+   *  and the ONLY defect is voter disagreement (IQR > max). A split vote is
+   *  information, not dysfunction: the election may proceed but must be
+   *  published as contested with the IQR disclosed (replaces the previous
+   *  binary veto that HELD notes over legitimate free-tier disagreement). */
+  splitElectable?: boolean;
 }
 
 export const SWARM_MIN_VOTES_PER_LINK = 8;
@@ -225,10 +231,19 @@ export function assessSwarmHealth(forecasts: LinkForecast[], neededLinkIds: numb
     if (f.families < SWARM_MIN_FAMILIES) issues.push(`link ${id}: ${f.families} model family (need ${SWARM_MIN_FAMILIES})`);
     if (f.iqr > SWARM_MAX_IQR) issues.push(`link ${id}: voters split (IQR ${f.iqr.toFixed(2)} > ${SWARM_MAX_IQR})`);
   }
-  return { healthy: issues.length === 0, issues };
+  // Split-electable: every needed link met the participation floor and every
+  // issue is an IQR split — no thin votes, no single-family links.
+  const splitElectable = issues.length > 0 && neededLinkIds.every(id => {
+    const f = forecasts.find(x => x.linkId === id);
+    return !!f && f.validVotes >= SWARM_MIN_VOTES_PER_LINK && f.families >= SWARM_MIN_FAMILIES;
+  });
+  return { healthy: issues.length === 0, issues, splitElectable };
 }
 
-const VOTER_PROVIDERS: LLMProvider[] = ['glm', 'google', 'deepseek'];
+// kimi joins the canonical rotation now that its key is funded again — a
+// genuinely distinct family (Moonshot) vs glm/google/deepseek. Suspended
+// providers are filtered out by the alive-check below, so listing it is safe.
+const VOTER_PROVIDERS: LLMProvider[] = ['glm', 'kimi', 'google', 'deepseek'];
 const LENSES = [
   'economic incentives and resource constraints',
   'geopolitical alignment and institutional capacity',
@@ -297,6 +312,11 @@ export async function runSwarmVote(input: {
   runId?: string;
   /** Passage-level cards (buildLinkCards). Falls back to source abstracts. */
   cards?: SwarmSourceCard[];
+  /** External market reference (Polymarket/Metaculus odds) — injected as
+   *  information, not evidence: voters see the crowd price and must still
+   *  ground their ballot in the evidence cards (audit: market price was
+   *  Delphi-only, invisible to the election that actually picks the scenario). */
+  marketContext?: string;
 }): Promise<SwarmResult> {
   const voterCount = Math.min(25, Math.max(8, input.voters ?? 15));
   const cards = input.cards && input.cards.length >= 4 ? input.cards : await loadCards(input.sourceIds);
@@ -402,7 +422,7 @@ Return ONLY JSON: {"votes":[{"linkId":<number>,"probability":<0-1>,"confidence":
             },
             {
               role: 'user',
-              content: `QUESTION: ${input.question}\nHORIZON: ${input.horizon ?? 'see links'}\n\nUNCERTAIN LINKS:\n${tasks}\n\nSHARED EVIDENCE:\n${sharedBlock}\n\nYOUR PRIVATE EVIDENCE SLICE:\n${privateBlock || '(none — rely on shared pool and base rates)'}`,
+              content: `QUESTION: ${input.question}\nHORIZON: ${input.horizon ?? 'see links'}\n\nUNCERTAIN LINKS:\n${tasks}\n\nSHARED EVIDENCE:\n${sharedBlock}\n\n${input.marketContext ? `MARKET REFERENCE (crowd price — information, NOT evidence; do not cite it as a card):\n${input.marketContext}\n\n` : ''}YOUR PRIVATE EVIDENCE SLICE:\n${privateBlock || '(none — rely on shared pool and base rates)'}`,
             },
           ],
         });
