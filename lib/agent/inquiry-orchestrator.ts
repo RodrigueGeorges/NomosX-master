@@ -1132,7 +1132,18 @@ export async function runAndPublishInquiry(
     recordDegradedStep(pipeline.stats as Record<string, unknown>, 'BINARY_JUDGE', judgeErr);
   }
 
-  console.log(`[InquiryOrchestrator] Gate: decision=${gate.decision} | Readiness: ok=${readiness.ok} | trust=${trustScore} quality=${qualityScore} coverage=${Math.round((citationCoverage || 0) * 100)}%`);
+  // Terminal-reject runs render a degraded brief template: citationCoverage
+  // measures [SRC-N] tags the template never emits (reads 0%) and trustScore
+  // collapses because whole evaluator families were skipped upstream. Both
+  // are measurement artifacts, not artifact quality — mark them n/a so they
+  // don't pollute run statistics (previously recorded as real 0s).
+  const terminalReject = !!(pipeline.stats as Record<string, any>).terminalReject;
+  if (terminalReject) {
+    ((pipeline.stats as Record<string, unknown>).publicationGate as Record<string, unknown>).measurementContext = 'terminal_reject';
+    ((pipeline.stats as Record<string, unknown>).publicationGate as Record<string, unknown>).coverageNa = true;
+    ((pipeline.stats as Record<string, unknown>).publicationGate as Record<string, unknown>).trustNa = true;
+  }
+  console.log(`[InquiryOrchestrator] Gate: decision=${gate.decision} | Readiness: ok=${readiness.ok} | trust=${terminalReject ? 'n/a(terminal-reject)' : trustScore} quality=${qualityScore} coverage=${terminalReject ? 'n/a(terminal-reject)' : `${Math.round((citationCoverage || 0) * 100)}%`}`);
 
   const minTrust = req.minTrustScore ?? 65;
   // Adaptive trust: if enrichment reasoner found evidence sufficient (score ≥ 70),

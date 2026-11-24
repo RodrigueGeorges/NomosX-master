@@ -119,7 +119,14 @@ export async function rescoreStaleAnalysisEvals(deps: EvalRescoreDeps): Promise<
           if (!SPECULATIVE_OR_META_KEYS.has(k)) filtered[k] = v;
         }
         const rescoreText = criticReviewText(filtered).replace(/\[E(\d+)\]/g, '[SRC-$1]');
-        const r = await runCritic(rescoreText, rescoreSources, { skipBias: false, skipContradictions: false });
+        const r = await runCritic(rescoreText, rescoreSources, {
+          skipBias: false, skipContradictions: false,
+          thesisContext: [
+            (stats as any)?.thesisBinding?.statement,
+            (criticAnalysisObj as any)?.verdict,
+            (criticAnalysisObj as any)?.throughLine,
+          ].filter(Boolean).join('\n') || undefined,
+        });
         addCost(r.costUsd, 'CRITIC_RESCORE');
         stats.critic = tagEval({
           verdict: r.verdict, overallScore: r.overallScore,

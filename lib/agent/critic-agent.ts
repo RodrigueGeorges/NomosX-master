@@ -837,10 +837,20 @@ export async function generateRepairInstructions(
  * @param options - Configuration options
  * @returns CriticResult with verdict, claims, issues, and repair instructions
  */
+// Generic words excluded from the thesis-overlap test — a claim "bearing the
+// thesis" must share CONTENT words with the thesis statement, not function
+// words like "would", "their", "which".
+const THESIS_STOP = new Set([
+  'which', 'their', 'there', 'these', 'those', 'would', 'could', 'should',
+  'about', 'after', 'before', 'between', 'through', 'during', 'while',
+  'where', 'when', 'what', 'that', 'this', 'with', 'from', 'into', 'over',
+  'under', 'than', 'then', 'them', 'they', 'have', 'been', 'were', 'will',
+]);
+
 export async function runCritic(
   analysisText: string,
   sources: Array<{ index: number; title: string; abstract: string; provider: string; year?: number; fullText?: string | null }>,
-  options?: { skipBias?: boolean; skipContradictions?: boolean },
+  options?: { skipBias?: boolean; skipContradictions?: boolean; thesisContext?: string },
 ): Promise<CriticResult> {
   const startTime = Date.now();
   let totalCost = 0;
@@ -1022,17 +1032,46 @@ export async function runCritic(
   // not-Y"). A think-tank piece is SUPPOSED to take positions on contested
   // material; contradictions only become unresolvable when NEITHER side has
   // any evidence (floating incoherence) — that stays fatal.
-  const unresolvableSevere = severePairs.filter(pair => {
+  const unresolvableSeverePairs = severePairs.filter(pair => {
     const c1 = claimById.get(pair.claim1Id);
     const c2 = claimById.get(pair.claim2Id);
     const g1 = c1 != null && GROUNDED_VERDICTS.has(c1.verdict);
     const g2 = c2 != null && GROUNDED_VERDICTS.has(c2.verdict);
     return !g1 && !g2;
-  }).length;
+  });
+  // Thesis-bearing test: an unresolvable severe contradiction is FATAL only
+  // when one side carries the thesis itself (verdict / throughLine / title —
+  // supplied as thesisContext). Off-thesis contradictions about the future
+  // are exactly the material a foresight note should surface as scenario
+  // axes — repairable by deletion or by conversion to a labeled projection.
+  // Without thesisContext, every unresolvable severe stays fatal (the
+  // pre-change conservative default).
+  const thesisKw = new Set(
+    (options?.thesisContext ?? '')
+      .toLowerCase()
+      .replace(/[^\w\s-]/g, ' ')
+      .split(/\s+/)
+      .filter(w => w.length >= 5 && !THESIS_STOP.has(w)),
+  );
+  const bearsThesis = (text: string | undefined): boolean => {
+    if (thesisKw.size === 0 || !text) return false;
+    const words = new Set(text.toLowerCase().replace(/[^\w\s-]/g, ' ').split(/\s+/));
+    let hits = 0;
+    for (const w of words) if (thesisKw.has(w)) hits++;
+    return hits >= 2;
+  };
+  const thesisFatalPairs = thesisKw.size === 0
+    ? unresolvableSeverePairs // no thesis context → conservative: all fatal
+    : unresolvableSeverePairs.filter(pair =>
+        bearsThesis(claimById.get(pair.claim1Id)?.text) || bearsThesis(claimById.get(pair.claim2Id)?.text),
+      );
+  const fatalUnresolvableSevere = thesisFatalPairs.length;
+  const offThesisUnresolvable = unresolvableSeverePairs.length - fatalUnresolvableSevere;
+  const unresolvableSevere = fatalUnresolvableSevere; // kept name for downstream logs
   if (severeContradictions > 0) {
-    console.log(`[Critic] ${severeContradictions} severe contradiction(s): ${severeContradictions - unresolvableSevere} adjudicable (≥1 side grounded), ${unresolvableSevere} unresolvable`);
+    console.log(`[Critic] ${severeContradictions} severe contradiction(s): ${severeContradictions - unresolvableSeverePairs.length} adjudicable (≥1 side grounded), ${fatalUnresolvableSevere} fatal-unresolvable (thesis-bearing), ${offThesisUnresolvable} off-thesis (repairable)`);
   }
-  const repairableComposition = groundedness >= 0.65 && fatalRate <= 0.12 && unresolvableSevere === 0 && highBiases === 0;
+  const repairableComposition = groundedness >= 0.65 && fatalRate <= 0.12 && fatalUnresolvableSevere === 0;
   let verdict: CriticVerdict;
   if (overallScore >= 75 && severeContradictions === 0 && highBiases === 0) {
     verdict = 'accept';
@@ -1050,6 +1089,9 @@ export async function runCritic(
       unsupportedClaims: groundedClaims.filter(c => c.verdict === 'unsupported').map(c => ({ id: c.id, text: c.text, reasoning: c.reasoning })),
       contradictedClaims: groundedClaims.filter(c => c.verdict === 'contradicted').map(c => ({ id: c.id, text: c.text, evidence: c.evidence })),
       contradictions: contradictions.map(c => ({ claim1: c.claim1Text, claim2: c.claim2Text, explanation: c.explanation, guidance: 'Unresolved contradiction — ADJUDICATE: keep the claim the grounded evidence supports as the position, rewrite the losing claim as explicitly cited dissent ("sources report Y [SRC-n], but we assess X because…"). Never silently delete one side and never leave both asserted as fact.' })),
+      offThesisUnresolvable: unresolvableSeverePairs
+        .filter(pair => !thesisFatalPairs.includes(pair))
+        .map(pair => ({ claim1: pair.claim1Text, claim2: pair.claim2Text, explanation: pair.explanation, guidance: 'Unsourced contradiction outside the thesis — DELETE both assertions, or convert each into an explicitly labelled projection with a falsification criterion ("We project X by YYYY; this fails if Y"). Never leave two unsourced future claims asserted as fact.' })),
       contestedFindings: contestedFindings.map(c => ({ claim1: c.claim1Text, claim2: c.claim2Text, explanation: c.explanation, guidance: 'Corpus disagreement — present both positions with citations, then TAKE A POSITION: state which the weight of evidence favors and why (source quality, recency, methodology). A think tank commits; it does not merely hedge.' })),
       biases: biases.map(b => ({ type: b.type, description: b.description, mitigation: b.mitigation })),
       citationIssues: citationIssues.map(i => ({ claim: i.claimId, issue: i.issue, explanation: i.explanation })),

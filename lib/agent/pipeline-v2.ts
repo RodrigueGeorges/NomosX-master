@@ -1006,7 +1006,14 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
           fullText: readingsById.get(s.id)?.extractedText || null,
           provider: s.provider || '', year: s.year || undefined,
         }));
-        const r = await runCritic(text, srcs, { skipBias: false, skipContradictions: false });
+        const r = await runCritic(text, srcs, {
+          skipBias: false, skipContradictions: false,
+          thesisContext: [
+            (stats as any)?.thesisBinding?.statement,
+            (obj as any)?.verdict,
+            (obj as any)?.throughLine,
+          ].filter(Boolean).join('\n') || undefined,
+        });
         return { score: r.overallScore, verdict: r.verdict, costUsd: r.costUsd };
       } catch (e) {
         console.warn(`${label} GAPFILL_RESCORE failed (non-blocking):`, e);
@@ -1181,6 +1188,65 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   if (terminalReject) {
     console.warn(`${label} TERMINAL REJECT: critic verdict=reject score=${criticScoreEarly} — skipping editorial tail (debate/arbiter/DA/quality-loop/hero)`);
     (stats as any).terminalReject = { verdict: criticVerdictEarly, score: criticScoreEarly, skippedStages: ['postCriticEnrichment', 'debate', 'arbiterForesight', 'devilsAdvocate', 'peerReviewAndPack', 'styleSweep', 'qualityLoop', 'heroImage'] };
+
+    // ── GHOST SWARM (measurement mode) ──
+    // The artifact won't publish, but the foresight machinery still gets
+    // exercised: chain scenarios → swarm ballots → health → MC election,
+    // persisted to stats with ghost:true. ~$0.1-0.3 of voter calls buys the
+    // first real swarm telemetry on rejected runs (vote splits, family
+    // coverage, IQR, market-context injection) instead of the elector never
+    // running at all. No arbiter, no sentinels, no publication.
+    try {
+      const gStats = stats as Record<string, any>;
+      const { deriveChainScenarios } = await import('./chain-scenarios');
+      const { runSwarmVote, buildLinkCards, assessSwarmHealth } = await import('./swarm-forecaster');
+      const ghostAnalysis = analysis as Record<string, any> | undefined;
+      const ghostChain = deriveChainScenarios(
+        Array.isArray(ghostAnalysis?.causalChain) ? ghostAnalysis.causalChain : undefined,
+        typeof ghostAnalysis?.trajectory === 'object' && ghostAnalysis.trajectory
+          ? String((ghostAnalysis.trajectory as { horizon?: string }).horizon ?? '') : undefined,
+      );
+      if (ghostChain && topSources.length >= 10) {
+        const swarm = await runSwarmVote({
+          question: query,
+          uncertainties: ghostChain.uncertainties.map(u => ({ linkId: u.linkId, claim: u.claim, dependsOn: u.dependsOn })),
+          sourceIds: topSources.map((s: any) => s.id),
+          cards: buildLinkCards(topSources, readings, ghostChain.uncertainties),
+          runId: pipelineRun.id,
+        });
+        addCost(swarm.costUsd, 'SWARM_GHOST');
+        gStats.swarmForecasts = {
+          ghost: true,
+          forecasts: swarm.forecasts.map(f => ({
+            linkId: f.linkId, probability: f.probability, variance: f.variance,
+            iqr: f.iqr, validVotes: f.validVotes, families: f.families, contested: f.contested,
+          })),
+          validVotes: swarm.validVotes, familiesUsed: swarm.familiesUsed,
+          costUsd: swarm.costUsd, skipped: swarm.skipped,
+        };
+        const health = assessSwarmHealth(swarm.forecasts, ghostChain.uncertainties.map(u => u.linkId));
+        gStats.swarmHealth = { ...health, ghost: true };
+        const electable = health.healthy || health.splitElectable === true;
+        if (electable && swarm.forecasts.length >= 2) {
+          const { electScenario } = await import('./mc-elector');
+          const election = electScenario({ scenarios: ghostChain.scenarios, forecasts: swarm.forecasts, question: query });
+          gStats.swarmElection = { ...(election ?? { skipped: 'insufficient_link_distributions' }), ghost: true };
+          if (election) {
+            const { buildForecastState } = await import('./forecast-revision');
+            gStats.forecastState = { ...buildForecastState(query, ghostChain.scenarios, swarm.forecasts), ghost: true };
+          }
+          console.log(`${label} GHOST SWARM: ${swarm.validVotes} votes / ${swarm.familiesUsed.length} families / elected=${election?.scenarioId ?? 'none'} p=${election ? election.probability.toFixed(3) : 'n/a'} contested=${election?.contested ?? '-'} — telemetry only`);
+        } else {
+          gStats.swarmElection = { skipped: 'swarm_unhealthy', issues: health.issues, ghost: true };
+          console.log(`${label} GHOST SWARM unhealthy — ${health.issues.join('; ')}`);
+        }
+      } else {
+        gStats.swarmElection = { skipped: 'ghost_no_chain', ghost: true, reason: ghostChain ? 'thin_corpus' : 'insufficient_uncertainties' };
+      }
+    } catch (ghostErr) {
+      console.warn(`${label} GHOST SWARM failed (non-blocking):`, ghostErr);
+      recordDegradedStep(stats as Record<string, any>, 'SWARM_GHOST', ghostErr);
+    }
   }
 
   // ── STEP 7d: SCENARIO ENGINE — MOVED to pre-analyst (Step 6) for context injection ──

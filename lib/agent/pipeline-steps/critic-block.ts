@@ -116,7 +116,19 @@ export async function runCriticBlock(deps: CriticBlockDeps): Promise<CriticBlock
       year: s.year || undefined,
     }));
 
-    const criticResult = await runCritic(analysisText, criticSources, { skipBias: false, skipContradictions: false });
+    const criticResult = await runCritic(analysisText, criticSources, {
+      skipBias: false, skipContradictions: false,
+      // Off-thesis unresolvable contradictions are repairable (delete or
+      // convert to labeled projection); only thesis-bearing ones stay fatal.
+      // Thesis context = bound hypothesis statement + the analysis verdict
+      // and through-line — a contradiction resting on the thesis itself is
+      // what stays fatal.
+      thesisContext: [
+        (stats as any)?.thesisBinding?.statement,
+        typeof analysis === 'object' ? (analysis as any)?.verdict : undefined,
+        typeof analysis === 'object' ? (analysis as any)?.throughLine : undefined,
+      ].filter(Boolean).join('\n') || undefined,
+    });
     addCost(criticResult.costUsd, 'CRITIC');
     savedCriticResult = criticResult;
     stats.critic = tagEval({
