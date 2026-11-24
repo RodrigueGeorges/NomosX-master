@@ -12,13 +12,18 @@
  *    double-loss. Now excluded from groundedness, flagged as citation issues.
  */
 import { callLLM } from '@/lib/llm/unified-llm';
-import { decomposeAnalysis, validateCitations, runCritic } from '@/lib/agent/critic-agent';
+import { decomposeAnalysis, validateCitations, runCritic, clearDecompositionCache } from '@/lib/agent/critic-agent';
 import type { AtomicClaim } from '@/lib/agent/critic-agent';
 
 jest.mock('@/lib/llm/unified-llm', () => ({ callLLM: jest.fn() }));
 jest.mock('@/lib/agent/semantic-engine', () => ({ embedBatchDetailed: jest.fn(async () => ({ embeddings: [], model: 'none' })), cosineSimilarity: jest.fn(() => 0) }));
 
 const mockedLLM = jest.mocked(callLLM);
+
+beforeEach(() => {
+  mockedLLM.mockReset();
+  clearDecompositionCache();
+});
 
 const SOURCES = [
   { index: 1, title: 'Rail hedging', abstract: 'Malaysia renegotiated rail debt.', fullText: 'Malaysia renegotiated the East Coast Rail Link debt in 2019, reducing costs.' },

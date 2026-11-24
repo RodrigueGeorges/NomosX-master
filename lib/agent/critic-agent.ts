@@ -137,7 +137,29 @@ Rules:
 - Aim for 10-30 claims depending on analysis length
 - Each claim should be one sentence, verifiable on its own`;
 
+// Decomposition cache: the same analysis text is judged up to three times
+// per run (pre-adoption rescore, critic pass, post-mutation rescore). LLM
+// decomposition is non-deterministic enough that 20 vs 24 claims flipped a
+// verdict 43→15 on identical text (run v9). Caching by text hash makes every
+// re-judgement evaluate the SAME claim set — remaining variance is confined
+// to grounding/contradiction stages, not claim extraction.
+const DECOMP_CACHE_MAX = 60;
+const decompCache = new Map<string, { claims: AtomicClaim[]; costUsd: number }>();
+/** Test hook — production never needs this (keys are content hashes). */
+export function clearDecompositionCache(): void { decompCache.clear(); }
+function decompCacheKey(text: string): string {
+  const t = text.slice(0, 12000);
+  let h = 0;
+  for (let i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) | 0;
+  return `${h >>> 0}:${t.length}`;
+}
+
 export async function decomposeAnalysis(analysis: string): Promise<{ claims: AtomicClaim[]; costUsd: number }> {
+  const cacheKey = decompCacheKey(analysis);
+  const cached = decompCache.get(cacheKey);
+  if (cached) {
+    return { claims: cached.claims.map(c => ({ ...c })), costUsd: 0 };
+  }
   try {
     const response = await callLLM({
       messages: [{
@@ -180,7 +202,10 @@ export async function decomposeAnalysis(analysis: string): Promise<{ claims: Ato
           confidence: 0,
         };
       });
-      return { claims, costUsd: typeof response.costUsd === 'number' ? response.costUsd : 0 };
+      const out = { claims, costUsd: typeof response.costUsd === 'number' ? response.costUsd : 0 };
+      if (decompCache.size >= DECOMP_CACHE_MAX) decompCache.delete(decompCache.keys().next().value!);
+      decompCache.set(cacheKey, out);
+      return out;
     }
   } catch (err) {
     console.warn('[Critic] Decomposition failed:', String(err).slice(0, 100));
@@ -200,7 +225,10 @@ export async function decomposeAnalysis(analysis: string): Promise<{ claims: Ato
     };
   });
 
-  return { claims, costUsd: 0 };
+  const out = { claims, costUsd: 0 };
+  if (decompCache.size >= DECOMP_CACHE_MAX) decompCache.delete(decompCache.keys().next().value!);
+  decompCache.set(cacheKey, out);
+  return out;
 }
 
 // ─── Stage 2: Evidence Grounding (NLI-based) ────────────────────────────────
@@ -607,6 +635,8 @@ Rules:
 
 CRITICAL — temporal scope: a claim about the PRESENT state and a claim about a PROJECTED future are NOT contradictions. "Petrostates depend on oil today" and "petrostates may be diversified economies by 2040" describe a trajectory — the entire point of prospective analysis. Only flag claims that conflict within the SAME temporal scope (both present-fact, or the same horizon).
 
+CRITICAL — proposition identity: a contradiction requires the SAME proposition asserted incompatibly — same subject, same predicate, same scope, same period. These are NOT contradictions: an announcement/decision vs its projected effect ("MACF announced for 2026" vs "no evidence it reduces emissions by 2030" — a policy existing says nothing about its measured impact); a past observation vs a future projection; a mechanism vs its outcome; different metrics or different scopes ("covers 50% of emissions" vs "covers all industrial goods"). When in doubt whether two claims are even about the same proposition, do NOT flag them.
+
 CRITICAL — adjudicated tensions are NOT contradictions: when the analysis commits to a position while acknowledging the competing claim ("the evidence favors X, though sources report Y", "we assess A despite reports of B", "while Z argues P, the weight of evidence supports not-P"), the pair is a legitimate analytical stance — the mandate of a think-tank piece is to take positions on contested material. Only flag pairs where the text asserts BOTH claims as established fact without acknowledging or resolving the tension. A claim describing what a source or actor argues ("source Z maintains P") likewise does not contradict the analysis's own assessment of not-P.`
 
 export async function detectContradictions(claims: AtomicClaim[]): Promise<{ contradictions: ContradictionPair[]; costUsd: number }> {
@@ -635,6 +665,83 @@ export async function detectContradictions(claims: AtomicClaim[]): Promise<{ con
   }
 
   return { contradictions: [], costUsd: 0 };
+}
+
+// ─── Severe-pair cross-family confirmation ──────────────────────────────────
+// The detector still over-flags prospective material (announcement vs effect,
+// past observation vs projection). Every SEVERE pair is re-judged once by a
+// provider of a different family before it can count as severe; pairs the
+// confirmer rejects are downgraded to 'moderate' — penalized, never fatal.
+// Fail-open on provider outage: availability beats a missed downgrade.
+const SEVERE_CONFIRM_PROMPT = `You are a strict logic auditor. For each candidate "contradiction" below, decide whether it is a GENUINE contradiction.
+
+A genuine contradiction requires BOTH:
+1. SAME proposition — same subject, same predicate, same scope, same period.
+2. MUTUALLY EXCLUSIVE — the two claims cannot both be true.
+
+NOT contradictions (answer confirmed:false):
+- An announcement/decision vs its projected effect ("policy announced for 2026" vs "no evidence it reduces emissions by 2030")
+- A past observation vs a future projection, or two different horizons
+- A mechanism vs its outcome, different metrics, or different scopes
+- Claims about different actors, sectors, or time windows
+
+PAIRS:
+{pairs}
+
+Return JSON: { "confirmed": [<index>, ...] } — indices of pairs that ARE genuine contradictions. Omit the rest.`;
+
+async function confirmSevereContradictions(
+  pairs: ContradictionPair[],
+): Promise<{ contradictions: ContradictionPair[]; costUsd: number; confirmed: number; downgraded: number }> {
+  const severe = pairs.filter(p => p.severity === 'severe');
+  if (severe.length === 0) return { contradictions: pairs, costUsd: 0, confirmed: 0, downgraded: 0 };
+  try {
+    const { getAvailableProviders, getSuspendedProviders, PROVIDER_FAMILY } = await import('../llm/unified-llm');
+    const suspended = await getSuspendedProviders();
+    const alive = getAvailableProviders().filter(p => !suspended.includes(p));
+    // Detection ran on 'reader_v3' → glm family; the confirmer must be a
+    // different family or the check is self-grading.
+    const confirmer = alive.find(p => PROVIDER_FAMILY[p] !== 'glm') ?? alive[0];
+    if (!confirmer) return { contradictions: pairs, costUsd: 0, confirmed: severe.length, downgraded: 0 };
+    const payload = severe.slice(0, 8).map((p, i) => ({
+      i,
+      claim1: p.claim1Text, claim2: p.claim2Text, explanation: p.explanation,
+    }));
+    const res = await callLLM({
+      messages: [{ role: 'user', content: SEVERE_CONFIRM_PROMPT.replace('{pairs}', JSON.stringify(payload, null, 1)) }],
+      temperature: 0.1,
+      jsonMode: true,
+      maxTokens: 1200,
+      task: 'reader_v3',
+      provider: confirmer,
+      enableCache: true,
+    });
+    const parsed = parseJson<{ confirmed?: number[] }>(res.content);
+    // Malformed/missing 'confirmed' array = confirmation unavailable →
+    // fail-open (keep pairs). Only a well-formed verdict may downgrade.
+    if (!Array.isArray(parsed?.confirmed)) {
+      return { contradictions: pairs, costUsd: typeof res.costUsd === 'number' ? res.costUsd : 0, confirmed: severe.length, downgraded: 0 };
+    }
+    const confirmedIdx = new Set(parsed.confirmed.filter(n => Number.isInteger(n)));
+    // Map back: 'severe' list order → original pair objects.
+    const severeSet = new Set(severe);
+    let confirmed = 0, downgraded = 0;
+    const out = pairs.map(p => {
+      if (!severeSet.has(p)) return p;
+      const idx = severe.indexOf(p);
+      if (idx >= 8 || confirmedIdx.has(idx)) { confirmed++; return p; } // >8 pairs: batch cap, keep
+      downgraded++;
+      return { ...p, severity: 'moderate' as const };
+    });
+    return {
+      contradictions: out,
+      costUsd: typeof res.costUsd === 'number' ? res.costUsd : 0,
+      confirmed, downgraded,
+    };
+  } catch (err) {
+    console.warn('[Critic] Severe-pair confirmation failed (keeping pairs):', String(err).slice(0, 80));
+    return { contradictions: pairs, costUsd: 0, confirmed: severe.length, downgraded: 0 };
+  }
 }
 
 // ─── Stage 4: Bias Detection ────────────────────────────────────────────────
@@ -908,6 +1015,17 @@ export async function runCritic(
     });
     if (contestedFindings.length > 0) {
       console.log(`[Critic] ${contestedFindings.length} contradiction pair(s) reclassified as contested findings (both sides grounded in different sources)`);
+    }
+
+    // Severe pairs get a cross-family confirmation before they can count as
+    // severe — the detector over-flags prospective non-contradictions, and a
+    // false 'severe' was the entire basis of the v9 terminal reject.
+    const severeBefore = contradictions.filter(c => c.severity === 'severe').length;
+    const confirm = await confirmSevereContradictions(contradictions);
+    contradictions = confirm.contradictions;
+    totalCost += confirm.costUsd;
+    if (confirm.downgraded > 0 || severeBefore !== contradictions.filter(c => c.severity === 'severe').length) {
+      console.log(`[Critic] Severe-pair confirmation (${confirm.confirmed} confirmed, ${confirm.downgraded} downgraded to moderate)`);
     }
   }
 

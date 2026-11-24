@@ -112,7 +112,7 @@ function normalizeTask(task: LLMTask | undefined): LLMTask {
   return LEGACY_TASK_ALIAS[task] ?? task;
 }
 
-const PROVIDER_FAMILY: Record<LLMProvider, LLMFamily> = {
+export const PROVIDER_FAMILY: Record<LLMProvider, LLMFamily> = {
   deepseek: "deepseek",
   glm: "glm",
   openai: "openai",

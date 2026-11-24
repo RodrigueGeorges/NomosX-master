@@ -1014,12 +1014,38 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
             (obj as any)?.throughLine,
           ].filter(Boolean).join('\n') || undefined,
         });
-        return { score: r.overallScore, verdict: r.verdict, costUsd: r.costUsd };
+        return { score: r.overallScore, verdict: r.verdict, costUsd: r.costUsd, result: r };
       } catch (e) {
         console.warn(`${label} GAPFILL_RESCORE failed (non-blocking):`, e);
         recordDegradedStep(stats as Record<string, any>, 'GAPFILL_RESCORE', e);
         return null;
       }
+    },
+    // The pre-adoption critic verdict describes EXACTLY the adopted artifact —
+    // persist it fresh so eval-rescore doesn't re-judge identical text and
+    // flip the verdict on decomposition variance (run v9: 43 → reject 15).
+    onAdoptedCritic: (r: any) => {
+      if (!r || typeof r.overallScore !== 'number') return;
+      stats.critic = tagEval({
+        verdict: r.verdict,
+        overallScore: r.overallScore,
+        groundedness: r.groundedness,
+        claimsCount: r.claims?.length ?? 0,
+        contradictions: r.contradictions?.length ?? 0,
+        contestedFindings: r.contestedFindings?.length ?? 0,
+        contestedFindingsDetail: (r.contestedFindings ?? []).slice(0, 5).map((c: any) => ({
+          claim1: String(c.claim1Text ?? '').slice(0, 200),
+          claim2: String(c.claim2Text ?? '').slice(0, 200),
+          explanation: String(c.explanation ?? '').slice(0, 200),
+        })),
+        biases: r.biases?.length ?? 0,
+        citationIssues: r.citationIssues?.length ?? 0,
+        stageResults: r.stageResults,
+        costUsd: r.costUsd,
+        durationMs: r.durationMs,
+        adoptedCandidateRescore: true,
+      }, 'analysis');
+      console.log(`${label} ADOPTED-CANDIDATE CRITIC: verdict=${r.verdict} score=${r.overallScore} persisted fresh (no rescore needed)`);
     },
   };
   const processGapRequests = createGapRequestProcessor(gapFillDeps);

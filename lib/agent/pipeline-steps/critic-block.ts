@@ -387,11 +387,19 @@ export async function runCriticBlock(deps: CriticBlockDeps): Promise<CriticBlock
       const { runCritic: reviewCandidate } = await import('../critic-agent');
       const { runCriticPanel: reviewCandidatePanel } = await import('../critic-panel');
       const candidateReadings = new Map<string, any>(readings.map((r: any) => [r.sourceId, r]));
+      const repObj = typeof repaired === 'object' && repaired ? repaired : {};
       const candidateCritic = await reviewCandidate(criticReviewText(repaired), topSources.map((s: any, i: number) => ({
         index: i + 1, title: s.title || '', abstract: s.abstract || '',
         fullText: candidateReadings.get(s.id)?.extractedText || null,
         provider: s.provider || '', year: s.year || undefined,
-      })), { skipBias: false, skipContradictions: false });
+      })), {
+        skipBias: false, skipContradictions: false,
+        thesisContext: [
+          (stats as any)?.thesisBinding?.statement,
+          (repObj as any)?.verdict,
+          (repObj as any)?.throughLine,
+        ].filter(Boolean).join('\n') || undefined,
+      });
       addCost(candidateCritic.costUsd, 'CRITIC_RECHECK');
       const candidatePanel = await reviewCandidatePanel(JSON.stringify(repaired), query, {
         domain: detectedDomain,

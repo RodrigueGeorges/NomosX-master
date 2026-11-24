@@ -57,7 +57,13 @@ export interface GapFillDeps {
    * the candidate regresses materially, the swap is refused — citations alone
    * proved to be a Goodhart-prone witness (a +6-citation candidate once
    * rescored 16 vs a 44-scored original). */
-  criticScoreFn?: (candidateAnalysis: any) => Promise<{ score: number; verdict: string; costUsd?: number } | null>;
+  criticScoreFn?: (candidateAnalysis: any) => Promise<{ score: number; verdict: string; costUsd?: number; result?: any } | null>;
+  /** Called when a candidate scored by criticScoreFn is ADOPTED: the caller
+   * persists the full CriticResult as the artifact's fresh verdict so the
+   * post-adoption stale-eval rescore doesn't re-judge identical text (run v9:
+   * the discarded 43/100 rescore forced a third critic pass that decomposed
+   * differently and rejected at 15). */
+  onAdoptedCritic?: (result: any) => void;
   analystMultipass: (query: string, topSources: any[], readings: any[], opts: any) => Promise<any>;
   rank: (query: string, opts: any) => Promise<any[]>;
   scout: (query: string, providers: any, limit?: number) => Promise<any>;
@@ -250,17 +256,20 @@ export function createGapRequestProcessor(deps: GapFillDeps) {
             const priorCriticScore = typeof stats.critic?.overallScore === 'number' ? stats.critic.overallScore : null;
             let candidateScore: number | null = null;
             let adopt = true;
+            let adoptedCriticResult: any = null;
             if (priorCriticScore != null && deps.criticScoreFn && !deps.isBudgetConstrained()) {
               const rescore = await deps.criticScoreFn(reResult.analysis);
               if (rescore) {
                 addCost(rescore.costUsd, 'GAPFILL_RESCORE');
                 candidateScore = rescore.score;
                 adopt = rescore.score >= priorCriticScore - 5;
+                if (adopt) adoptedCriticResult = rescore.result ?? null;
               }
             }
             if (adopt) {
               state.analysis = reResult.analysis;
               bumpAnalysisArtifact();
+              if (adoptedCriticResult) deps.onAdoptedCritic?.(adoptedCriticResult);
               ctx.setAnalystOutput(state.analysis);
               stats.gapFillReAnalysis = {
                 triggered: true,
@@ -398,17 +407,20 @@ export async function runGapFillStage(deps: GapFillDeps): Promise<void> {
       // Same pre-adoption witness as the blackboard path — a prior critic
       // score floors the swap when the candidate rescored materially worse.
       const priorCriticScore = typeof stats.critic?.overallScore === 'number' ? stats.critic.overallScore : null;
+      let adoptedCriticResult: any = null;
       if (adopt && priorCriticScore != null && deps.criticScoreFn && !isBudgetConstrained()) {
         const rescore = await deps.criticScoreFn(reAnalysis);
         if (rescore) {
           addCost(rescore.costUsd, 'GAPFILL_RESCORE');
           adopt = rescore.score >= priorCriticScore - 5;
+          if (adopt) adoptedCriticResult = rescore.result ?? null;
           if (!adopt) console.log(`${label} RE_ANALYZE: candidate rejected by critic rescore (${rescore.score} < prior ${priorCriticScore}-5)`);
         }
       }
       if (adopt) {
         state.analysis = reAnalysis;
         bumpAnalysisArtifact();
+        if (adoptedCriticResult) deps.onAdoptedCritic?.(adoptedCriticResult);
         ctx.setAnalystOutput(state.analysis);
         addCost(typeof reAnalysis._meta?.totalCostUsd === "number" ? reAnalysis._meta.totalCostUsd : 0, 'RE_ANALYZE');
         console.log(`${label} RE_ANALYZE: improved citations ${origCitations} → ${reCitations}`);

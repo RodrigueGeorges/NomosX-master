@@ -119,26 +119,41 @@ export async function rescoreStaleAnalysisEvals(deps: EvalRescoreDeps): Promise<
           if (!SPECULATIVE_OR_META_KEYS.has(k)) filtered[k] = v;
         }
         const rescoreText = criticReviewText(filtered).replace(/\[E(\d+)\]/g, '[SRC-$1]');
-        const r = await runCritic(rescoreText, rescoreSources, {
+        const criticOpts = {
           skipBias: false, skipContradictions: false,
           thesisContext: [
             (stats as any)?.thesisBinding?.statement,
             (criticAnalysisObj as any)?.verdict,
             (criticAnalysisObj as any)?.throughLine,
           ].filter(Boolean).join('\n') || undefined,
-        });
+        };
+        const r = await runCritic(rescoreText, rescoreSources, criticOpts);
         addCost(r.costUsd, 'CRITIC_RESCORE');
+        // Terminal-reject guard: a reject inside the terminal band (<20) on a
+        // single fresh pass is fragile — run v9 flipped identical text
+        // 43→15 purely on re-decomposition variance. When the previous
+        // judgment was NOT a reject, spend one tie-break pass; majority of
+        // {prior, rescore, tie} decides the recorded verdict.
+        const priorVerdict = (stats.critic as any)?.verdict;
+        let finalCritic = r;
+        if (r.verdict === 'reject' && r.overallScore < 20 && priorVerdict && priorVerdict !== 'reject') {
+          const tie = await runCritic(rescoreText, rescoreSources, criticOpts);
+          addCost(tie.costUsd, 'CRITIC_TIEBREAK');
+          const rejectVotes = [priorVerdict, r.verdict, tie.verdict].filter(v => v === 'reject').length;
+          finalCritic = rejectVotes >= 2 ? r : tie;
+          console.log(`${label} CRITIC TIE-BREAK: prior=${priorVerdict} rescore=reject(${r.overallScore}) tie=${tie.verdict}(${tie.overallScore}) → majority ${finalCritic.verdict}`);
+        }
         stats.critic = tagEval({
-          verdict: r.verdict, overallScore: r.overallScore,
-          groundedness: r.groundedness, claimsCount: r.claims.length,
-          contradictions: r.contradictions.length,
-          contestedFindings: r.contestedFindings?.length ?? 0,
-          biases: r.biases.length,
-          citationIssues: r.citationIssues.length, stageResults: r.stageResults,
-          costUsd: r.costUsd, durationMs: r.durationMs, rescoredPostMutation: true,
+          verdict: finalCritic.verdict, overallScore: finalCritic.overallScore,
+          groundedness: finalCritic.groundedness, claimsCount: finalCritic.claims.length,
+          contradictions: finalCritic.contradictions.length,
+          contestedFindings: finalCritic.contestedFindings?.length ?? 0,
+          biases: finalCritic.biases.length,
+          citationIssues: finalCritic.citationIssues.length, stageResults: finalCritic.stageResults,
+          costUsd: finalCritic.costUsd, durationMs: finalCritic.durationMs, rescoredPostMutation: true,
         }, 'analysis');
-        deps.onCriticRescored?.(r);
-        console.log(`${label} CRITIC RE-SCORE: →${r.overallScore}/100 (${r.verdict})`);
+        deps.onCriticRescored?.(finalCritic);
+        console.log(`${label} CRITIC RE-SCORE: →${finalCritic.overallScore}/100 (${finalCritic.verdict})`);
       } else if (key === 'criticPanel') {
         const { runCriticPanel } = await import('../critic-panel');
         const panelText = typeof analysis === 'string' ? analysis : JSON.stringify(analysis);
