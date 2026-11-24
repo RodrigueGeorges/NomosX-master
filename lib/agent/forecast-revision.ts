@@ -172,44 +172,63 @@ export async function applySentinelResolutionToRun(prediction: {
   });
   if (!brief?.pipelineRunId) return null;
 
-  const run = await prisma.pipelineRun.findUnique({
-    where: { id: brief.pipelineRunId },
-    select: { id: true, steps: true },
-  });
-  const steps = (run?.steps ?? {}) as Record<string, any>;
-  const state = steps?.forecastState as ForecastState | undefined;
-  if (!state?.links?.length || !state.scenarios?.length) return null;
+  // Read-modify-write on steps.forecastRevisions must be atomic: two
+  // sentinel resolutions landing on the same run concurrently used to lose
+  // one revision (last writer wins on the whole JSON blob). Serializable
+  // transaction + retry makes the append conflict-safe.
+  let result: ReturnType<typeof reviseForecast> = null;
+  let runId: string | null = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      result = await prisma.$transaction(async (tx) => {
+        const run = await tx.pipelineRun.findUnique({
+          where: { id: brief.pipelineRunId! },
+          select: { id: true, steps: true },
+        });
+        const steps = (run?.steps ?? {}) as Record<string, any>;
+        const state = steps?.forecastState as ForecastState | undefined;
+        if (!state?.links?.length || !state.scenarios?.length) return null;
 
-  const revisions = (steps.forecastRevisions ?? []) as ProbabilityRevision[];
-  // Idempotent: a prediction resolves once, but guard against double-apply.
-  if (revisions.some(r => r.cause.predictionId === prediction.id)) return null;
+        const revisions = (steps.forecastRevisions ?? []) as ProbabilityRevision[];
+        // Idempotent: a prediction resolves once, but guard against double-apply.
+        if (revisions.some(r => r.cause.predictionId === prediction.id)) return null;
 
-  const result = reviseForecast(state, {
-    linkId,
-    outcome: prediction.outcome,
-    predictionId: prediction.id,
-    evidenceUrl: prediction.resolutionSource ?? undefined,
-    resolvedAt: (prediction.resolvedAt ?? new Date()).toISOString(),
-  });
-  if (!result) return null;
+        const rev = reviseForecast(state, {
+          linkId,
+          outcome: prediction.outcome as 'occurred' | 'not_occurred',
+          predictionId: prediction.id,
+          evidenceUrl: prediction.resolutionSource ?? undefined,
+          resolvedAt: (prediction.resolvedAt ?? new Date()).toISOString(),
+        });
+        if (!rev) return null;
 
-  const nextRevisions = [...revisions, result.revision];
-  const nextSteps = {
-    ...steps,
-    forecastState: result.state,
-    forecastRevisions: nextRevisions,
-    centralScenario: result.revision.electionChanged && steps.centralScenario
-      ? {
-          ...steps.centralScenario,
-          probability: result.revision.elected.probabilityAfter,
-          name: steps.centralScenario.name, // published name is editorial — keep it
-        }
-      : steps.centralScenario,
-  };
-  await prisma.pipelineRun.update({
-    where: { id: run!.id },
-    data: { steps: nextSteps as any },
-  });
+        const nextSteps = {
+          ...steps,
+          forecastState: rev.state,
+          forecastRevisions: [...revisions, rev.revision],
+          centralScenario: rev.revision.electionChanged && steps.centralScenario
+            ? {
+                ...steps.centralScenario,
+                probability: rev.revision.elected.probabilityAfter,
+                name: steps.centralScenario.name, // published name is editorial — keep it
+              }
+            : steps.centralScenario,
+        };
+        await tx.pipelineRun.update({
+          where: { id: run!.id },
+          data: { steps: nextSteps as any },
+        });
+        return rev;
+      }, { isolationLevel: 'Serializable' });
+      runId = brief.pipelineRunId;
+      break;
+    } catch (txErr) {
+      // Serialization failure / deadlock → retry with a fresh read.
+      if (attempt === 2) throw txErr;
+      await new Promise(r => setTimeout(r, 50 * (attempt + 1)));
+    }
+  }
+  if (!result || !runId) return null;
 
   // Surface on the publication: append the revision to the note's forecast
   // history and refresh the elected probability when the election moved.

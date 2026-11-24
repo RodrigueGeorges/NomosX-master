@@ -107,16 +107,16 @@ let persistenceHook: ProgressPersistenceHook | null = null;
 // FAILED. Touch updatedAt at most once a minute per run to keep it honest.
 const RUN_TOUCH_MS = 60_000;
 const lastRunTouch = new Map<string, number>();
-function touchRunLiveness(runId: string): void {
-  const now = Date.now();
-  const last = lastRunTouch.get(runId);
-  if (last !== undefined && now - last < RUN_TOUCH_MS) return;
-  lastRunTouch.set(runId, now);
-  if (lastRunTouch.size > 256) {
-    const cutoff = now - 2 * 60 * 60 * 1000;
-    for (const [id, t] of lastRunTouch) if (t < cutoff) lastRunTouch.delete(id);
-  }
-  // Lazy import keeps prisma out of any bundle that only streams SSE events.
+
+// A progress-event-driven heartbeat is not enough: a single long silent
+// phase (analyst multipass, freepool-pinned LLM retries) emits nothing for
+// 30+ min, freezing updatedAt while the run is perfectly alive — the 45min
+// stale sweeper then kills it mid-flight. Each active run therefore gets a
+// dedicated 60s liveness timer, independent of step transitions. The timer
+// dies with the process, so a crashed worker still goes stale correctly.
+const livenessTimers = new Map<string, NodeJS.Timeout>();
+
+function touchRunDb(runId: string): void {
   // Guard on status=RUNNING: a late heartbeat racing the terminal write must
   // not resurrect finishedAt on an already-COMPLETED/FAILED run (the stale
   // sweeper keys off finishedAt/updatedAt and would re-kill a finished run).
@@ -127,7 +127,37 @@ function touchRunLiveness(runId: string): void {
         data: { finishedAt: null },
       })
     )
+    .then((res) => {
+      // Row exists but is no longer RUNNING (finished via a path that never
+      // emitted COMPLETE/ERROR) — stop the timer instead of firing forever.
+      if (res && res.count === 0) stopLivenessTimer(runId);
+    })
     .catch(() => undefined); // ad-hoc/non-DB run ids — heartbeat is best-effort
+}
+
+function ensureLivenessTimer(runId: string): void {
+  if (livenessTimers.has(runId)) return;
+  const timer = setInterval(() => touchRunDb(runId), RUN_TOUCH_MS);
+  timer.unref?.();
+  livenessTimers.set(runId, timer);
+}
+
+function stopLivenessTimer(runId: string): void {
+  const t = livenessTimers.get(runId);
+  if (t) { clearInterval(t); livenessTimers.delete(runId); }
+}
+
+function touchRunLiveness(runId: string): void {
+  const now = Date.now();
+  const last = lastRunTouch.get(runId);
+  if (last !== undefined && now - last < RUN_TOUCH_MS) return;
+  lastRunTouch.set(runId, now);
+  if (lastRunTouch.size > 256) {
+    const cutoff = now - 2 * 60 * 60 * 1000;
+    for (const [id, t] of lastRunTouch) if (t < cutoff) lastRunTouch.delete(id);
+  }
+  ensureLivenessTimer(runId);
+  touchRunDb(runId);
 }
 
 /** Optional hook to persist progress (e.g. StudioXOrder updates during async runs). */
@@ -160,8 +190,10 @@ export function emitProgress(
   // Observability: mirror every step transition as a trace span. No-op unless
   // ENABLE_LANGFUSE — fire-and-forget inside traceStep.
   traceStep(runId, step, status, message);
-  if (step === "COMPLETE" || step === "ERROR") lastRunTouch.delete(runId);
-  else touchRunLiveness(runId);
+  if (step === "COMPLETE" || step === "ERROR") {
+    lastRunTouch.delete(runId);
+    stopLivenessTimer(runId);
+  } else touchRunLiveness(runId);
   if (persistenceHook) {
     void Promise.resolve(persistenceHook(event)).catch((err) => {
       console.warn('[PipelineProgress] persistence hook error:', err);
