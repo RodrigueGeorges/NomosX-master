@@ -1207,11 +1207,20 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
           ? String((ghostAnalysis.trajectory as { horizon?: string }).horizon ?? '') : undefined,
       );
       if (ghostChain && topSources.length >= 10) {
+        const contestedExtras = ((gStats.critic as any)?.contestedFindingsDetail ?? [])
+          .map((cf: any, i: number) => ({
+            linkId: 8000 + i,
+            claim: `Corpus disagreement — ${String(cf.claim1 ?? '').slice(0, 140)} vs ${String(cf.claim2 ?? '').slice(0, 140)}`,
+          }));
+        const ghostUncertainties = [
+          ...ghostChain.uncertainties.map(u => ({ linkId: u.linkId, claim: u.claim, dependsOn: u.dependsOn })),
+          ...contestedExtras,
+        ];
         const swarm = await runSwarmVote({
           question: query,
-          uncertainties: ghostChain.uncertainties.map(u => ({ linkId: u.linkId, claim: u.claim, dependsOn: u.dependsOn })),
+          uncertainties: ghostUncertainties,
           sourceIds: topSources.map((s: any) => s.id),
-          cards: buildLinkCards(topSources, readings, ghostChain.uncertainties),
+          cards: buildLinkCards(topSources, readings, ghostUncertainties),
           runId: pipelineRun.id,
         });
         addCost(swarm.costUsd, 'SWARM_GHOST');

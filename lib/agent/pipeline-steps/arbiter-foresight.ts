@@ -113,14 +113,23 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
         } catch (mktErr) {
           console.warn(`${label} SWARM markets fetch failed (non-blocking):`, mktErr);
         }
+        // Critic-found corpus disagreements become extra vote targets
+        // (ids 8000+ — outside scenario conditions, so they never gate the
+        // election; they are telemetry + ballot-visible uncertainty axes).
+        const contestedExtras = ((stats.critic as any)?.contestedFindingsDetail ?? [])
+          .map((cf: any, i: number) => ({
+            linkId: 8000 + i,
+            claim: `Corpus disagreement — ${String(cf.claim1 ?? '').slice(0, 140)} vs ${String(cf.claim2 ?? '').slice(0, 140)}`,
+          }));
         const swarm = await runSwarmVote({
           question: query,
           uncertainties: [
             ...chainDerivation.uncertainties.map(u => ({ linkId: u.linkId, claim: u.claim, dependsOn: u.dependsOn })),
             ...drafted.sentinels.map(sn => ({ linkId: sn.voteId, claim: `By ${sn.dueAt}: ${sn.statement} (resolved as: ${sn.resolutionCriteria})` })),
+            ...contestedExtras,
           ],
           sourceIds: topSources.map((s: any) => s.id),
-          cards: buildLinkCards(topSources, deps.readings, chainDerivation.uncertainties),
+          cards: buildLinkCards(topSources, deps.readings, [...chainDerivation.uncertainties, ...contestedExtras]),
           horizon: typeof analysis.trajectory === 'object' && analysis.trajectory
             ? String((analysis.trajectory as { horizon?: string }).horizon ?? '') : undefined,
           runId: pipelineRunId,

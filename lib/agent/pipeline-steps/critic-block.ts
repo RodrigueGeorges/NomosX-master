@@ -116,6 +116,18 @@ export async function runCriticBlock(deps: CriticBlockDeps): Promise<CriticBlock
       year: s.year || undefined,
     }));
 
+    // Future-claim barrier (pre-critic, deterministic): dated future
+    // statements carrying numbers with no citation and no projection label
+    // are the v9 failure mode — unsourced memory numbers that later surface
+    // as unresolvable contradictions. Flag them, persist, and append to the
+    // critic's repair instructions so re-analysis must source/label/delete.
+    const { findUnsourcedFutureClaims } = await import('../future-claim-barrier');
+    const unsourcedFuture = findUnsourcedFutureClaims(analysisText);
+    if (unsourcedFuture.length > 0) {
+      (stats as any).unsourcedFutureClaims = unsourcedFuture.map(f => f.snippet);
+      console.warn(`${label} FUTURE-CLAIM BARRIER: ${unsourcedFuture.length} dated future claim(s) with numbers, no citation, no projection label`);
+    }
+
     const criticResult = await runCritic(analysisText, criticSources, {
       skipBias: false, skipContradictions: false,
       // Off-thesis unresolvable contradictions are repairable (delete or
@@ -138,6 +150,14 @@ export async function runCriticBlock(deps: CriticBlockDeps): Promise<CriticBlock
       claimsCount: criticResult.claims.length,
       contradictions: criticResult.contradictions.length,
       contestedFindings: criticResult.contestedFindings?.length ?? 0,
+      // Persist the finding TEXTS (truncated): downstream foresight uses them
+      // as extra swarm vote targets — corpus disagreements are scenario-axis
+      // material, not throwaway diagnostics.
+      contestedFindingsDetail: (criticResult.contestedFindings ?? []).slice(0, 5).map(c => ({
+        claim1: String(c.claim1Text ?? '').slice(0, 200),
+        claim2: String(c.claim2Text ?? '').slice(0, 200),
+        explanation: String(c.explanation ?? '').slice(0, 200),
+      })),
       biases: criticResult.biases.length,
       citationIssues: criticResult.citationIssues.length,
       stageResults: criticResult.stageResults,
@@ -146,6 +166,20 @@ export async function runCriticBlock(deps: CriticBlockDeps): Promise<CriticBlock
     }, 'analysis');
 
     console.log(`${label} CRITIC: verdict=${criticResult.verdict}, score=${criticResult.overallScore}, groundedness=${Math.round(criticResult.groundedness * 100)}%, ${criticResult.contradictions.length} contradictions, ${criticResult.contestedFindings?.length ?? 0} contested, ${criticResult.biases.length} biases`);
+
+    // Barrier findings join the repair instructions: on any non-accept
+    // verdict the re-analysis must source, label, or delete each flagged
+    // future claim. On 'accept' they stay visible in stats for review.
+    if (unsourcedFuture.length > 0 && criticResult.verdict !== 'accept') {
+      const barrierBlock =
+        `\n\nUNSOURCED FUTURE CLAIMS (${unsourcedFuture.length}) — deterministic barrier: ` +
+        `these dated future statements carry numbers with NO citation and NO projection label. ` +
+        `For each: attach a real [SRC-N] citation, rewrite as an explicitly labelled projection ` +
+        `("We project … by YYYY; this fails if …"), or delete it. Do not leave future numbers asserted as fact.\n` +
+        unsourcedFuture.slice(0, 8).map(f => `- ${f.snippet}`).join('\n');
+      criticResult.repairInstructions = (criticResult.repairInstructions ? `${criticResult.repairInstructions}\n` : '') + barrierBlock;
+      (stats as any).criticRepairBarrierAugmented = true;
+    }
 
     // If critic says repair, inject repair instructions into the analysis context
     if (criticResult.verdict === 'repair' && criticResult.repairInstructions) {
