@@ -89,6 +89,11 @@ export async function runPostRenderCitationAndGrounding(deps: CitationGroundingD
       contradicted: groundingResult.contradicted,
       groundedness: Math.round(groundingResult.groundedness * 100),
       flagged: groundingResult.removedClaims,
+      deer: groundingResult.uncitedChecked ? {
+        checked: groundingResult.uncitedChecked,
+        supported: groundingResult.uncitedSupported,
+        contradicted: groundingResult.uncitedContradicted,
+      } : undefined,
     }, 'html');
 
     // Fix 2: Re-run grounding after removal to get clean score (bad claims are now gone)
@@ -106,6 +111,11 @@ export async function runPostRenderCitationAndGrounding(deps: CitationGroundingD
           contradicted: reGrounding.contradicted,
           groundedness: Math.round(reGrounding.groundedness * 100),
           flagged: groundingResult.removedClaims + reGrounding.removedClaims,
+          deer: reGrounding.uncitedChecked ? {
+            checked: reGrounding.uncitedChecked,
+            supported: reGrounding.uncitedSupported,
+            contradicted: reGrounding.uncitedContradicted,
+          } : undefined,
         }, 'html');
         console.log(`${label} CLAIM GROUNDING: re-grounding improved ${Math.round(groundingResult.groundedness * 100)}% → ${Math.round(reGrounding.groundedness * 100)}%`);
       }

@@ -36,6 +36,10 @@ export interface AtomicClaim {
   verdict: ClaimVerdict;
   evidenceSnippet: string | null;
   score: number; // 0-1, lexical overlap score
+  /** DEER pass (P0-4): uncited factual claims verified against the nearest
+   *  preceding cited source. 'supported' exempts the claim from blind
+   *  quantitative-uncited removal; 'contradicted' forces removal. */
+  deerVerdict?: 'supported' | 'contradicted' | 'unverified';
 }
 
 export interface GroundingResult {
@@ -51,6 +55,11 @@ export interface GroundingResult {
   html: string; // repaired HTML with unsupported claims removed/flagged
   removedClaims: number;
   details: string[];
+  /** DEER pass telemetry (P0-4): uncited factual claims verified against the
+   *  nearest preceding cited source. */
+  uncitedChecked?: number;
+  uncitedSupported?: number;
+  uncitedContradicted?: number;
 }
 
 // ─── 1. CLAIM DECOMPOSITION ─────────────────────────────────────────────────
@@ -380,7 +389,13 @@ export function repairHtmlWithGrounding(
   const badClaims = claims.filter(c =>
     c.verdict === 'unsupported' ||
     c.verdict === 'contradicted' ||
-    (c.verdict === 'uncited' && /\d+\s*%|\d{4,}|\$\s*\d|million|billion|trillion/i.test(c.text))
+    // DEER-contradicted uncited claims are removed regardless of content —
+    // fresh evidence says they're false.
+    (c.verdict === 'uncited' && c.deerVerdict === 'contradicted') ||
+    // Uncited quantitative claims are removed UNLESS the DEER pass verified
+    // them against the nearest cited source — previously every uncited number
+    // was deleted sight-unseen, true or false.
+    (c.verdict === 'uncited' && c.deerVerdict !== 'supported' && /\d+\s*%|\d{4,}|\$\s*\d|million|billion|trillion/i.test(c.text))
   );
   if (badClaims.length === 0) {
     return { html, removedClaims: 0, details };
@@ -773,6 +788,49 @@ export async function groundClaimsWithNLI(
     }
   }
 
+  // Step 3d: DEER pass (P0-4) — uncited factual claims are attached to the
+  // nearest PRECEDING cited source and verified with the same NLI engine,
+  // instead of being deleted sight-unseen for carrying a number. A claim the
+  // source entails survives; a contradicted one is removed; unverifiable
+  // keeps the conservative prior behaviour (quantitative → removed).
+  const deerCandidates = claims
+    .filter(c => c.verdict === 'uncited' && c.deerVerdict === undefined)
+    .filter(c => /\d+\s*%|\d{4,}|\$\s*\d|million|billion|trillion/i.test(c.text) || checkWorthiness(c.text) >= 3)
+    .slice(0, 10);
+  if (deerCandidates.length > 0) {
+    try {
+      const citedByIndex = [...claims]
+        .filter(c => c.sourceRef !== null && c.sourceRef >= 1 && c.sourceRef <= sources.length)
+        .sort((a, b) => a.sentenceIndex - b.sentenceIndex);
+      const sourceTextFor = (ref: number): string => {
+        const source = sources[ref - 1];
+        const reading = readings.find((r: any) => r.sourceId === (source as any).id);
+        return reading
+          ? [reading.claims?.join(' '), reading.results?.join(' '), reading.methods?.join(' '), (reading.extractedText || '').slice(0, 2000)].filter(Boolean).join(' ').slice(0, 4000)
+          : [source.title || '', source.abstract || '', (source.fullText || '').slice(0, 5000)].join(' ');
+      };
+      let deerChecked = 0, deerSupported = 0, deerContradicted = 0;
+      for (const claim of deerCandidates) {
+        // Nearest preceding cited claim's source — the claim most likely
+        // depends on the evidence just established above it.
+        const anchor = [...citedByIndex].reverse().find(c => c.sentenceIndex < claim.sentenceIndex)
+          ?? citedByIndex[citedByIndex.length - 1];
+        if (!anchor) { claim.deerVerdict = 'unverified'; continue; }
+        const nli = await classifyNLI(claim.text, sourceTextFor(anchor.sourceRef!));
+        const v = nliToGroundingVerdict(nli);
+        deerChecked++;
+        if (v === 'supported' || v === 'partial') { claim.deerVerdict = 'supported'; deerSupported++; }
+        else if (v === 'contradicted') { claim.deerVerdict = 'contradicted'; deerContradicted++; }
+        else claim.deerVerdict = 'unverified';
+        claim.evidenceSnippet = `DEER←SRC-${anchor.sourceRef}: ${nli.evidenceSnippet ?? nli.source ?? ''}`.slice(0, 300);
+      }
+      console.log(`[CLAIM GROUNDING NLI] DEER: ${deerChecked} uncited factual claims checked against nearest cited source — ${deerSupported} supported, ${deerContradicted} contradicted`);
+      details.push(`DEER: ${deerChecked} uncited claims verified (${deerSupported} supported, ${deerContradicted} contradicted)`);
+    } catch (err) {
+      console.warn('[CLAIM GROUNDING NLI] DEER pass failed (non-blocking):', String(err).slice(0, 120));
+    }
+  }
+
   // Step 4: Aggregate scores (same as lexical version)
   const supported = claims.filter(c => c.verdict === 'supported').length;
   const partial = claims.filter(c => c.verdict === 'partial').length;
@@ -807,6 +865,9 @@ export async function groundClaimsWithNLI(
     html: repair.html,
     removedClaims: repair.removedClaims,
     details,
+    uncitedChecked: claims.filter(c => c.deerVerdict !== undefined).length,
+    uncitedSupported: claims.filter(c => c.deerVerdict === 'supported').length,
+    uncitedContradicted: claims.filter(c => c.deerVerdict === 'contradicted').length,
   };
 }
 
