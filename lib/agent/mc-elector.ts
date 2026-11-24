@@ -140,7 +140,11 @@ export function electScenario(input: {
   const linkDist = new Map<number, { a: number; b: number }>();
   for (const f of forecasts) {
     if (f.validVotes < 3) continue; // too thin to elect on
-    const m = Math.min(0.98, Math.max(0.02, f.probability));
+    // Clamp link means to [0.05, 0.95] — the BLF/ForecastBench finding:
+    // capable models overestimate tail probabilities on long horizons and
+    // Brier can't see it. [0.02,0.98] let a near-certain link dominate the
+    // election; 0.05/0.95 keeps genuine uncertainty priced in.
+    const m = Math.min(0.95, Math.max(0.05, f.probability));
     means.set(f.linkId, m);
     linkDist.set(f.linkId, betaParams(m, f.variance));
   }
@@ -205,8 +209,8 @@ export function electScenario(input: {
   let bestDelta = -1;
   for (const id of linkIds) {
     const base = means.get(id)!;
-    const up = new Map(means).set(id, Math.min(0.98, base + 0.05));
-    const down = new Map(means).set(id, Math.max(0.02, base - 0.05));
+    const up = new Map(means).set(id, Math.min(0.95, base + 0.05));
+    const down = new Map(means).set(id, Math.max(0.05, base - 0.05));
     const delta = Math.abs(
       cellProbabilities(scenarios, up, conditionalChild, conditionalParent)[leader.i] -
       cellProbabilities(scenarios, down, conditionalChild, conditionalParent)[leader.i],
