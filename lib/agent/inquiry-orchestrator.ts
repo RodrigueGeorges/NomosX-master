@@ -1095,6 +1095,43 @@ export async function runAndPublishInquiry(
     recordDegradedStep(pipeline.stats as Record<string, unknown>, 'FORM_GRID_EVAL', formErr);
   }
 
+  // BINARY CRITERIA JUDGE (lot E, shadow): 8 yes/no criteria graded
+  // criterion-by-criterion by a DIFFERENT LLM family than the producer —
+  // self-preference bias makes same-family rubric judges unreliable.
+  // Shadow mode: verdicts are persisted for measurement; enforcement is
+  // opt-in via NOMOSX_BINARY_JUDGE=enforce after shadow data justifies it.
+  try {
+    const { judgeBinaryCriteria } = await import('./binary-criteria-judge');
+    const producerFamily =
+      ((pipeline.stats.analysis as Record<string, any> | undefined)?._meta?.producerFamily as string | undefined) ??
+      ((pipeline.stats.analysis as Record<string, any> | undefined)?._producerFamily as string | undefined);
+    const judgeResult = await judgeBinaryCriteria({
+      html,
+      question,
+      producerFamily: producerFamily as any,
+      runId: pipeline.pipelineRunId ?? undefined,
+      context: {
+        trustScore, qualityScore,
+        requiredElements: (pipeline.stats as any).requiredElements,
+        swarmHealth: (pipeline.stats as any).swarmHealth,
+        centralScenarioSelectedBy: (pipeline.stats.centralScenario as any)?.selectedBy,
+        degradedSteps: Array.isArray((pipeline.stats as any).degradedSteps) ? (pipeline.stats as any).degradedSteps.length : 0,
+      },
+    });
+    if (judgeResult) {
+      (pipeline.stats as Record<string, unknown>).binaryCriteriaJudge = {
+        ...judgeResult,
+        mode: 'shadow',
+        enforce: process.env.NOMOSX_BINARY_JUDGE === 'enforce',
+      };
+      const failed = judgeResult.criteria.filter(c => !c.passed).map(c => c.id);
+      console.log(`[InquiryOrchestrator] BINARY JUDGE (${judgeResult.judgeProvider ?? '?'}/${judgeResult.judgeFamily ?? '?'} vs producer ${producerFamily ?? '?'}): ${judgeResult.passedCount}/${judgeResult.total} — ${failed.length ? `failed: ${failed.join(', ')}` : 'all passed'}${judgeResult.error ? ` | error: ${judgeResult.error}` : ''}`);
+    }
+  } catch (judgeErr) {
+    console.warn('[InquiryOrchestrator] BINARY JUDGE failed (non-blocking):', judgeErr);
+    recordDegradedStep(pipeline.stats as Record<string, unknown>, 'BINARY_JUDGE', judgeErr);
+  }
+
   console.log(`[InquiryOrchestrator] Gate: decision=${gate.decision} | Readiness: ok=${readiness.ok} | trust=${trustScore} quality=${qualityScore} coverage=${Math.round((citationCoverage || 0) * 100)}%`);
 
   const minTrust = req.minTrustScore ?? 65;
@@ -1202,6 +1239,20 @@ export async function runAndPublishInquiry(
         failed: failedForesight.map(c => ({ id: c.id, detail: c.detail })),
       };
       console.log(`[InquiryOrchestrator] HELD — no valid swarm election: ${failedForesight.map(c => `${c.id} (${c.detail})`).join('; ')}`);
+    }
+  }
+
+  // ── BINARY JUDGE HOLD (enforce mode only) ──
+  // Shadow by default; NOMOSX_BINARY_JUDGE=enforce turns a failed
+  // cross-family criteria verdict into a hold on an otherwise-publishable run.
+  if (status === "published" && process.env.NOMOSX_BINARY_JUDGE === 'enforce') {
+    const bj = (pipeline.stats as Record<string, any>).binaryCriteriaJudge as
+      { allPassed?: boolean; criteria?: Array<{ id: string; passed: boolean }> } | undefined;
+    if (bj && bj.allPassed === false) {
+      const failed = (bj.criteria ?? []).filter(c => !c.passed).map(c => c.id);
+      status = "held";
+      ((pipeline.stats as Record<string, unknown>).publicationGate as Record<string, unknown>).binaryJudgeHold = { failed };
+      console.log(`[InquiryOrchestrator] HELD — binary criteria judge failed: ${failed.join(', ')}`);
     }
   }
 
