@@ -172,6 +172,30 @@ export async function runRenderEditorStep(rc: RenderEditorContext): Promise<stri
       else if (/international|diplomacy|geopolitic|foreign policy|global|nato/.test(q)) styleProfile = 'chatham';
       else if (/policy memo|public policy|administration|governance/.test(q)) styleProfile = 'harvard';
 
+      // Lot 3 dateline: probability + horizon + market odds next to the
+      // verdict. Probability comes from the persisted central scenario's
+      // calibrated figure (fallback: top scenario probability); market odds
+      // from stats.swarmMarkets. Absent data → field omitted, never faked.
+      const csName = (stats.centralScenario as { name?: string } | undefined)?.name;
+      const selectedScn = csName
+        ? institutePosition.scenarios.find((s: any) => String(s.name).trim().toLowerCase() === String(csName).trim().toLowerCase())
+        : institutePosition.scenarios.find((s: any) => typeof s.calibratedProbability === 'number');
+      const scnProb = (() => {
+        const cp = (selectedScn as any)?.calibratedProbability;
+        if (typeof cp === 'number' && Number.isFinite(cp)) return cp;
+        const m = String((selectedScn as any)?.probability ?? '').match(/(\d+(?:\.\d+)?)\s*%/);
+        return m ? Number(m[1]) / 100 : null;
+      })();
+      const swarmMkts = (stats as any).swarmMarkets as { avgProbability?: number | null; markets?: unknown[] } | undefined;
+      const keyFigures = {
+        probability: scnProb,
+        scenarioName: csName ?? (selectedScn as any)?.name,
+        horizon: institutePosition.prospectiveFramework?.horizon
+          ?? String((analysis as any)?.trajectory?.horizon ?? '') ?? undefined,
+        marketAvgProbability: typeof swarmMkts?.avgProbability === 'number' ? swarmMkts.avgProbability : null,
+        marketCount: Array.isArray(swarmMkts?.markets) ? swarmMkts.markets.length : 0,
+      };
+
       const rendered = renderPositionFirstBriefHTML({
         question: query,
         classification: topicClassification,
@@ -183,6 +207,7 @@ export async function runRenderEditorStep(rc: RenderEditorContext): Promise<stri
         isStrategic,
         styleProfile,
         centralScenario: stats.centralScenario as import('../editorial-types').CentralScenarioDecision | undefined,
+        keyFigures,
       });
       stats.rendererUsed = "position_first";
       console.log(`${label} EDITOR: position-first template (${(rendered.length / 1024).toFixed(0)}KB)`);

@@ -311,25 +311,9 @@ export async function runReaderBlock(deps: ReaderBlockDeps): Promise<ReaderBlock
   ctx.setReaderExtracts(readings);
   ctx.recordAgentTiming('READER', Date.now() - pipelineStart);
 
-  // ── CONTEXT COMPRESSION: Compress readings for downstream agents ──
-  // IterResearch pattern: compress intermediate findings to fit context window
-  try {
-    const { compressReadings } = await import('../knowledge-infrastructure');
-    const readingsForCompression = readings.slice(0, 30).map(r => ({
-      sourceId: r.sourceId,
-      claims: r.claims || [],
-      methods: r.methods || [],
-      results: r.results || [],
-      limitations: r.limitations || [],
-    }));
-    if (readingsForCompression.length > 10) {
-      const { compressed, costUsd: compressCost } = await compressReadings(readingsForCompression);
-      stats.contextCompression = { originalSize: readingsForCompression.length, compressedSize: compressed.split(/\s+/).length, costUsd: compressCost };
-      console.log(`${label} CONTEXT COMPRESSION: ${readingsForCompression.length} readings → ${compressed.split(/\s+/).length} words`);
-    }
-  } catch (err) {
-    // Non-blocking
-  }
+  // CONTEXT COMPRESSION removed (Lot 3): the compressed output was logged
+  // and stored in stats but never consumed downstream — a pure LLM spend.
+  // Downstream agents read the full readings via slimReadings/evidence bank.
 
   // ── EVIDENCE BANK (WebWeaver/Perplexity pattern) ──
   // Citations attach to extracted evidence AT READING TIME, not generation

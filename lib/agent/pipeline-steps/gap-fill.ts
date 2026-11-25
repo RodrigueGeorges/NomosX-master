@@ -340,16 +340,43 @@ export function checkRequiredElements(analysisObj: Record<string, any>): {
     ...findings,
     ...chain.flatMap((l: any) => [str(l?.claim), str(l?.evidence), str(l?.warrant)]),
   ].join('\n');
-  const hasNumber = /\d/.test(allText);
   const hasActorMap = /(incitat|incentive|actor|acteurs?|décideur|decision[- ]?maker|stakeholder|regulator|gouvernement|banque centrale|central bank)/i.test(allText);
   const hasWatch = watchSignals.length >= 2 && str(watch?.whatWouldChangeMind).trim().length > 10;
-  const hasConsequences = /(should|doit|surveiller|monitor|watch|action|recommen|decision|décision|implication)/i.test(str(watch?.horizonCheck) + '\n' + str(analysisObj?.verdict));
+
+  // Lot 3: content checks, not keyword presence.
+  // Quantitative core = a REAL series: ≥2 substantive figures carrying a
+  // unit/scale (%, bn, USD, Mt, GW, ppm, x…), at least one non-zero. A bare
+  // "\d" matched "0" and years in run v10 — not a series.
+  const FIGURE_RE = /(\d[\d\s,.]*\d|\d)\s?(%|percent|bn\b|billion|million|trillion|USD|EUR|GBP|CHF|JPY|CNY|kg|tCO2|MtCO2|Mt\b|GW|MW|TWh|barrels?|ppm|ppb|bps|basis points|index points?|x\b|times\b)/gi;
+  const figures = allText.match(FIGURE_RE) ?? [];
+  const nonZeroFigure = figures.some(f => {
+    const n = parseFloat(f.replace(/[^\d.,]/g, '').replace(',', '.'));
+    return Number.isFinite(n) && n !== 0;
+  });
+  const hasQuantCore = figures.length >= 2 && nonZeroFigure;
+
+  // Tipping points must come from real disagreements — a boilerplate
+  // rejectedAlternative ("none", "n/a") is not a disagreement.
+  const substantiveRejections = rejected.filter((r: any) => {
+    const t = typeof r === 'string' ? r : String(r?.claim ?? r?.scenario ?? r?.description ?? r?.alternative ?? r?.whyRejected ?? '');
+    return t.trim().length >= 30 && !/^(none|n\/a|no alternative|aucune)/i.test(t.trim());
+  }).length;
+
+  // Decision consequences: decision language inside a substantive passage
+  // (watch signals + horizon check + verdict), not a lone keyword hit.
+  const decisionText = [
+    ...(Array.isArray(watch?.signals) ? watch.signals.filter((s: any) => typeof s === 'string') : []),
+    str(watch?.horizonCheck), str(watch?.whatWouldChangeMind), str(analysisObj?.verdict),
+  ].join('\n');
+  const hasConsequences =
+    decisionText.length > 120 &&
+    /(should|doit|surveiller|monitor|watch|action|recommen|decision|décision|implication|impacts?|consequence)/i.test(decisionText);
 
   const checks: Array<{ id: string; label: string; ok: boolean; gap: string }> = [
     { id: 'base_rate', label: 'base rate with named reference class', ok: str(analysisObj?.anchoringBasis).trim().length > 30 || /(base rate|taux de base|historical|historique|analogue|référence)/i.test(str(analysisObj?.anchoringBasis)), gap: 'historical base rate and named reference class for comparable cases' },
-    { id: 'quantitative_core', label: 'quantitative core (real series with numbers)', ok: hasNumber && chain.length >= 2, gap: 'quantitative series, figures with units and periods' },
+    { id: 'quantitative_core', label: 'quantitative core (real series with numbers)', ok: hasQuantCore && chain.length >= 2, gap: 'quantitative series, figures with units and periods' },
     { id: 'actor_map', label: 'actor map (incentives, binding vs non-binding commitments)', ok: hasActorMap, gap: 'key actors, their incentives and whether commitments are binding' },
-    { id: 'tipping_points', label: 'two tipping points from disagreements', ok: chain.length >= 2 && rejected.length >= 1, gap: 'alternative scenarios and what would tip the central scenario' },
+    { id: 'tipping_points', label: 'two tipping points from disagreements', ok: chain.length >= 2 && substantiveRejections >= 1, gap: 'alternative scenarios and what would tip the central scenario' },
     { id: 'watch_indicators', label: 'what would change our mind (dated indicators)', ok: hasWatch, gap: 'dated indicators that would change the assessment' },
     { id: 'decision_consequences', label: 'consequences for a decision-maker', ok: hasConsequences, gap: 'actionable implications for a decision-maker under each scenario' },
   ];

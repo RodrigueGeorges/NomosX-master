@@ -250,11 +250,25 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
   // ── Key Judgments (NIC/Belfer exec-summary: bottom line + numbered judgments) ──
   const inBrief = position.inBrief ?? [];
   const topVerdict = String(analysis.verdict || position.verdict || '');
-  const inBriefHtml = inBrief.length > 0
+  // Lot 3 dateline: probability / horizon / market odds next to the verdict.
+  const kf = input.keyFigures;
+  const keyFiguresParts: string[] = [];
+  if (typeof kf?.probability === 'number' && Number.isFinite(kf.probability)) {
+    keyFiguresParts.push(`Probability ${Math.round(kf.probability * 100)}%${kf.scenarioName ? ` — ${esc(kf.scenarioName)}` : ''}`);
+  }
+  if (kf?.horizon) keyFiguresParts.push(`Horizon ${esc(kf.horizon)}`);
+  if (typeof kf?.marketAvgProbability === 'number' && Number.isFinite(kf.marketAvgProbability)) {
+    keyFiguresParts.push(`Market odds ${Math.round(kf.marketAvgProbability * 100)}%${kf.marketCount ? ` (${kf.marketCount} market${kf.marketCount > 1 ? 's' : ''})` : ''}`);
+  }
+  const keyFiguresHtml = keyFiguresParts.length > 0
+    ? `<p class="key-figures" data-no-cite style="font-size:0.9em;color:var(--muted);margin:0.4em 0 0.8em">${keyFiguresParts.join(' · ')}</p>`
+    : '';
+  const inBriefHtml = inBrief.length > 0 || keyFiguresParts.length > 0
     ? `<section class="nx-block in-brief key-judgments">
   <p class="nx-eyebrow">${esc(L.inBrief)}</p>
   ${topVerdict ? `<p class="bottom-line">${replaceCitations(esc(topVerdict), sources.length)}</p>` : ''}
-  <ol class="key-judgments-list">${inBrief.map((b) => `<li>${replaceCitations(esc(b), sources.length)}</li>`).join('')}</ol>
+  ${keyFiguresHtml}
+  ${inBrief.length > 0 ? `<ol class="key-judgments-list">${inBrief.map((b) => `<li>${replaceCitations(esc(b), sources.length)}</li>`).join('')}</ol>` : ''}
 </section>`
     : '';
 

@@ -404,9 +404,9 @@ export async function runPostAnalystChecks(deps: PostAnalystChecksDeps): Promise
   // reserved for POST-VERDICT consumers — critic repair, post-critic and
   // post-DA gap-fill, DA rewrite. Producer-stage retries below may spend
   // only the surplus, so pre-critic polish can never starve the repair tail.
-  // Producer-visible capacity is unchanged (strategic 2, brief 1); the
-  // reserve is the +1.
-  let reAnalysisBudget = isStrategic ? 3 : 2;
+  // Lot 3: ONE producer re-analysis per run (run v10 spent 3 ≈ 20min) —
+  // budget 2 = 1 producer + 1 reserve for both tiers.
+  let reAnalysisBudget = 2;
   // Degraded-provider cap: with ≤2 LLM providers alive there is no failover
   // headroom and every repair pass runs 2-4× slower (freepool timeouts,
   // TPM pacing). Three stacked full re-analyses then guarantee a deadline
