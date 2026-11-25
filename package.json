@@ -70,6 +70,7 @@
     "eval:steps": "tsx --env-file=.env.local scripts/analyze-step-value.ts",
     "replay": "tsx --env-file=.env.local scripts/replay-run.ts",
     "replay:inspect": "tsx scripts/replay-run.ts --inspect",
+    "btf": "tsx --env-file=.env.local scripts/btf-report.ts",
     "canary": "node scripts/canary-replay.mjs",
     "canary:all": "node scripts/canary-replay.mjs --all --force"
   },

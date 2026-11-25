@@ -420,6 +420,44 @@ export function traceLLMCall(
   });
 }
 
+/**
+ * Emit the publication-gate verdict onto the run's trace. Called from the
+ * inquiry orchestrator AFTER runPipeline returns — outside the ALS trace
+ * context — so it addresses the trace directly by id (`trace_<runId>`,
+ * the deterministic id pipeline-v2 assigns). Carries the verdict the spec
+ * asks Langfuse to hold: gate decision, failed checks, trust/quality and
+ * the artifact versions the verdict was computed on.
+ */
+export function traceGateVerdict(
+  runId: string,
+  verdict: {
+    decision?: string;
+    trustScore?: number;
+    qualityScore?: number;
+    failedChecks?: string[];
+    artifactVersions?: { analysis?: number; html?: number };
+    publicationStatus?: string;
+  },
+): void {
+  const config = getLangfuseConfig();
+  if (!config.enabled) return;
+  const traceId = `trace_${runId}`;
+  enqueue({
+    id: `${traceId}_gate`,
+    type: 'event-create',
+    timestamp: iso(Date.now()),
+    body: {
+      traceId,
+      name: 'gate.verdict',
+      metadata: { runId, ...verdict },
+      level: verdict.decision === 'publish' ? 'DEFAULT' : 'WARNING',
+    },
+  });
+  if (typeof verdict.trustScore === 'number') {
+    queueScoreInternal(traceId, 'gate_trust_score', verdict.trustScore);
+  }
+}
+
 export function scorePipeline(
   traceId: string,
   prmScore: number,
