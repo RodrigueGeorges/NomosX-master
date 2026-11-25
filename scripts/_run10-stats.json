@@ -1,0 +1,739 @@
+{
+  "runId": "0e92aa7f-3f4e-4728-926e-c7b4fc80424b",
+  "status": "COMPLETED",
+  "costUsd": 1.2528173,
+  "durationMs": 4566954,
+  "swarmHealth": {
+    "issues": [],
+    "healthy": true,
+    "splitElectable": false
+  },
+  "swarmElection": {
+    "seed": 2655842307,
+    "winShare": 0.5304,
+    "contested": true,
+    "runnerUpId": "scn-u9-u10-neither",
+    "scenarioId": "scn-u9-u10-u2-only",
+    "selectedBy": "swarm",
+    "probability": 0.2805,
+    "probabilities": {
+      "scn-u9-u10-neither": 0.2695,
+      "scn-u9-u10-u1-only": 0.2205,
+      "scn-u9-u10-u2-only": 0.2805,
+      "scn-u9-u10-convergent": 0.2295
+    },
+    "monteCarloRuns": 20000,
+    "confidenceInterval": [
+      0.1030599376652107,
+      0.4945895434817202
+    ],
+    "mostSensitiveLinkId": 10,
+    "runnerUpProbability": 0.2695
+  },
+  "swarmForecasts": {
+    "costUsd": 0.0535354,
+    "rawVotes": 14,
+    "forecasts": [
+      {
+        "iqr": 0.3,
+        "linkId": 9,
+        "families": 3,
+        "variance": 0.03278347107438017,
+        "contested": true,
+        "validVotes": 11,
+        "probability": 0.45
+      },
+      {
+        "iqr": 0.2000000000000001,
+        "linkId": 10,
+        "families": 3,
+        "variance": 0.01743055555555556,
+        "contested": true,
+        "validVotes": 12,
+        "probability": 0.51
+      },
+      {
+        "iqr": 0.3999999999999999,
+        "linkId": 9001,
+        "families": 3,
+        "variance": 0.03435763888888889,
+        "contested": true,
+        "validVotes": 12,
+        "probability": 0.46
+      },
+      {
+        "iqr": 0.15,
+        "linkId": 9002,
+        "families": 3,
+        "variance": 0.01005208333333333,
+        "contested": true,
+        "validVotes": 12,
+        "probability": 0.43
+      },
+      {
+        "iqr": 0.05000000000000004,
+        "linkId": 9003,
+        "families": 3,
+        "variance": 0.05796875000000002,
+        "contested": true,
+        "validVotes": 8,
+        "probability": 0.7
+      },
+      {
+        "iqr": 0.65,
+        "linkId": 8000,
+        "families": 1,
+        "variance": 0.07055555555555555,
+        "contested": true,
+        "validVotes": 3,
+        "probability": 0.7
+      }
+    ],
+    "validVotes": 58,
+    "familiesUsed": [
+      "glm",
+      "kimi",
+      "cohere"
+    ],
+    "ungroundedVotes": 11,
+    "evidenceIndependence": {
+      "independent": true,
+      "meanQuality": 61.3,
+      "uniqueDomains": 14,
+      "topDomainShare": 0.261,
+      "knownDomainShare": 0.885
+    }
+  },
+  "requiredElements": {
+    "missing": [
+      "consequences for a decision-maker"
+    ],
+    "present": [
+      "base rate with named reference class",
+      "quantitative core (real series with numbers)",
+      "actor map (incentives, binding vs non-binding commitments)",
+      "two tipping points from disagreements",
+      "what would change our mind (dated indicators)"
+    ],
+    "advisory": [
+      "pre-mortem of the central scenario (covered by the adversarial pass downstream)"
+    ]
+  },
+  "binaryCriteriaJudge": {
+    "mode": "shadow",
+    "total": 8,
+    "costUsd": 0.0012164,
+    "enforce": false,
+    "criteria": [
+      {
+        "id": "falsifiable_thesis",
+        "label": "Thesis is a falsifiable, dated claim (not a topic)",
+        "passed": true,
+        "reason": "The thesis is a falsifiable claim that can be tested against Eurostat/AEE consumption data by 2030."
+      },
+      {
+        "id": "scenario_probability",
+        "label": "Central scenario carries a probability and an interval",
+        "passed": true,
+        "reason": "Central scenario carries a probability (28%) and confidence interval ([10%, 49%])."
+      },
+      {
+        "id": "required_elements",
+        "label": "The mandatory analytical elements are present (base rate, quantitative core, actor map, tipping points, watch indicators, decision consequences)",
+        "passed": false,
+        "reason": "Missing consequences for a decision-maker as indicated in the telemetry."
+      },
+      {
+        "id": "ranked_sources",
+        "label": "Each substantive section rests on at least one high-authority source",
+        "passed": true,
+        "reason": "Each substantive section rests on high-authority sources with numbered citations."
+      },
+      {
+        "id": "counter_evidence",
+        "label": "Contrary sources are discussed, not merely cited",
+        "passed": true,
+        "reason": "Discusses contrary evidence about trade reorientation versus decarbonization."
+      },
+      {
+        "id": "conclusions_bounded",
+        "label": "Conclusions do not exceed the evidence; projections are labeled",
+        "passed": true,
+        "reason": "Conclusions do not exceed evidence; projections are labeled with confidence scores."
+      },
+      {
+        "id": "decision_ready",
+        "label": "A decision-maker knows what to do or watch",
+        "passed": false,
+        "reason": "No clear actionable recommendations for decision-makers beyond general priorities."
+      },
+      {
+        "id": "format_style",
+        "label": "Fixed format and style rules respected",
+        "passed": true,
+        "reason": "Fixed format and style rules respected with clear sections and structure."
+      }
+    ],
+    "allPassed": false,
+    "judgeFamily": "glm",
+    "passedCount": 6,
+    "judgeProvider": "glm"
+  },
+  "thinkTankFormGrid": {
+    "score": 100,
+    "total": 8,
+    "passed": 8,
+    "criteria": [
+      {
+        "name": "recommendations",
+        "detail": "Addressed recommendations / implications section present",
+        "passed": true
+      },
+      {
+        "name": "objections_addressed",
+        "detail": "No fatal challenges remained after adversarial review",
+        "passed": true
+      },
+      {
+        "name": "methodology_limits",
+        "detail": "Methodology, data sources or limitations disclosed in artifact",
+        "passed": true
+      },
+      {
+        "name": "sources_disclosed",
+        "detail": "Rendered source list present",
+        "passed": true
+      },
+      {
+        "name": "calibrated_uncertainty",
+        "detail": "Scenario / probability / confidence framing present",
+        "passed": true
+      },
+      {
+        "name": "computed_exhibit",
+        "detail": "Computed exhibit injected (evidence_base)",
+        "passed": true
+      },
+      {
+        "name": "executive_summary",
+        "detail": "Summary / orientation section present",
+        "passed": true
+      },
+      {
+        "name": "pipeline_integrity",
+        "detail": "No degraded steps recorded",
+        "passed": true
+      }
+    ]
+  },
+  "claimGrounding": {
+    "flagged": 1,
+    "partial": 0,
+    "uncited": 18,
+    "supported": 70,
+    "unsupported": 0,
+    "contradicted": 0,
+    "groundedness": 100,
+    "artifactVersion": 6,
+    "evaluatedArtifact": "html"
+  },
+  "factChecker": {
+    "citance": {
+      "nei": 8,
+      "total": 25,
+      "supported": 17,
+      "supportRate": 0.68,
+      "contradicted": 0,
+      "evaluationComplete": true
+    },
+    "verified": 32,
+    "fatalIssues": 1,
+    "majorIssues": 13,
+    "totalClaims": 21,
+    "integrityScore": 78,
+    "artifactVersion": 6,
+    "evaluatedClaims": 46,
+    "evaluatedArtifact": "html"
+  },
+  "critic": {
+    "biases": 4,
+    "costUsd": 0.0123654,
+    "verdict": "repair",
+    "durationMs": 62062,
+    "claimsCount": 20,
+    "groundedness": 0.8823529411764706,
+    "overallScore": 59,
+    "stageResults": {
+      "bias": {
+        "flagsRaised": 4,
+        "highSeverity": 0
+      },
+      "citations": {
+        "issuesFound": 3
+      },
+      "grounding": {
+        "derived": 4,
+        "partial": 2,
+        "supported": 10,
+        "unsupported": 0,
+        "contradicted": 0,
+        "unverifiable": 3
+      },
+      "decomposition": {
+        "claimsExtracted": 20
+      },
+      "contradictions": {
+        "pairsFound": 2,
+        "severeCount": 0,
+        "contestedCount": 1
+      }
+    },
+    "citationIssues": 3,
+    "contradictions": 2,
+    "artifactVersion": 2,
+    "contestedFindings": 1,
+    "evaluatedArtifact": "analysis",
+    "rescoredPostMutation": true
+  },
+  "criticPanel": {
+    "veto": false,
+    "costUsd": 0.0040691,
+    "dimensions": [
+      {
+        "score": 7,
+        "mustFix": false,
+        "findings": [
+          "The analysis fails to state the discount rate stance, which is a domain requirement for environmental-economics analysis.",
+          "The analysis does not examine distributional incidence, another domain requirement for environmental-economics analysis.",
+          "The analysis asserts EKC decoupling without providing specific data to support this claim.",
+          "The analysis exhibits 'Pricing reductionism' bias by treating the carbon price as a sufficient condition without examining other necessary factors."
+        ],
+        "dimension": "methodology"
+      },
+      {
+        "score": 6,
+        "mustFix": false,
+        "findings": [
+          "No treatment of legal/institutional dimensions - the analysis doesn't examine how the CBAM's legal framework or institutional implementation might affect its effectiveness",
+          "No treatment of economic dimensions beyond cost impacts - the analysis doesn't explore broader economic implications such as market distortions, competitiveness effects, or potential trade disputes",
+          "No treatment of social dimensions - there's no analysis of how the CBAM might affect social equity, vulnerable populations, or public acceptance",
+          "No treatment of historical precedent - the analysis doesn't examine previous carbon pricing mechanisms or border adjustments to inform expectations"
+        ],
+        "dimension": "coverage"
+      },
+      {
+        "score": 8,
+        "mustFix": false,
+        "findings": [
+          "The analysis clearly distinguishes between established facts and projections, with the projection for 2030 explicitly labeled as 'scénario central' and accompanied by a falsifier condition.",
+          "The text appropriately qualifies claims about the MACF's effectiveness by highlighting implementation issues that reduce its coverage and impact.",
+          "The analysis acknowledges the fragility of measurement methodologies and potential confounding factors that would make attribution difficult."
+        ],
+        "dimension": "epistemic"
+      },
+      {
+        "score": 7,
+        "mustFix": false,
+        "findings": [
+          "The through-line is clear but could be more explicitly stated at the beginning to guide the reader through the argument structure.",
+          "The causal chain is well-developed but some claims could benefit from more specific evidence rather than general references to sources.",
+          "The projection is properly labeled and includes a falsifier, which is good practice, but the explanation of the falsifier conditions is somewhat incomplete in the provided text."
+        ],
+        "dimension": "editorial"
+      }
+    ],
+    "durationMs": 5713,
+    "vetoReasons": [],
+    "overallScore": 70,
+    "artifactVersion": 2,
+    "evaluatedArtifact": "analysis",
+    "rescoredPostMutation": true
+  },
+  "publicationGate": {
+    "checks": [
+      {
+        "check": "source_depth",
+        "passed": true,
+        "details": "26/8 sources minimum"
+      },
+      {
+        "check": "trust_score",
+        "passed": true,
+        "details": "87/100 trust score"
+      },
+      {
+        "check": "quality_score",
+        "passed": false,
+        "details": "67/100 quality score"
+      },
+      {
+        "check": "citation_coverage",
+        "passed": true,
+        "details": "99% citation coverage"
+      },
+      {
+        "check": "word_count",
+        "passed": true,
+        "details": "8658/1200 words minimum (adaptive: 26 sources)"
+      },
+      {
+        "check": "claim_citation_density",
+        "passed": true,
+        "details": "1/71 claim-like sentences uncited"
+      },
+      {
+        "check": "fatal_challenges",
+        "passed": true,
+        "details": "0 fatal challenge(s)"
+      },
+      {
+        "check": "devils_advocate",
+        "passed": true,
+        "details": "42/100 adversarial publishability score"
+      },
+      {
+        "check": "corpus_core_evidence",
+        "passed": true,
+        "details": "14 core sources (≥8 required)"
+      },
+      {
+        "check": "minicheck_support",
+        "passed": true,
+        "details": "12 published claims checked — 0% not_supported (max 40%)"
+      },
+      {
+        "check": "novlangue_density",
+        "passed": true,
+        "details": "No novlangue detected — language is precise"
+      },
+      {
+        "check": "central_scenario",
+        "passed": true,
+        "details": "Central scenario complete and consistent with final HTML"
+      },
+      {
+        "check": "evaluation_freshness",
+        "passed": false,
+        "details": "Stale verdict evaluation(s) attached to a replaced artifact: devilsAdvocate"
+      },
+      {
+        "check": "thesis_adherence",
+        "passed": true,
+        "details": "Verdict within the bound thesis"
+      }
+    ],
+    "reasons": [
+      "quality_score: 67/100 quality score",
+      "evaluation_freshness: Stale verdict evaluation(s) attached to a replaced artifact: devilsAdvocate"
+    ],
+    "decision": "hold",
+    "readinessOk": true,
+    "binaryChecks": [
+      {
+        "id": "claims_entailed",
+        "detail": "claim→passage entailment 100% (need 100%)",
+        "passed": true
+      },
+      {
+        "id": "numbers_in_ledger",
+        "detail": "numbers traced to evidence cards 70% (need 100%)",
+        "passed": false
+      },
+      {
+        "id": "scenarios_from_chain",
+        "detail": "scenario elected by swarm, derived from causal chain",
+        "passed": true
+      },
+      {
+        "id": "swarm_healthy",
+        "detail": "min 11 valid votes per link / min 3 families per link / healthy=true (need ≥8, ≥2, healthy-or-contested)",
+        "passed": true
+      },
+      {
+        "id": "objections_answered",
+        "detail": "0 sourced objection(s) unanswered",
+        "passed": true
+      },
+      {
+        "id": "predictions_registered",
+        "detail": "8 resolvable predictions registered (need ≥3)",
+        "passed": true
+      }
+    ],
+    "degradedSteps": []
+  },
+  "centralScenario": {
+    "name": "Central scenario",
+    "horizon": "2026-12-31",
+    "rationale": "Elected by independent-voter swarm + Monte Carlo over causal-chain uncertainties (p=0.281, 90% interval 0.10-0.49, leads in 53% of 20000 draws, CONTESTED — runner-up scn-u9-u10-neither). Supporting links: [SRC-8] [SRC-9].",
+    "sentinels": [
+      {
+        "dueAt": "2027-02-22",
+        "linkId": 10,
+        "statement": "By 23 February 2026, at least one major trading partner (e.g., China, India, Brazil, South Africa, Türkiye, Russia) will have publicly announced or enacted a concrete retaliatory or countermeasure (tariff, levy, or formal legal challenge) explicitly targeting the EU CBAM's entry into its definitive phase on 1 January 2026.",
+        "probability": 0.43,
+        "resolutionSource": "Official gazettes / trade ministry statements of the country concerned, corroborated by WTO Trade Policy Review or European Commission trade barrier reporting",
+        "resolutionCriteria": "An official government announcement, decree, or tariff schedule explicitly citing CBAM as justification is published by a covered exporting country on or before 23 February 2026; mere rhetorical criticism without an enacted measure resolves NO."
+      },
+      {
+        "dueAt": "2027-01-23",
+        "linkId": 9,
+        "statement": "By 23 January 2026, the European Commission will have published the first implementing or reporting act establishing the official methodology and registry data structure for verified embedded-emissions declarations under the definitive CBAM regime starting 1 January 2026.",
+        "probability": 0.7,
+        "resolutionSource": "Official Journal of the European Union and the European Commission's CBAM page (taxation and customs)",
+        "resolutionCriteria": "A Commission implementing act or official CBAM registry publication specifying embedded-emissions reporting/verification requirements for 2026 imports appears in the Official Journal of the EU or on the Commission's CBAM portal by the deadline; if no such act exists, resolves NO."
+      }
+    ],
+    "confidence": "low",
+    "selectedBy": "swarm",
+    "description": "If \"Projection (scénario central): à l'horizon 2030, le MACF aura généré des coûts croissants et documentés sur les importations couvertes, mais\" is not confirmed and \"Projection (signal politique): la fragilité juridique et la perception protectionniste du MACF se matérialiseront, le cas échéant, sous form\" is confirmed by 2026-12-31, the chain resolves along this branch.",
+    "probability": 0.2805,
+    "implications": [
+      "If this branch holds: If \"Projection (scénario central): à l'horizon 2030, le MACF aura généré des coûts croissants et documentés sur les importations couvertes, mais\" is not confirmed and \"Projection (signal politique): la fragilité juridique et la perception protectionniste du MACF se matérialiseront, le cas échéant,…"
+    ],
+    "revisionTriggers": [
+      "Materializes by 2026-12-31: Projection (scénario central): à l'horizon 2030, le MACF aura généré des coûts croissants et documentés sur les importations couvertes, mais les statistiques d'émissions incorporées resteront non…",
+      "Fails to materialize by 2026-12-31: Projection (signal politique): la fragilité juridique et la perception protectionniste du MACF se matérialiseront, le cas échéant, sous forme de contestations OMC ou de mesures de rétorsion d'ici…"
+    ],
+    "linkProbabilities": {
+      "9": 0.45,
+      "10": 0.51
+    },
+    "confidenceInterval": [
+      0.1030599376652107,
+      0.4945895434817202
+    ],
+    "resolutionStatement": "If \"Projection (scénario central): à l'horizon 2030, le MACF aura généré des coûts croissants et documentés sur les importations couvertes, mais\" is not confirmed and \"Projection (signal politique): la fragilité juridique et la perception protectionniste du MACF se matérialiseront, le cas échéant, sous form\" is confirmed by 2026-12-31, the chain resolves along this branch.",
+    "simulationDisagrees": false
+  },
+  "chainScenarios": {
+    "conditions": [
+      {
+        "id": "scn-u9-u10-convergent",
+        "conditions": {
+          "u9": true,
+          "u10": true
+        }
+      },
+      {
+        "id": "scn-u9-u10-u1-only",
+        "conditions": {
+          "u9": true,
+          "u10": false
+        }
+      },
+      {
+        "id": "scn-u9-u10-u2-only",
+        "conditions": {
+          "u9": false,
+          "u10": true
+        }
+      },
+      {
+        "id": "scn-u9-u10-neither",
+        "conditions": {
+          "u9": false,
+          "u10": false
+        }
+      }
+    ],
+    "scenarioIds": [
+      "scn-u9-u10-convergent",
+      "scn-u9-u10-u1-only",
+      "scn-u9-u10-u2-only",
+      "scn-u9-u10-neither"
+    ],
+    "uncertainties": [
+      {
+        "kind": "future_extrapolation",
+        "claim": "Projection (scénario central): à l'horizon 2030, le MACF aura généré des coûts croissants et documentés sur les importations couvertes, mais les statistiques d'",
+        "linkId": 9,
+        "downstream": 0
+      },
+      {
+        "kind": "future_extrapolation",
+        "claim": "Projection (signal politique): la fragilité juridique et la perception protectionniste du MACF se matérialiseront, le cas échéant, sous forme de contestations O",
+        "linkId": 10,
+        "downstream": 0
+      }
+    ],
+    "usedForForesight": false
+  },
+  "researchGaps": [
+    {
+      "type": "NOT_REACHED",
+      "description": "Required element missing — needs actionable implications for a decision-maker under each scenario"
+    }
+  ],
+  "thesisBinding": {
+    "id": "T1",
+    "origin": "corpus_derived",
+    "adhered": true,
+    "verdict": "supported",
+    "statement": "The EU CBAM will impose substantial additional costs on carbon-intensive covered imports from its major trading partners (on the order of hundreds of millions to over a billion euros per large exporter), but the evidence base cannot establish that these costs will measurably reduce embedded emissions in covered imports by 2030.",
+    "confidence": 60,
+    "checkedVerdict": "Position de l'institut: le mécanisme d'ajustement carbone aux frontières (MACF) de l'Union européenne imposera des coûts supplémentaires substantiels sur les importations carbonées couvertes en provenance de ses principaux partenaires commerciaux — de l'ordre de plusieurs centaines de millions à plus d'un milliard d'euros par grand exportateur — mais la base de données probantes ne permet pas d'établir que ces coûts réduiront mesurablement les émissions incorporées dans les importations couvertes d'ici 2030. Les faits actuels sont solides sur le volet coûts: le MACF, dévoilé en juillet 2021 dans le paquet « Fit for 55 », exige des importateurs l'achat de certificats proportionnels au contenu carbone des biens dans les secteurs énergivores (acier, ciment, électricité, engrais, aluminium) [SRC-11]. L'évaluation préliminaire pour la Russie estime les prélèvements à 655 millions d'euros pour le fer et l'acier et 398 millions pour les engrais, soit plus de 1,1 milliard d'euros pour les industries ACEFIS — estimation modélisée datée de 2020, antérieure aux sanctions de 2022, et non une observation ex post [SRC-8]. Pour la Turquie, les biens couverts représentent 10,8 % des exportations vers l'UE-28, avec des dépenses de R&D des secteurs couverts inférieures à la moyenne, ce qui limite leur capacité d'adaptation [SRC-12]. En revanche, trois verrous brisent la chaîne vers la réduction mesurable. La littérature sur les ajustements carbone aux frontières montre que les modalités de mise en œuvre — notamment le principe de la « meilleure technologie disponible » — réduisent significativement la couverture effective des émissions et donc le signal-prix délivré [SRC-6]. La comptabilité des émissions incorporées reste fragile: les approches uni-pays supposent des technologies similaires entre régions, hypothèse inexacte, et les demandes de données sont un obstacle majeur [SRC-3]; les analyses de cycle de vie souffrent de difficultés méthodologiques et de l'absence d'études complètes évaluées par les pairs [SRC-14]. Enfin, la réorientation des échanges constitue un canal rival: 21,5 % des émissions mondiales de CO2 sont incorporées dans les biens échangés [SRC-3], environ un quart des émissions circule d'économies non tarifées vers des économies tarifées [SRC-6], et l'effet d'« attraction des renouvelables » peut décarboner les importations indépendamment du MACF [SRC-1]. Nous projetons — scénario central — qu'à l'horizon 2030, aucune réduction des émissions incorporées dans le panier d'importations couvertes ne pourra être mesurée et attribuée au MACF avec les instruments de comptabilité disponibles; cette projection serait réfutée si les comptes Eurostat/AEE en consommation montraient, fin 2030, une baisse des émissions incorporées des secteurs couverts excédant la tendance pré-MACF, contrôlée pour la réorientation des échanges.",
+    "adherenceReason": "The verdict's factual claims restate the bound thesis on costs and evidentiary limits without adding new causal or numerical conclusions, and its 2030 forward-looking statement is explicitly labelled ",
+    "contraryEvidence": [
+      "[SRC-6] Implementation issues significantly reduce CO2 coverage and tariff burdens, weakening CBAM's effective price signal",
+      "[SRC-3] Notes technology-difference and data limitations that undermine accurate measurement of embedded emissions, complicating any measured reduction",
+      "[SRC-10] EU diplomacy was reactive and uncoordinated, suggesting adoption and enforcement headwinds that could blunt effectiveness",
+      "[SRC-1] Suggests industrial relocation responds to multiple factors beyond carbon costs, limiting CBAM's leverage over production emissions"
+    ],
+    "supportingSources": 4,
+    "evaluationComplete": true,
+    "supportingEvidence": [
+      "[SRC-8] Estimates CBAM levies on Russian exports at €655M for iron and steel and €398M for fertilizers, exceeding €1.1B total for covered sectors",
+      "[SRC-12] Quantifies Turkey's exposure (CBAM goods = 10.8% of exports to EU) and notes transition-cost burdens and low R&D capacity in covered sectors",
+      "[SRC-11] Describes CBAM's certificate-levy design on energy-intensive imports, implying direct cost pass-through to importers",
+      "[SRC-6] Shows border carbon adjustments can shift tariff burdens toward non-carbon-priced economies, though design choices (e.g., BAT provisions) reduce coverage"
+    ]
+  },
+  "forecastState": {
+    "links": [
+      {
+        "claim": "Projection (scénario central): à l'horizon 2030, le MACF aura généré des coûts croissants et documentés sur les importations couvertes, mais les statistiques d'émissions incorporées resteront non attribuables au mécanisme, faute de décomposition entre réorientation, relocalisation et abattement réel.",
+        "linkId": 9,
+        "families": 3,
+        "variance": 0.03278347107438017,
+        "validVotes": 11,
+        "probability": 0.45
+      },
+      {
+        "claim": "Projection (signal politique): la fragilité juridique et la perception protectionniste du MACF se matérialiseront, le cas échéant, sous forme de contestations OMC ou de mesures de rétorsion d'ici 2027-2028, érodant davantage couverture et coopération [SRC-9][SRC-11].",
+        "linkId": 10,
+        "families": 3,
+        "variance": 0.01743055555555556,
+        "validVotes": 12,
+        "probability": 0.51
+      }
+    ],
+    "question": "Will the EU Carbon Border Adjustment Mechanism measurably reduce embedded emissions in covered imports by 2030?",
+    "revision": 0,
+    "scenarios": [
+      {
+        "id": "scn-u9-u10-convergent",
+        "name": "Chain scenario 1 (convergent)",
+        "conditions": {
+          "u9": true,
+          "u10": true
+        },
+        "description": "If \"Projection (scénario central): à l'horizon 2030, le MACF aura généré des coûts croissants et documentés sur les importations couvertes, mais\" is confirmed and \"Projection (signal politique): la fragilité juridique et la perception protectionniste du MACF se matérialiseront, le cas échéant, sous form\" is confirmed by 2026-12-31, the chain resolves along this branch.",
+        "observableAt": "2026-12-31",
+        "uncertaintyIds": [
+          9,
+          10
+        ]
+      },
+      {
+        "id": "scn-u9-u10-u1-only",
+        "name": "Chain scenario 2 (u1-only)",
+        "conditions": {
+          "u9": true,
+          "u10": false
+        },
+        "description": "If \"Projection (scénario central): à l'horizon 2030, le MACF aura généré des coûts croissants et documentés sur les importations couvertes, mais\" is confirmed and \"Projection (signal politique): la fragilité juridique et la perception protectionniste du MACF se matérialiseront, le cas échéant, sous form\" is not confirmed by 2026-12-31, the chain resolves along this branch.",
+        "observableAt": "2026-12-31",
+        "uncertaintyIds": [
+          9,
+          10
+        ]
+      },
+      {
+        "id": "scn-u9-u10-u2-only",
+        "name": "Chain scenario 3 (u2-only)",
+        "conditions": {
+          "u9": false,
+          "u10": true
+        },
+        "description": "If \"Projection (scénario central): à l'horizon 2030, le MACF aura généré des coûts croissants et documentés sur les importations couvertes, mais\" is not confirmed and \"Projection (signal politique): la fragilité juridique et la perception protectionniste du MACF se matérialiseront, le cas échéant, sous form\" is confirmed by 2026-12-31, the chain resolves along this branch.",
+        "observableAt": "2026-12-31",
+        "uncertaintyIds": [
+          9,
+          10
+        ]
+      },
+      {
+        "id": "scn-u9-u10-neither",
+        "name": "Chain scenario 4 (neither)",
+        "conditions": {
+          "u9": false,
+          "u10": false
+        },
+        "description": "If \"Projection (scénario central): à l'horizon 2030, le MACF aura généré des coûts croissants et documentés sur les importations couvertes, mais\" is not confirmed and \"Projection (signal politique): la fragilité juridique et la perception protectionniste du MACF se matérialiseront, le cas échéant, sous form\" is not confirmed by 2026-12-31, the chain resolves along this branch.",
+        "observableAt": "2026-12-31",
+        "uncertaintyIds": [
+          9,
+          10
+        ]
+      }
+    ]
+  },
+  "sentinels": {
+    "priced": 2,
+    "drafted": 3,
+    "rejected": 0
+  },
+  "enrichmentReasoner": {
+    "costUsd": 0.0007353,
+    "verdict": "enrich",
+    "gapsFound": 5,
+    "newSourcesAdded": 62,
+    "sufficiencyScore": 55,
+    "enrichmentQueries": [
+      "EU Carbon Border Adjustment Mechanism impact on embedded emissions 2030",
+      "CBAM effectiveness modeling projections European Commission",
+      "Carbon border adjustment mechanism impact on steel and cement imports EU",
+      "EU CBAM compliance costs for developing countries",
+      "Trade diversion effects EU carbon border tax 2030"
+    ],
+    "postAnalystNewSources": 10
+  },
+  "analyst": {
+    "depth": "brief",
+    "passes": 3,
+    "costUsd": 0.3974856,
+    "hasDebate": true
+  },
+  "devilsAdvocate": {
+    "costUsd": 0.184194,
+    "verdict": "unavailable",
+    "killShot": "The brief's own lede destroys its credibility: it headlines a €1.1 billion Russian exposure figure that its body admits is a pre-2022-sanctions model estimate with no ex-post validity, then builds a 'cannot measure, cannot attribute' verdict on an evidentiary standard — full counterfactual decomposition by 2030 — that would retrospectively 'disprove' every successful climate policy ever enacted. A",
+    "topChallenges": [
+      {
+        "text": "The SRC-3 excerpt contains no such figure. The only percentage visible in the excerpts is SRC-4's 'emissions generated to satisfy demand were 5% higher than production' (1995) and SRC-6's 'approximately one fourth of global emissions are embodied in international trade.' The analysis attributes a pr",
+        "type": "non_evidence"
+      },
+      {
+        "text": "The corpus itself refutes the impossibility premise. SRC-5 is literally a working global, trade-linked consumption-based carbon footprint of nations; SRC-3 computes CO2 embodied in Austrian trade; SRC-7 decomposes Swedish imports from China with structural decomposition analysis that already separat",
+        "type": "overstated_conclusion"
+      },
+      {
+        "text": "SRC-6 (2016) models generic border carbon adjustment schemes in the Kyoto/Annex-B architecture — 'tariff burdens faced by non-Annex parties dwindle' is vocabulary of the pre-Paris UNFCCC framework, not of the actual CBAM regulation adopted in 2023. Treating a 2016 simulation of hypothetical BCAs as ",
+        "type": "invalid_analogy"
+      }
+    ],
+    "artifactVersion": 2,
+    "fatalChallenges": 0,
+    "majorChallenges": 3,
+    "overallStrength": 0,
+    "evaluatedArtifact": "analysis",
+    "evaluationComplete": false,
+    "publishabilityScore": 0,
+    "recertifiedAfterRevision": true
+  },
+  "numericalGate": {
+    "passed": false,
+    "details": [
+      {
+        "match": "25 %",
+        "suggestion": "Number \"25 %\" lacks a [SRC-N] citation within 100 chars — add source or remove"
+      },
+      {
+        "match": "70 %",
+        "suggestion": "Number \"70 %\" lacks a [SRC-N] citation within 100 chars — add source or remove"
+      }
+    ],
+    "violations": 2
+  }
+}
