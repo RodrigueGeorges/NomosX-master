@@ -1117,6 +1117,26 @@ export async function runAndPublishInquiry(
       : [],
   };
 
+  // Lot 5 observability: attach the gate verdict + artifact versions to the
+  // Langfuse trace (fire-and-forget, no-op unless ENABLE_LANGFUSE=true).
+  try {
+    const { traceGateVerdict } = await import('./langfuse');
+    const freshness = (pipeline.stats as Record<string, any>).evaluationFreshness;
+    traceGateVerdict(executionId, {
+      decision: gate.decision,
+      trustScore,
+      qualityScore,
+      failedChecks: (gate.checks ?? [])
+        .filter((c: { passed?: boolean }) => c.passed === false)
+        .map((c: { checkType?: string; name?: string }) => c.checkType ?? c.name ?? 'unknown'),
+      artifactVersions: freshness
+        ? { analysis: freshness.analysisArtifactVersion, html: freshness.htmlArtifactVersion }
+        : undefined,
+    });
+  } catch (lfErr) {
+    console.warn('[InquiryOrchestrator] Langfuse gate verdict failed (non-blocking):', lfErr);
+  }
+
   // THINK-TANK FORM GRID (lever 8, shadow): deterministic checklist on the
   // final rendered HTML. Recorded for measurement — promotion to a gate
   // check happens only after ~10 stable live runs (same discipline as the
