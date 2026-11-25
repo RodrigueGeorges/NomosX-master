@@ -1261,6 +1261,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
           })),
           validVotes: swarm.validVotes, familiesUsed: swarm.familiesUsed,
           costUsd: swarm.costUsd, skipped: swarm.skipped,
+          supervisor: swarm.supervisor,
         };
         const health = assessSwarmHealth(swarm.forecasts, ghostChain.uncertainties.map(u => u.linkId));
         gStats.swarmHealth = { ...health, ghost: true };

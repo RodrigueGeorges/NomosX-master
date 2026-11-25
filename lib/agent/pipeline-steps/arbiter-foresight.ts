@@ -165,6 +165,7 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
           skipped: swarm.skipped,
           ungroundedVotes: swarm.ungroundedVotes,
           evidenceIndependence: swarm.evidenceIndependence,
+          supervisor: swarm.supervisor,
         };
         // The question's own probability — the headline number of the note.
         // Clamped to [0.05, 0.95]: a swarm ballot is never a certainty.
