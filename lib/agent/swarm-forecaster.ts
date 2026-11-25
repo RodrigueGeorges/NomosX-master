@@ -21,6 +21,7 @@
 import { callLLM } from '../llm/unified-llm';
 import { parseJson } from './json-utils';
 import { poolForecasts, type ForecastVote } from './leap-aggregation';
+import { applyPlatt, getFamilyPlatt } from './platt-calibration';
 import type { LLMProvider } from '../llm/unified-llm';
 import { passageContainment } from './claim-passage-contract';
 
@@ -466,9 +467,12 @@ Return ONLY JSON: {"votes":[{"linkId":<number>,"probability":<0-1>,"confidence":
     for (const link of input.uncertainties.slice(0, 6)) {
       const linkVotes = votes.filter(v => v.linkId === link.linkId);
       if (!linkVotes.length) continue;
+      // Lot 1 Platt calibration: each vote is mapped through its model
+      // family's fitted calibration before log-odds pooling. Identity
+      // seeds → no behaviour change until resolved votes accumulate.
       const fv: ForecastVote[] = linkVotes.map(v => ({
         claim: `link-${link.linkId}`,
-        probability: v.probability,
+        probability: applyPlatt(v.probability, getFamilyPlatt(v.family)),
         // confidence {1,1.5,2} → poolForecasts scale [20,95]
         confidence: v.confidence === 2 ? 95 : v.confidence === 1.5 ? 75 : 50,
         origin: v.voterId,
@@ -483,7 +487,8 @@ Return ONLY JSON: {"votes":[{"linkId":<number>,"probability":<0-1>,"confidence":
       out.push({
         linkId: link.linkId,
         claim: link.claim,
-        probability: pooled.pooled,
+        // Published probabilities never claim certainty (Lot 1 clamp).
+        probability: Math.min(0.95, Math.max(0.05, pooled.pooled)),
         variance,
         iqr: q3 - q1,
         validVotes: linkVotes.length,
