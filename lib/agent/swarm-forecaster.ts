@@ -20,6 +20,7 @@
 
 import { callLLM } from '../llm/unified-llm';
 import { parseJson } from './json-utils';
+import { todayIso } from './today';
 import { poolForecasts, type ForecastVote } from './leap-aggregation';
 import type { LLMProvider } from '../llm/unified-llm';
 import { passageContainment } from './claim-passage-contract';
@@ -422,7 +423,7 @@ Return ONLY JSON: {"votes":[{"linkId":<number>,"probability":<0-1>,"confidence":
             },
             {
               role: 'user',
-              content: `QUESTION: ${input.question}\nHORIZON: ${input.horizon ?? 'see links'}\n\nUNCERTAIN LINKS:\n${tasks}\n\nSHARED EVIDENCE:\n${sharedBlock}\n\n${input.marketContext ? `MARKET REFERENCE (crowd price — information, NOT evidence; do not cite it as a card):\n${input.marketContext}\n\n` : ''}YOUR PRIVATE EVIDENCE SLICE:\n${privateBlock || '(none — rely on shared pool and base rates)'}`,
+              content: `TODAY: ${todayIso()}\nQUESTION: ${input.question}\nHORIZON: ${input.horizon ?? 'see links'}\n\nUNCERTAIN LINKS:\n${tasks}\n\nSHARED EVIDENCE:\n${sharedBlock}\n\n${input.marketContext ? `MARKET REFERENCE (crowd price — information, NOT evidence; do not cite it as a card):\n${input.marketContext}\n\n` : ''}YOUR PRIVATE EVIDENCE SLICE:\n${privateBlock || '(none — rely on shared pool and base rates)'}`,
             },
           ],
         });
