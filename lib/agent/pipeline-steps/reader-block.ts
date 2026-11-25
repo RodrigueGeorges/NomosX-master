@@ -113,7 +113,11 @@ export async function runReaderBlock(deps: ReaderBlockDeps): Promise<ReaderBlock
   // Free-run: the analyst only sees the top-10 corpus under free-tier request
   // caps — deep-reading 45 sources burns the daily TPM budget for context the
   // analyst never receives. Read the top-15 (small buffer vs the 10 shown).
-  const readCap = isFreeRun() ? topSources.slice(0, 15) : topSources;
+  // Lot 2 corpus spec: read at most 25 sources in depth — evidence mass is
+  // capped by rank order; deeper tail sources were never going to be read
+  // anyway and burn extraction calls.
+  const READ_CAP_MAX = Number(process.env.READER_READ_CAP ?? 25);
+  const readCap = isFreeRun() ? topSources.slice(0, 15) : topSources.slice(0, READ_CAP_MAX);
   const sourcesToRead = readCap.filter((s: any) => !priorById.has(s.id));
   if (priorById.size > 0) {
     console.log(`${label} READER V3: reusing ${topSources.length - sourcesToRead.length}/${topSources.length} prior readings — extracting ${sourcesToRead.length} new source(s) only`);

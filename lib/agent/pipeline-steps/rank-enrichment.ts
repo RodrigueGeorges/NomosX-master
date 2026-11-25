@@ -694,6 +694,74 @@ export async function runRankAndEnrichment(deps: RankEnrichmentDeps): Promise<Ra
     }
   }
 
+  // ── LOT 2: corpus quotas for public-policy questions ──
+  // Regulatory texts, recent implementation evidence, ex-ante modelling and
+  // contrary sources are mandatory evidence mass, not scout luck. Up to two
+  // targeted refill rounds; still unmet → stats.corpusQuotas.met=false and
+  // the pipeline-v2 pre-reader check refuses before reader spend with
+  // motif corpus_quota_unmet:<missing>.
+  if (!deps.skipRetrieval && topSources.length > 0) {
+    try {
+      const { detectPolicyQuestion, evaluateCorpusQuotas, classifyContraryStances, quotaScoutQueries } = await import('../corpus-quotas');
+      if (detectPolicyQuestion(query)) {
+        const audit = async () => {
+          const stances = await classifyContraryStances({ query, sources: topSources, addCost });
+          return evaluateCorpusQuotas({ query, sources: topSources, contraryStances: stances });
+        };
+        let quotas = await audit();
+        let rounds = 0;
+        for (const quotaQuery of quotaScoutQueries(quotas.missing, query)) {
+          if (quotas.met) break;
+          rounds++;
+          console.log(`${label} CORPUS QUOTA round ${rounds}: missing ${quotas.missing.join(', ')} — targeted re-scout`);
+          try {
+            const res = await scout(quotaQuery, providers, isStrategic ? 12 : 8);
+            const newIds = Array.isArray(res) ? res.map((s: any) => s.id) : (res?.sourceIds || []);
+            const fresh = newIds.filter((id: string) => !allSourceIds.includes(id) && !rejectedSourceIds.has(id));
+            if (!fresh.length) continue;
+            allSourceIds = [...allSourceIds, ...fresh];
+            lateAdditions = true;
+            const reranked = (await rank(query, { ...rankOpts, sourceIds: allSourceIds }))
+              .filter((s: any) => !rejectedSourceIds.has(s.id) && !offTopicProviders.has(s.provider));
+            if (reranked.length > topSources.length) {
+              topSources.length = 0;
+              topSources.push(...reranked);
+            }
+            // Refill additions are unscreened — same late-screen contract as
+            // every other post-screen merge before they count toward quotas.
+            const unscreenedFresh = topSources.filter((s: any) => fresh.includes(s.id) && !screenedSourceIds.has(s.id));
+            if (unscreenedFresh.length > 0) {
+              const { screenSourcesForRelevance } = await import('./relevance-screen');
+              const sres = await screenSourcesForRelevance({ query, candidates: unscreenedFresh, label, addCost });
+              if (sres) {
+                unscreenedFresh.forEach((s: any) => screenedSourceIds.add(s.id));
+                const dropFresh = new Set(sres.dropIds);
+                if (sres.correctCount >= 8) sres.tangentialIds.forEach(id => dropFresh.add(id));
+                if (dropFresh.size > 0) {
+                  dropFresh.forEach(id => rejectedSourceIds.add(id));
+                  topSources = topSources.filter((s: any) => !dropFresh.has(s.id));
+                  topSources.forEach((s: any, i: number) => { s.loadBearing = i < 3; });
+                }
+              }
+            }
+            quotas = await audit();
+          } catch (qErr) {
+            console.warn(`${label} CORPUS QUOTA re-scout failed (non-blocking):`, qErr);
+            recordDegradedStep(stats, 'CORPUS_QUOTA_RESCOUT', qErr);
+          }
+        }
+        stats.corpusQuotas = { ...quotas, rounds };
+        console.log(`${label} CORPUS QUOTAS: ${quotas.met ? 'MET' : `UNMET (${quotas.missing.join(', ')})`} after ${rounds} refill round(s) — reg=${quotas.quotas.regulatory.count}/${quotas.quotas.regulatory.required} impl=${quotas.quotas.implementationRecent.count}/${quotas.quotas.implementationRecent.required} exAnte=${quotas.quotas.exAnte.count}/${quotas.quotas.exAnte.required} contrary=${quotas.quotas.contrary.count}/${quotas.quotas.contrary.required}`);
+        if (!quotas.met) {
+          ctx.addFinding('RANK', 'warning', `Corpus quotas unmet for policy question after ${rounds} refill round(s): ${quotas.missing.join(', ')}`);
+        }
+      }
+    } catch (qErr) {
+      console.warn(`${label} CORPUS QUOTAS evaluation failed (non-blocking):`, qErr);
+      recordDegradedStep(stats, 'CORPUS_QUOTAS', qErr);
+    }
+  }
+
   orchState.sourcesFound = topSources.length;
   orchState.avgQualityScore = topSources.length > 0
     ? Math.round(topSources.reduce((sum: number, s: any) => sum + ((s.qualityScore || 0) > 0 ? s.qualityScore : (s.sourceQuality?.overall || 0)), 0) / topSources.length)
