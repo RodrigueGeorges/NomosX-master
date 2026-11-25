@@ -1025,6 +1025,10 @@ export async function runAndPublishInquiry(
       (pipeline.stats.centralScenario as { selectedBy?: string } | undefined)?.selectedBy,
     scenariosFromChain:
       !!(pipeline.stats.swarmElection as { scenarioId?: string } | undefined)?.scenarioId,
+    scenarioDominant:
+      typeof (pipeline.stats.swarmElection as { dominant?: boolean } | undefined)?.dominant === 'boolean'
+        ? (pipeline.stats.swarmElection as { dominant?: boolean }).dominant
+        : undefined,
     swarmVotes: (() => {
       // Per-link minimum, not the run total: 15 voters over 2 links report
       // 30 "valid votes" while one link may hold only a handful.

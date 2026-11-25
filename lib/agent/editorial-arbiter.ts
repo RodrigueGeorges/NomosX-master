@@ -40,6 +40,10 @@ export interface ArbiterInput {
     runnerUpId?: string;
     electedName?: string;
     electedDescription?: string;
+    /** Lot 1 dominance rule: false → the swarm found no dominant scenario.
+     *  Cells are still published with their probabilities, but the arbiter
+     *  must not crown a "central" branch — it reports dispersion instead. */
+    dominant?: boolean;
     /** Every chain cell with its computed probability. The published
      *  scenario set is exactly these cells — the arbiter names and narrates
      *  them, it adds none and prices none. */
@@ -451,7 +455,9 @@ Return JSON:
       const rebuilt = pinScenariosToCells(outScenarios, electionCells, input.election.scenarioId, input.election.confidenceInterval);
       outScenarios.length = 0;
       outScenarios.push(...rebuilt);
-      dominantScenario = rebuilt.find(s => s.cellId === input.election!.scenarioId)?.name;
+      dominantScenario = input.election.dominant === false
+        ? 'No dominant scenario'
+        : rebuilt.find(s => s.cellId === input.election!.scenarioId)?.name;
     } else if (input.election) {
       const electedName = input.election.electedName ?? input.election.scenarioId;
       const electedPctValue = Math.round(input.election.probability * 100);
@@ -475,7 +481,7 @@ Return JSON:
         elected.empiricalProbability = Math.round(input.election.probability * 10000) / 10000;
       }
       elected.confidenceInterval = input.election.confidenceInterval;
-      dominantScenario = elected.name;
+      dominantScenario = input.election.dominant === false ? 'No dominant scenario' : elected.name;
 
       // Rescale the remaining scenarios so the set still sums to 100%.
       const parsePct = (p: string) => {

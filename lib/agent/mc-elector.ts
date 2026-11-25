@@ -40,6 +40,15 @@ export interface ElectedScenario {
   probabilities: Record<string, number>;
   monteCarloRuns: number;
   seed: number;
+  /** Lot 1 dominance rule: a "central scenario" exists only when the leader
+   *  clears the uniform baseline by >10 points AND leads in ≥60% of draws.
+   *  Otherwise the honest publication is "no dominant scenario" — the
+   *  probabilities and tipping points below are still reported. */
+  dominant: boolean;
+  /** 1 / scenarioCount — the uniform-draw baseline the leader must beat. */
+  uniformBaseline: number;
+  /** Leader point probability minus uniformBaseline (negative = below chance). */
+  dominanceMargin: number;
 }
 
 function mulberry32(seed: number): () => number {
@@ -203,6 +212,15 @@ export function electScenario(input: {
   const winShare = wins / runs;
   const contested = !!runner && winShare < 0.8;
 
+  // Lot 1 dominance rule (Claude review): plurality is not dominance. The
+  // leader must beat a uniform draw by >10 points AND hold the lead in ≥60%
+  // of Monte Carlo draws — otherwise the swarm is telling us the question
+  // has no dominant scenario, and publishing one anyway is a fabricated call.
+  // (Live evidence: v10 elected p=0.281 vs uniform 0.25, winShare 53%.)
+  const uniformBaseline = 1 / scenarios.length;
+  const dominanceMargin = point[leader.i] - uniformBaseline;
+  const dominant = dominanceMargin > 0.10 && winShare >= 0.60;
+
   // Most sensitive link: the one whose ±0.05 move changes the leader's
   // probability the most (exact finite difference).
   let mostSensitiveLinkId: number | undefined;
@@ -234,5 +252,8 @@ export function electScenario(input: {
     probabilities,
     monteCarloRuns: runs,
     seed,
+    dominant,
+    uniformBaseline,
+    dominanceMargin,
   };
 }

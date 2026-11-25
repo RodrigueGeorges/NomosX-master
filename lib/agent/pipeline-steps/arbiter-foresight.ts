@@ -217,7 +217,7 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
               stats.forecastState = buildForecastState(query, chainDerivation.scenarios, swarm.forecasts);
             }
             if (election) {
-              console.log(`${label} ELECTOR: ${election.scenarioId} p=${election.probability.toFixed(3)} contested=${election.contested} runnerUp=${election.runnerUpId ?? 'none'}`);
+              console.log(`${label} ELECTOR: ${election.scenarioId} p=${election.probability.toFixed(3)} contested=${election.contested} dominant=${election.dominant} margin=${(election.dominanceMargin * 100).toFixed(1)}pts winShare=${(election.winShare * 100).toFixed(0)}% runnerUp=${election.runnerUpId ?? 'none'}`);
             }
           } catch (electErr) {
             stats.swarmElection = { error: electErr instanceof Error ? electErr.message : String(electErr) };
@@ -257,6 +257,7 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
             runnerUpId: election.runnerUpId,
             electedName: electedChainScenario.name,
             electedDescription: electedChainScenario.description,
+            dominant: election.dominant,
             cells: chainDerivation!.scenarios.map(s => ({
               id: s.id,
               description: s.description,
@@ -282,7 +283,22 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
     stats.templateScenariosUsed = institutePosition.costUsd === 0;
     const arbiterScenarios = institutePosition.scenarios;
 
-    if (election && electedChainScenario) {
+    // Lot 1 dominance rule: plurality is not dominance. When the swarm
+    // leader fails the uniform-baseline/winShare test, no central scenario
+    // is registered — the note publishes the dispersion (probabilities +
+    // tipping point) instead of a fabricated call.
+    if (election && !election.dominant) {
+      stats.scenarioDispersion = {
+        dominant: false,
+        reason: `leader p=${election.probability.toFixed(3)} vs uniform ${election.uniformBaseline.toFixed(3)} (margin ${(election.dominanceMargin * 100).toFixed(1)}pts, need >10) / winShare ${(election.winShare * 100).toFixed(0)}% (need ≥60)`,
+        probabilities: election.probabilities,
+        mostSensitiveLinkId: election.mostSensitiveLinkId,
+        winShare: election.winShare,
+        contested: election.contested,
+      };
+      console.log(`${label} NO DOMINANT SCENARIO — dispersion published (tipping link=${election.mostSensitiveLinkId ?? 'n/a'})`);
+    }
+    if (election?.dominant && electedChainScenario) {
       // Source refs for the rationale: the uncertainty links' own sourceRefs.
       const chainLinks = Array.isArray(analysis.causalChain) ? analysis.causalChain as Array<{ id?: number; sourceRef?: number | string }> : [];
       // sourceRef arrives as "SRC-6" / "[SRC-6]" / 6 depending on which
