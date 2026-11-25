@@ -89,6 +89,7 @@ export async function runPostRenderCitationAndGrounding(deps: CitationGroundingD
       contradicted: groundingResult.contradicted,
       groundedness: Math.round(groundingResult.groundedness * 100),
       flagged: groundingResult.removedClaims,
+      removedByVerdict: groundingResult.removedByVerdict,
       deer: groundingResult.uncitedChecked ? {
         checked: groundingResult.uncitedChecked,
         supported: groundingResult.uncitedSupported,
@@ -111,6 +112,10 @@ export async function runPostRenderCitationAndGrounding(deps: CitationGroundingD
           contradicted: reGrounding.contradicted,
           groundedness: Math.round(reGrounding.groundedness * 100),
           flagged: groundingResult.removedClaims + reGrounding.removedClaims,
+          removedByVerdict: {
+            ...(groundingResult.removedByVerdict ?? {}),
+            ...Object.fromEntries(Object.entries(reGrounding.removedByVerdict ?? {}).map(([k, v]) => [k, (groundingResult.removedByVerdict?.[k] ?? 0) + (v as number)])),
+          },
           deer: reGrounding.uncitedChecked ? {
             checked: reGrounding.uncitedChecked,
             supported: reGrounding.uncitedSupported,

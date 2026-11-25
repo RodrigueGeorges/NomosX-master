@@ -68,9 +68,22 @@ describe('fact-integrity veto — fatal discrepancies must cap, not just weigh 1
     expect(vetoes.some(v => v.includes('fact integrity veto'))).toBe(false);
   });
 
-  it('no fact veto when integrity ≥ 50 despite fatals', () => {
-    const { vetoes } = computeTrustScore({ ...HEALTHY, factIntegrity: 60 }, { factFatal: 2 });
-    expect(vetoes.some(v => v.includes('fact integrity veto'))).toBe(false);
+  it('Lot 4: fatals cap at 55 regardless of integrity (honest scores)', () => {
+    const { score, vetoes } = computeTrustScore({ ...HEALTHY, factIntegrity: 60 }, { factFatal: 2 });
+    expect(score).toBeLessThanOrEqual(55);
+    expect(vetoes.some(v => v.includes('fact integrity veto'))).toBe(true);
+  });
+
+  it('Lot 4: measured integrity <85% caps at 65', () => {
+    const { score, vetoes } = computeTrustScore({ ...HEALTHY, factIntegrity: 80 }, { factFatal: 0, factIntegritySub85: true });
+    expect(score).toBeLessThanOrEqual(65);
+    expect(vetoes.some(v => v.includes('fact integrity cap'))).toBe(true);
+  });
+
+  it('Lot 4: unmeasured integrity does not trigger the 65 cap', () => {
+    const { score, vetoes } = computeTrustScore({ ...HEALTHY, factIntegrity: 80 }, { factFatal: 0 });
+    expect(vetoes.some(v => v.includes('fact integrity cap'))).toBe(false);
+    expect(score).toBeGreaterThan(65);
   });
 });
 

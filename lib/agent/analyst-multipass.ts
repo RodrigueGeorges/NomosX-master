@@ -1724,6 +1724,7 @@ export async function analystAgentV3(
     };
 
     // ── FORESIGHT UNCERTAINTY FLOOR ──
+    let foresightFloorAdded = 0;
     // deriveChainScenarios needs ≥2 uncertain links to build electable
     // scenario cells; a fully-grounded chain (all present_fact/active_mechanism
     // with strong passages) yields ZERO — the swarm can never elect, the
@@ -1758,6 +1759,7 @@ export async function analystAgentV3(
           if (!c || c.length < 20) return;
           if ([...existingClaims].some(e => e && (c.toLowerCase().includes(e) || e.includes(c.toLowerCase().slice(0, 80))))) return;
           existingClaims.add(c.slice(0, 120).toLowerCase());
+          foresightFloorAdded++;
           chain.push({
             id: nextId(),
             claim: c.slice(0, 400),
@@ -1791,7 +1793,11 @@ export async function analystAgentV3(
     if (pruningResult.warnings.length > 0) {
       pruningResult.warnings.forEach(w => console.warn(`[Analyst V3] GATE WARNING: ${w}`));
     }
-    console.log(`[Analyst V3] Trust propagation: overall=${pruningResult.overallTrust}, chain=${pruningResult.prunedChain.length}/${sanitizedAnalysis.causalChain?.length || 0} links survived`);
+    // Denominator is the PRE-pruning chain — the foresight floor above can
+    // legitimately append uncertain links post-pruning, so "8/6" was an
+    // impossible-looking count. Report survived + floor additions separately.
+    const prePruneChainCount = Array.isArray(sanitizedAnalysis.causalChain) ? sanitizedAnalysis.causalChain.length : 0;
+    console.log(`[Analyst V3] Trust propagation: overall=${pruningResult.overallTrust}, chain=${pruningResult.prunedChain.length} links (pre-pruning ${prePruneChainCount}, +${foresightFloorAdded} foresight-floor)`);
 
     // ── INLINE THESIS-ADHERENCE GATE (opt-in NOMOSX_THESIS_INLINE_GATE=1) ──
     // Catch a verdict-level overclaim at the cheapest point — inside the

@@ -77,6 +77,9 @@ export interface FactCheckerOutput {
   integrityScore: number;  // 0-100
   results: FactCheckResult[];
   citance?: CitanceReport;
+  /** Lot 4 Loki-style triage: ambiguous claims the "worth verifying" pass
+   *  judged not load-bearing — recorded minor without an LLM fact-check. */
+  triage?: { considered: number; skipped: number; verified: number; costUsd: number };
   costUsd: number;
   durationMs: number;
 }
@@ -208,6 +211,62 @@ function buildSourceContext(indices: number[], sources: any[], readings?: any[])
 Year: ${s.year || "N/A"} | Provider: ${s.provider}
 Content: ${sourceContent}`;
     }).join("\n\n");
+}
+
+// ============================================================================
+// LOKI-STYLE TRIAGE — "worth verifying?" before spending LLM fact-checks.
+// One bounded call judges which ambiguous claims are load-bearing factual
+// numbers (verdicts, projections, comparisons a reader could act on) vs
+// rhetorical/incidental figures. Skipped claims are recorded 'minor' —
+// verified less, but the verified set is the one that matters.
+// Fail-open: any parse/call failure returns the full set for verification.
+// ============================================================================
+const TRIAGE_MAX_CLAIMS = 60;
+
+async function triageClaimsWorthVerifying(
+  claims: NumericalClaim[],
+): Promise<{ worthVerifying: Set<number>; skipped: Set<number>; costUsd: number } | null> {
+  const batch = claims.slice(0, TRIAGE_MAX_CLAIMS);
+  if (batch.length === 0) return { worthVerifying: new Set(), skipped: new Set(), costUsd: 0 };
+  try {
+    const listing = batch
+      .map((c, i) => `${i}: "${c.claim.slice(0, 220)}" [number: ${c.number}]`)
+      .join('\n');
+    const res = await callLLM({
+      messages: [
+        { role: 'system', content: 'You are a fact-check triage editor. Decide which numerical claims deserve expensive verification. Output JSON only.' },
+        {
+          role: 'user',
+          content: `For each numbered claim decide "verify" or "skip":
+- "verify" = load-bearing factual figure a reader could act on (verdicts, projections, comparisons, costs, dates, quantities attributed to a source)
+- "skip" = rhetorical, illustrative, trivially generic, duplicated, or unverifiable-by-nature figures (e.g. "in a 0-to-1 scale", round illustrative numbers, section numbering)
+
+Return {"triage":{"0":"verify","1":"skip",...}} covering every index 0-${batch.length - 1}.
+
+${listing}`,
+        },
+      ],
+      temperature: 0,
+      jsonMode: true,
+      maxTokens: 1200,
+      enableCache: true,
+      task: 'topic_classification',
+    });
+    const parsed = parseJson<{ triage?: Record<string, string> }>(res.content);
+    if (!parsed?.triage) return null;
+    const worth = new Set<number>();
+    const skipped = new Set<number>();
+    batch.forEach((_, i) => {
+      const v = String(parsed.triage?.[String(i)] ?? '').toLowerCase();
+      if (v === 'skip') skipped.add(i); else worth.add(i);
+    });
+    // Claims beyond the triage cap always verify — never silently drop tail claims.
+    for (let i = TRIAGE_MAX_CLAIMS; i < claims.length; i++) worth.add(i);
+    return { worthVerifying: worth, skipped, costUsd: res.costUsd ?? 0 };
+  } catch (err) {
+    console.warn('[FACT-CHECKER] triage failed — verifying all ambiguous claims (fail-open):', err);
+    return null;
+  }
 }
 
 // ============================================================================
@@ -463,9 +522,39 @@ export async function factChecker(
   }
   console.log(`[FACT-CHECKER] Deterministic pre-check: ${verifiedResults.length}/${claims.length} verified, ${ambiguousClaims.length} need LLM`);
 
+  // Step 2b (Lot 4): Loki-style triage — only claims judged "worth
+  // verifying" consume LLM fact-check batches; the rest are recorded
+  // minor. Fail-open: triage failure verifies everything.
+  let triageCost = 0;
+  let triageSkippedCount = 0;
+  const allResultsSeed: FactCheckResult[] = [];
+  let llmClaims = ambiguousClaims;
+  if (ambiguousClaims.length > TRIAGE_MAX_CLAIMS * 0.5) {
+    const triage = await triageClaimsWorthVerifying(ambiguousClaims);
+    if (triage) {
+      triageCost = triage.costUsd;
+      triageSkippedCount = triage.skipped.size;
+      llmClaims = ambiguousClaims.filter((_, i) => triage.worthVerifying.has(i));
+      for (const i of triage.skipped) {
+        const c = ambiguousClaims[i];
+        allResultsSeed.push({
+          claim: c.claim,
+          number: c.number,
+          sourceRef: c.sourceRef,
+          verified: false,
+          sourceSays: "Not verified — triage judged not worth LLM verification",
+          discrepancy: "Skipped by worth-verifying triage",
+          severity: "minor" as const,
+          fix: "Manual verification required",
+        });
+      }
+      console.log(`[FACT-CHECKER] TRIAGE: ${triage.skipped.size} skipped / ${llmClaims.length} worth verifying (${ambiguousClaims.length} ambiguous)`);
+    }
+  }
+
   // Step 3: LLM fact-check only ambiguous claims in batches of 20
-  const allResults: FactCheckResult[] = [...verifiedResults];
-  let totalCost = 0;
+  const allResults: FactCheckResult[] = [...verifiedResults, ...allResultsSeed];
+  let totalCost = triageCost;
 
   // S38: headroom guard — a run that reaches fact-check at the deadline edge
   // died mid-batch in the paid validation run (strategic hit 75min during the
@@ -508,19 +597,19 @@ export async function factChecker(
   // branch the record took, or it would run batches that were never
   // recorded (cassette miss) — or skip ones that were.
   const partialOk = captureInputSync('time:factcheck-partial-window', () => fcRemainingMs() >= BATCH_HEADROOM_MS);
-  const noRoomAtAll = !llmWindowOk && ambiguousClaims.length > 0 && !partialOk;
+  const noRoomAtAll = !llmWindowOk && llmClaims.length > 0 && !partialOk;
   if (noRoomAtAll) {
-    console.warn(`[FACT-CHECKER] LLM batch skipped — ${Math.max(0, Math.round(fcRemainingMs() / 1000))}s left < ${Math.round(fcHeadroomMs / 1000)}s headroom; ${ambiguousClaims.length} claims stay deterministic-only`);
-    markHeadroomSkipped(ambiguousClaims);
+    console.warn(`[FACT-CHECKER] LLM batch skipped — ${Math.max(0, Math.round(fcRemainingMs() / 1000))}s left < ${Math.round(fcHeadroomMs / 1000)}s headroom; ${llmClaims.length} claims stay deterministic-only`);
+    markHeadroomSkipped(llmClaims);
   } else {
-    for (let i = 0; i < ambiguousClaims.length; i += 20) {
+    for (let i = 0; i < llmClaims.length; i += 20) {
       const batchOk = captureInputSync('time:factcheck-batch-window', () => fcRemainingMs() >= BATCH_HEADROOM_MS);
       if (!batchOk) {
-        console.warn(`[FACT-CHECKER] LLM batch truncated at ${i}/${ambiguousClaims.length} — ${Math.max(0, Math.round(fcRemainingMs() / 1000))}s left; remainder stays deterministic-only`);
-        markHeadroomSkipped(ambiguousClaims.slice(i));
+        console.warn(`[FACT-CHECKER] LLM batch truncated at ${i}/${llmClaims.length} — ${Math.max(0, Math.round(fcRemainingMs() / 1000))}s left; remainder stays deterministic-only`);
+        markHeadroomSkipped(llmClaims.slice(i));
         break;
       }
-      const batch = ambiguousClaims.slice(i, i + 20);
+      const batch = llmClaims.slice(i, i + 20);
       const batchResults = await factCheckBatch(batch, sources, producerFamily, readings);
       allResults.push(...batchResults);
     }
@@ -611,6 +700,12 @@ export async function factChecker(
     integrityScore,
     results: allResults,
     citance: citanceReport,
+    triage: triageSkippedCount > 0 || triageCost > 0 ? {
+      considered: ambiguousClaims.length,
+      skipped: triageSkippedCount,
+      verified: llmClaims.length,
+      costUsd: triageCost,
+    } : undefined,
     costUsd: totalCost,
     durationMs,
   };
