@@ -80,6 +80,19 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
     if (chainDerivation && topSources.length >= 10) {
       try {
         const { runSwarmVote, buildLinkCards } = await import('../swarm-forecaster');
+        // Lot 1 question link: operationalize the asked question so the
+        // swarm prices a resolution statement, not just chain links.
+        const { extractQuestionSpec, QUESTION_LINK_ID } = await import('../question-spec');
+        const horizonText = typeof analysis.trajectory === 'object' && analysis.trajectory
+          ? String((analysis.trajectory as { horizon?: string }).horizon ?? '') : undefined;
+        const questionSpec = await extractQuestionSpec(query, horizonText || undefined);
+        if (questionSpec) {
+          stats.questionSpec = questionSpec;
+          if (typeof questionSpec.costUsd === 'number') addCost(questionSpec.costUsd, 'QUESTION_SPEC');
+        }
+        const questionBallot = questionSpec?.resolvable !== false && questionSpec
+          ? [{ linkId: QUESTION_LINK_ID, claim: `RESOLUTION OF THE ASKED QUESTION — ${questionSpec.resolution}` }]
+          : [];
         // Sentinels are drafted first so the same ballots price them.
         const { writeSentinels } = await import('../sentinel-writer');
         const drafted = await writeSentinels({
@@ -125,6 +138,9 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
         const swarm = await runSwarmVote({
           question: query,
           uncertainties: [
+            // Question link first — slice(0,6) inside runSwarmVote must
+            // never drop the ballot that prices the asked question.
+            ...questionBallot,
             ...chainDerivation.uncertainties.map(u => ({ linkId: u.linkId, claim: u.claim, dependsOn: u.dependsOn })),
             ...drafted.sentinels.map(sn => ({ linkId: sn.voteId, claim: `By ${sn.dueAt}: ${sn.statement} (resolved as: ${sn.resolutionCriteria})` })),
             ...contestedExtras,
@@ -150,6 +166,25 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
           ungroundedVotes: swarm.ungroundedVotes,
           evidenceIndependence: swarm.evidenceIndependence,
         };
+        // The question's own probability — the headline number of the note.
+        // Clamped to [0.05, 0.95]: a swarm ballot is never a certainty.
+        const qForecast = swarm.forecasts.find(f => f.linkId === QUESTION_LINK_ID);
+        if (qForecast) {
+          stats.questionForecast = {
+            probability: Math.min(0.95, Math.max(0.05, qForecast.probability)),
+            rawProbability: qForecast.probability,
+            iqr: qForecast.iqr,
+            validVotes: qForecast.validVotes,
+            families: qForecast.families,
+            contested: qForecast.contested || qForecast.iqr > 0.20,
+            resolution: questionSpec?.resolution,
+          };
+          console.log(`${label} QUESTION FORECAST: p=${qForecast.probability.toFixed(3)} iqr=${qForecast.iqr.toFixed(2)} votes=${qForecast.validVotes} families=${qForecast.families}`);
+          // Mirror onto the analysis so extractPredictions registers the
+          // asked question itself as a trackable prediction.
+          (analysis as Record<string, unknown>).questionForecast = stats.questionForecast;
+          (analysis as Record<string, unknown>).questionSpec = questionSpec;
+        }
         const { assessSwarmHealth } = await import('../swarm-forecaster');
         const swarmHealth = assessSwarmHealth(swarm.forecasts, chainDerivation.uncertainties.map(u => u.linkId));
         stats.swarmHealth = swarmHealth;

@@ -81,3 +81,32 @@ describe('evaluatePublicationGate — thesis_adherence check', () => {
     expect(d?.fix).toContain('bound thesis');
   });
 });
+
+describe('evaluatePublicationGate — question_answered check (Lot 1)', () => {
+  it('does not emit the check when the substitution check never ran', () => {
+    const g = evaluatePublicationGate({ ...BASE_INPUT });
+    expect(g.checks.some(c => c.checkType === 'question_answered')).toBe(false);
+  });
+
+  it('hard-fails with the question_substituted motif when the thesis answers another question', () => {
+    const g = evaluatePublicationGate({
+      ...BASE_INPUT,
+      questionSubstitution: { substituted: true, reason: 'verdict is about CBAM costs, question asks about 2030 emission reductions' },
+    });
+    const c = g.checks.find(c => c.checkType === 'question_answered');
+    expect(c?.passed).toBe(false);
+    expect(c?.details).toContain('question_substituted');
+    expect(g.decision).toBe('hold');
+    const d = g.diagnoses?.find(d => d.checkType === 'question_answered');
+    expect(d?.code).toBe('QUESTION_SUBSTITUTED');
+  });
+
+  it('passes when the thesis answers the asked question', () => {
+    const g = evaluatePublicationGate({
+      ...BASE_INPUT,
+      questionSubstitution: { substituted: false, reason: 'verdict addresses the operationalized resolution' },
+    });
+    const c = g.checks.find(c => c.checkType === 'question_answered');
+    expect(c?.passed).toBe(true);
+  });
+});
