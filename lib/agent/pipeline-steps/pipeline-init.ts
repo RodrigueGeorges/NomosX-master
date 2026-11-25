@@ -475,6 +475,8 @@ export async function runPipelineInit(query: string, opts: PipelineCoreOptions) 
       "club-of-rome", "millennium-project",
       // Pouls de l'actualité (gratuit)
       "gdelt-news",
+      // Metasearch floor — zero-cost web search when paid providers are dead
+      "searxng",
     ];
     providers = smartProviders
       ? Array.from(new Set([...smartProviders, ...coreAcademic])) as Providers
