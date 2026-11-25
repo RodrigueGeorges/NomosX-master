@@ -37,6 +37,10 @@ export interface BinaryGateInput {
   centralScenarioSelectedBy?: string;
   /** True when no 50/30/20 template scenarios were injected upstream. */
   scenariosFromChain?: boolean;
+  /** Lot 1 dominance rule: false when the swarm ran but no scenario cleared
+   *  the dominance test — "no dominant scenario" is a publishable outcome,
+   *  so this annotates the detail without failing the provenance check. */
+  scenarioDominant?: boolean;
   /** Swarm vote telemetry (OT-4): valid votes, distinct model families, MC
    *  convergence flag. */
   swarmVotes?: { valid: number; families: number; converged: boolean; split?: boolean };
@@ -70,7 +74,11 @@ export function evaluateBinaryGate(input: BinaryGateInput): BinaryGateCheck[] {
     id: 'scenarios_from_chain',
     passed: swarmElected && input.scenariosFromChain === true,
     detail: swarmElected
-      ? (input.scenariosFromChain === true ? 'scenario elected by swarm, derived from causal chain' : 'swarm-elected but template scenarios detected upstream')
+      ? (input.scenariosFromChain === true
+          ? (input.scenarioDominant === false
+              ? 'scenario probabilities from causal chain — no dominant scenario (dispersion published)'
+              : 'scenario elected by swarm, derived from causal chain')
+          : 'swarm-elected but template scenarios detected upstream')
       : `central scenario selectedBy='${input.centralScenarioSelectedBy ?? 'none'}' — swarm elector not yet active (OT-5)`,
   });
 

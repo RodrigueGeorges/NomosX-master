@@ -112,6 +112,12 @@ const DIAGNOSIS_MAP: Record<string, Omit<GateDiagnosis, "checkType">> = {
     code: "THESIS_BREACH",
     fix: "The verdict exceeds the thesis bound to corpus evidence. Narrow the claim to what the bound thesis supports (or the corpus must grow — prose cannot fix an evidence-ceiling breach). Regeneration with priorFailureFeedback carries the bound statement to the analyst.",
   },
+  question_answered: {
+    category: "composition",
+    severity: "terminal",
+    code: "QUESTION_SUBSTITUTED",
+    fix: "The note answers a different question than the one asked. Re-run on the operationalized question (stats.questionSpec.resolution) — rewriting the prose cannot fix a substituted mandate.",
+  },
 };
 
 const DEFAULT_DIAGNOSIS: Omit<GateDiagnosis, "checkType"> = {

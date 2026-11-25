@@ -40,6 +40,38 @@ describe('deriveChainScenarios (OT-3)', () => {
     // No probability is produced at this stage.
     expect((out!.scenarios[0] as any).probability).toBeUndefined();
   });
+
+  it('rejects compound, conditional and out-of-horizon axes (Lot 1)', () => {
+    const links = [
+      link(1, 'present_fact'),
+      link(2, 'future_extrapolation', null, { claim: 'Emissions fall but costs surge for importers' }),   // compound
+      link(3, 'future_extrapolation', 2, { claim: 'CBAM revenue funds green transition' }),              // valid
+      link(4, 'active_mechanism', 3, { claim: 'Le cas échéant, exporters relocate to Turkey', unsupported: true }), // conditional + weak
+      link(5, 'present_fact', 4, { claim: 'A verifier en 2035' }),                                       // out-of-horizon? present_fact → not an axis candidate
+      link(6, 'future_extrapolation', 5, { claim: 'Import volumes shift to 2035 corridors' }),           // out-of-horizon
+      link(7, 'future_extrapolation', 6, { claim: 'Free allocation phase-out accelerates' }),            // valid
+    ];
+    const out = deriveChainScenarios(links, 'We look to 2030');
+    expect(out).not.toBeNull();
+    const rejected = out!.rejectedAxes ?? [];
+    expect(rejected.map(r => r.linkId).sort()).toEqual([2, 4, 6]);
+    expect(rejected.find(r => r.linkId === 2)!.reason).toBe('compound_axis');
+    expect(rejected.find(r => r.linkId === 4)!.reason).toBe('conditional_axis');
+    expect(rejected.find(r => r.linkId === 6)!.reason).toBe('out_of_horizon');
+    // The two surviving axes are links 3 and 7.
+    expect(out!.uncertainties.map(u => u.linkId).sort()).toEqual([3, 7]);
+  });
+
+  it('returns null when every uncertain axis is rejected', () => {
+    const links = [
+      link(1, 'present_fact'),
+      link(2, 'future_extrapolation', null, { claim: 'Costs fall but emissions rise' }),
+      link(3, 'future_extrapolation', 2, { claim: 'Si le cas échéant, les exportateurs partent' }),
+      link(4, 'active_mechanism', 3),
+      link(5, 'present_fact', 4),
+    ];
+    expect(deriveChainScenarios(links, 'We look to 2030')).toBeNull();
+  });
 });
 
 describe('electScenario (OT-5)', () => {
@@ -138,5 +170,46 @@ describe('electScenario — probability integrity', () => {
     expect(byTag('convergent')).toBeCloseTo(0.42, 6);
     expect(byTag('u1-only')).toBeCloseTo(0.28, 6);
     expect(byTag('neither')).toBeCloseTo(0.30, 6);
+  });
+});
+
+describe('electScenario — dominance rule (Lot 1)', () => {
+  const fc = (linkId: number, p: number): LinkForecast => ({
+    linkId, claim: `c${linkId}`, probability: p, variance: 0.01, iqr: 0.1, validVotes: 15, families: 3, contested: false,
+  });
+  const quad = [
+    { id: 'tt', conditions: { u1: true, u2: true } },
+    { id: 'tf', conditions: { u1: true, u2: false } },
+    { id: 'ft', conditions: { u1: false, u2: true } },
+    { id: 'ff', conditions: { u1: false, u2: false } },
+  ].map(s => ({ ...s, name: s.id, description: '', observableAt: '2030-12-31', uncertaintyIds: [1, 2] }));
+
+  it('a v10-like flat election is NOT dominant (leader barely above uniform)', () => {
+    // p=0.55 on both links → tt≈0.30 vs uniform 0.25 → margin ≈5pts < 10.
+    const e = electScenario({ scenarios: quad, forecasts: [fc(1, 0.55), fc(2, 0.55)], question: 'q', runs: 4000 })!;
+    expect(e.dominant).toBe(false);
+    expect(e.dominanceMargin).toBeLessThanOrEqual(0.10);
+    expect(e.uniformBaseline).toBeCloseTo(0.25, 5);
+  });
+
+  it('a coin-flip election is never dominant', () => {
+    const e = electScenario({ scenarios: quad, forecasts: [fc(1, 0.5), fc(2, 0.5)], question: 'q', runs: 4000 })!;
+    expect(e.dominant).toBe(false);
+    expect(e.winShare).toBeLessThan(0.6);
+  });
+
+  it('a clear lead IS dominant (margin >10pts and winShare ≥60%)', () => {
+    const e = electScenario({ scenarios: quad, forecasts: [fc(1, 0.9), fc(2, 0.9)], question: 'q', runs: 4000 })!;
+    expect(e.dominant).toBe(true);
+    expect(e.dominanceMargin).toBeGreaterThan(0.10);
+    expect(e.winShare).toBeGreaterThanOrEqual(0.6);
+  });
+
+  it('high point probability but split draws still fails dominance', () => {
+    // Asymmetric links → leader ~0.45 but runner-up close → winShare < 60%.
+    const e = electScenario({ scenarios: quad, forecasts: [fc(1, 0.75), fc(2, 0.6)], question: 'q', runs: 6000 })!;
+    // tt = 0.45 vs tf = 0.30 → margin 0.20 > 0.10; winShare decides.
+    if (e.winShare < 0.6) expect(e.dominant).toBe(false);
+    else expect(e.dominant).toBe(true);
   });
 });

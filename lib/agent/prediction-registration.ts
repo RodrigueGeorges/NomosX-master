@@ -113,6 +113,25 @@ export function extractPredictions(
   const tiers = pruningResult?.confidenceTiers ?? new Map<number, ConfidenceTier>();
   const conviction = (analysis as any).convictionLevel as "firm" | "tempered" | "causal_only" | undefined;
 
+  // Lot 1 question link: the asked question itself is a prediction — its
+  // swarm-priced resolution probability is the note's headline number and
+  // must sit on the track record like every other call.
+  const qSpec = (analysis as any).questionSpec as { resolution?: string; horizon?: string; resolvable?: boolean } | undefined;
+  const qForecast = (analysis as any).questionForecast as { probability?: number } | undefined;
+  if (qSpec?.resolvable !== false && qSpec?.resolution && typeof qForecast?.probability === 'number') {
+    predictions.push({
+      claim: `[question] ${qSpec.resolution}`,
+      horizon: qSpec.horizon || analysis.trajectory?.horizon || 'see resolution',
+      probability: Math.min(0.95, Math.max(0.05, qForecast.probability)),
+      confidence: 'SUPPORTED',
+      resolutionCriteria: qSpec.resolution,
+      whatWouldFalsify: 'The resolution condition is not met at the stated horizon',
+      sourceRefs: [],
+      probabilitySource: 'swarm',
+      linkId: 'question',
+    });
+  }
+
   // 1. Extract from future_extrapolation links in causal chain
   const chain = analysis.causalChain || [];
   for (const link of chain) {

@@ -563,6 +563,12 @@ export async function runAndPublishInquiry(
         if (!tb?.statement) return undefined;
         return { adhered: tb.adhered, evaluationComplete: tb.evaluationComplete === true, reason: tb.adherenceReason };
       })(),
+      // Lot 1 question_substituted: populated by the bounded check below
+      // (corpus-derived theses only). Cached in stats — revision rounds
+      // re-evaluate the gate without re-spending the check.
+      questionSubstitution: (p.stats.questionSubstitution as PublicationGateInput['questionSubstitution'] | undefined)?.substituted === true
+        ? (p.stats.questionSubstitution as PublicationGateInput['questionSubstitution'])
+        : undefined,
       failedEvaluations: ['critic', 'criticPanel', 'devilsAdvocate', 'structuralEditor'].filter(key => {
         if (key === 'devilsAdvocate') return !aDa && !optionalDa;
         const evaluation = (p.stats[key] ?? p.lineage[key]) as Record<string, unknown> | undefined;
@@ -579,6 +585,39 @@ export async function runAndPublishInquiry(
           )
       ),
     };
+
+    // Lot 1 question_substituted: when the thesis was corpus-derived (no
+    // registered hypothesis won), verify the shipped verdict actually
+    // answers the operationalized question — the v10 failure mode was a
+    // costs thesis under an emissions question. One bounded call, cached
+    // in stats; only explicit `answers:false` produces a HOLD motif.
+    if (p.stats.questionSubstitution === undefined) {
+      const tb = p.stats.thesisBinding as { origin?: string } | undefined;
+      const spec = p.stats.questionSpec as import('./question-spec').QuestionSpec | undefined;
+      const analysis = (p.lineage?.analysis ?? p.stats.analysis) as { verdict?: string; throughLine?: string } | undefined;
+      if (tb?.origin === 'corpus_derived' && spec?.resolvable !== false && typeof analysis?.verdict === 'string') {
+        try {
+          const { checkQuestionSubstitution } = await import('./question-spec');
+          const sub = await checkQuestionSubstitution({
+            question,
+            spec: spec!,
+            verdict: analysis!.verdict!,
+            throughLine: analysis?.throughLine,
+          });
+          if (sub) {
+            p.stats.questionSubstitution = sub;
+            if (typeof sub.costUsd === 'number') p.stats.totalCostUsd = (Number(p.stats.totalCostUsd) || 0) + sub.costUsd;
+            console.log(`[InquiryOrchestrator] QUESTION CHECK: substituted=${sub.substituted} — ${sub.reason.slice(0, 120)}`);
+          }
+        } catch (subErr) {
+          console.warn('[InquiryOrchestrator] question substitution check failed (non-blocking):', subErr);
+        }
+      }
+    }
+    // Refresh the gate input now that the check may have populated stats.
+    gi.questionSubstitution = (p.stats.questionSubstitution as PublicationGateInput['questionSubstitution'] | undefined)?.substituted === true
+      ? (p.stats.questionSubstitution as PublicationGateInput['questionSubstitution'])
+      : undefined;
 
     let g = evaluatePublicationGate({ ...gi, html: aHtml });
 
@@ -1025,6 +1064,10 @@ export async function runAndPublishInquiry(
       (pipeline.stats.centralScenario as { selectedBy?: string } | undefined)?.selectedBy,
     scenariosFromChain:
       !!(pipeline.stats.swarmElection as { scenarioId?: string } | undefined)?.scenarioId,
+    scenarioDominant:
+      typeof (pipeline.stats.swarmElection as { dominant?: boolean } | undefined)?.dominant === 'boolean'
+        ? (pipeline.stats.swarmElection as { dominant?: boolean }).dominant
+        : undefined,
     swarmVotes: (() => {
       // Per-link minimum, not the run total: 15 voters over 2 links report
       // 30 "valid votes" while one link may hold only a handful.
@@ -1040,7 +1083,7 @@ export async function runAndPublishInquiry(
       const fc = (sf?.forecasts ?? []).filter(f =>
         // Sentinels ride linkId >= SENTINEL_VOTE_ID_BASE (9000) — exclude even
         // when the chain-link set is unavailable (fail-closed on sentinels).
-        (typeof f.linkId === 'number' && f.linkId < 9000)
+        ((typeof f.linkId === 'number') && f.linkId > 0 && f.linkId < 9000)
         && (chainLinkIds.size === 0 || (typeof f.linkId === 'number' && chainLinkIds.has(f.linkId))));
       return fc.length
         ? {
