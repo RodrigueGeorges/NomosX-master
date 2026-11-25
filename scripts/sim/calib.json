@@ -1,0 +1,93 @@
+{
+ "n_runs": 1,
+ "dead_providers": [
+  "Exa",
+  "Springer",
+  "Tavily"
+ ],
+ "gapfill_success_rate": 0.08333333333333333,
+ "fulltext_rate": 0.2,
+ "card_voter_informativeness": 0.07399999999999998,
+ "ungrounded_vote_share": 0.1896551724137931,
+ "election_lead_over_uniform": 0.030500000000000027,
+ "date_bug_rate": 1.0,
+ "substitution_rate": 1.0,
+ "analyst_runs": 3.0,
+ "minutes": 76.1159,
+ "cost": 1.2528173,
+ "critic_scores": [
+  [
+   "repair",
+   42
+  ],
+  [
+   "repair",
+   59
+  ]
+ ],
+ "critic_within_noise_share": 0.45,
+ "runs": [
+  {
+   "run": "10",
+   "dead": {
+    "Tavily": 43,
+    "Exa": 22,
+    "Springer": 36
+   },
+   "flaky": {
+    "GDELT": 12,
+    "GoogleBooks": 36
+   },
+   "starved": {
+    "JSTOR": 12,
+    "Springer": 60,
+    "Tavily": 15,
+    "DataCite": 12,
+    "GoogleBooks": 12
+   },
+   "gapfill": [
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "critic": [
+    [
+     "repair",
+     42
+    ],
+    [
+     "repair",
+     59
+    ]
+   ],
+   "fulltext_rate": 0.2,
+   "analyst_runs": 3,
+   "analyst_min": 20.2645,
+   "cost": 1.2528173,
+   "minutes": 76.1159,
+   "status": "COMPLETED",
+   "swarm_informativeness": 0.07399999999999998,
+   "ungrounded_vote_share": 0.1896551724137931,
+   "election_lead_over_uniform": 0.030500000000000027,
+   "election_winshare": 0.5304,
+   "sentinels": 2,
+   "past_dated_sentinels": 2,
+   "fact_integrity": 78,
+   "fact_fatal": 1,
+   "gate_reasons": [
+    "quality_score: 67/100 quality score",
+    "evaluation_freshness: Stale verdict evaluation(s) attached to a replaced artifact: devilsAdvocate"
+   ],
+   "thesis_origin": "corpus_derived"
+  }
+ ]
+}
