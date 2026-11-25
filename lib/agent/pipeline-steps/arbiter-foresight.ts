@@ -135,64 +135,128 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
             linkId: 8000 + i,
             claim: `Corpus disagreement — ${String(cf.claim1 ?? '').slice(0, 140)} vs ${String(cf.claim2 ?? '').slice(0, 140)}`,
           }));
-        const swarm = await runSwarmVote({
-          question: query,
-          uncertainties: [
-            // Question link first — slice(0,6) inside runSwarmVote must
-            // never drop the ballot that prices the asked question.
-            ...questionBallot,
-            ...chainDerivation.uncertainties.map(u => ({ linkId: u.linkId, claim: u.claim, dependsOn: u.dependsOn })),
-            ...drafted.sentinels.map(sn => ({ linkId: sn.voteId, claim: `By ${sn.dueAt}: ${sn.statement} (resolved as: ${sn.resolutionCriteria})` })),
-            ...contestedExtras,
-          ],
-          sourceIds: topSources.map((s: any) => s.id),
-          cards: buildLinkCards(topSources, deps.readings, [...chainDerivation.uncertainties, ...contestedExtras]),
-          horizon: typeof analysis.trajectory === 'object' && analysis.trajectory
-            ? String((analysis.trajectory as { horizon?: string }).horizon ?? '') : undefined,
-          runId: pipelineRunId,
-          marketContext,
-        });
-        stats.swarmForecasts = {
-          forecasts: swarm.forecasts.map(f => ({
-            linkId: f.linkId, probability: f.probability,
-            variance: f.variance, iqr: f.iqr,
-            validVotes: f.validVotes, families: f.families, contested: f.contested,
-          })),
-          rawVotes: swarm.rawVotes,
-          validVotes: swarm.validVotes,
-          familiesUsed: swarm.familiesUsed,
-          costUsd: swarm.costUsd,
-          skipped: swarm.skipped,
-          ungroundedVotes: swarm.ungroundedVotes,
-          evidenceIndependence: swarm.evidenceIndependence,
-          supervisor: swarm.supervisor,
-        };
+        const allUncertainties = [
+          // Question link first — slice(0,6) inside runSwarmVote must
+          // never drop the ballot that prices the asked question.
+          ...questionBallot,
+          ...chainDerivation.uncertainties.map(u => ({ linkId: u.linkId, claim: u.claim, dependsOn: u.dependsOn })),
+          ...drafted.sentinels.map(sn => ({ linkId: sn.voteId, claim: `By ${sn.dueAt}: ${sn.statement} (resolved as: ${sn.resolutionCriteria})` })),
+          ...contestedExtras,
+        ];
+        const swarmCards = buildLinkCards(topSources, deps.readings, [...chainDerivation.uncertainties, ...contestedExtras]);
+        const swarmHorizon = typeof analysis.trajectory === 'object' && analysis.trajectory
+          ? String((analysis.trajectory as { horizon?: string }).horizon ?? '') : undefined;
+
+        // ── Lot 1: three agentic forecasters (belief-state loop, 3 families)
+        // replace the one-shot card ballots. The card swarm remains as the
+        // fallback when the agentic path cannot produce forecasts — the
+        // run degrades, it does not die (Lot 0 resilience contract). ──
+        let forecasts: import('../swarm-forecaster').LinkForecast[] = [];
+        let agenticMode = false;
+        let agenticResult: import('../agentic-forecasters').AgenticForecastResult | null = null;
+        if (process.env.NOMOSX_AGENTIC_FORECASTERS !== '0') {
+          try {
+            const { runAgenticForecasters } = await import('../agentic-forecasters');
+            agenticResult = await runAgenticForecasters({
+              question: query,
+              questionSpec,
+              uncertainties: allUncertainties,
+              cards: swarmCards,
+              horizon: swarmHorizon || undefined,
+              marketContext,
+              runId: pipelineRunId,
+            });
+            addCost(agenticResult.costUsd, 'AGENTIC_FORECAST');
+            if (agenticResult.forecasts.length > 0 || agenticResult.questionForecast) {
+              agenticMode = true;
+              forecasts = agenticResult.forecasts;
+            } else {
+              agenticResult = null;
+            }
+          } catch (agErr) {
+            console.warn(`${label} AGENTIC FORECASTERS failed (falling back to card swarm):`, agErr);
+            recordDegradedStep(stats, 'AGENTIC_FORECASTERS', agErr);
+          }
+        }
+        let swarm: import('../swarm-forecaster').SwarmResult | null = null;
+        if (!agenticMode) {
+          swarm = await runSwarmVote({
+            question: query,
+            uncertainties: allUncertainties,
+            sourceIds: topSources.map((s: any) => s.id),
+            cards: swarmCards,
+            horizon: swarmHorizon || undefined,
+            runId: pipelineRunId,
+            marketContext,
+          });
+          forecasts = swarm.forecasts;
+          addCost(swarm.costUsd, 'SWARM_FORECAST');
+        }
+        stats.swarmForecasts = agenticResult
+          ? {
+              mode: 'agentic',
+              forecasts: forecasts.map(f => ({
+                linkId: f.linkId, probability: f.probability,
+                variance: f.variance, iqr: f.iqr,
+                validVotes: f.validVotes, families: f.families, contested: f.contested,
+              })),
+              forecasters: agenticResult.forecasters,
+              validVotes: agenticResult.validVotes,
+              familiesUsed: agenticResult.familiesUsed,
+              costUsd: agenticResult.costUsd,
+              skipped: agenticResult.skipped,
+              questionForecast: agenticResult.questionForecast,
+            }
+          : {
+              mode: 'swarm',
+              forecasts: forecasts.map(f => ({
+                linkId: f.linkId, probability: f.probability,
+                variance: f.variance, iqr: f.iqr,
+                validVotes: f.validVotes, families: f.families, contested: f.contested,
+              })),
+              rawVotes: swarm!.rawVotes,
+              validVotes: swarm!.validVotes,
+              familiesUsed: swarm!.familiesUsed,
+              costUsd: swarm!.costUsd,
+              skipped: swarm!.skipped,
+              ungroundedVotes: swarm!.ungroundedVotes,
+              evidenceIndependence: swarm!.evidenceIndependence,
+              supervisor: swarm!.supervisor,
+            };
         // The question's own probability — the headline number of the note.
-        // Clamped to [0.05, 0.95]: a swarm ballot is never a certainty.
-        const qForecast = swarm.forecasts.find(f => f.linkId === QUESTION_LINK_ID);
+        // Clamped to [0.05, 0.95]: a forecast ballot is never a certainty.
+        const qForecast = agenticResult?.questionForecast
+          ?? (() => {
+            const f = forecasts.find(x => x.linkId === QUESTION_LINK_ID);
+            return f ? {
+              probability: f.probability, iqr: f.iqr,
+              validVotes: f.validVotes, families: f.families,
+              contested: f.contested || f.iqr > 0.20,
+            } : undefined;
+          })();
         if (qForecast) {
           stats.questionForecast = {
+            ...qForecast,
             probability: Math.min(0.95, Math.max(0.05, qForecast.probability)),
-            rawProbability: qForecast.probability,
-            iqr: qForecast.iqr,
-            validVotes: qForecast.validVotes,
-            families: qForecast.families,
-            contested: qForecast.contested || qForecast.iqr > 0.20,
             resolution: questionSpec?.resolution,
           };
-          console.log(`${label} QUESTION FORECAST: p=${qForecast.probability.toFixed(3)} iqr=${qForecast.iqr.toFixed(2)} votes=${qForecast.validVotes} families=${qForecast.families}`);
+          console.log(`${label} QUESTION FORECAST (${agenticMode ? 'agentic' : 'swarm'}): p=${qForecast.probability.toFixed(3)} iqr=${qForecast.iqr.toFixed(2)} votes=${qForecast.validVotes} families=${qForecast.families}`);
           // Mirror onto the analysis so extractPredictions registers the
           // asked question itself as a trackable prediction.
           (analysis as Record<string, unknown>).questionForecast = stats.questionForecast;
           (analysis as Record<string, unknown>).questionSpec = questionSpec;
         }
         const { assessSwarmHealth } = await import('../swarm-forecaster');
-        const swarmHealth = assessSwarmHealth(swarm.forecasts, chainDerivation.uncertainties.map(u => u.linkId));
+        // Agentic mode: 3 deep forecasters, one vote per link each — the
+        // participation floor is 2 votes / 2 families, not the card swarm's
+        // 8 ballots. Health semantics (split = information) are unchanged.
+        const healthOpts = agenticMode ? { minVotesPerLink: 2, minFamilies: 2 } : undefined;
+        const swarmHealth = assessSwarmHealth(forecasts, chainDerivation.uncertainties.map(u => u.linkId), healthOpts);
         stats.swarmHealth = swarmHealth;
         // A sentinel is kept only if its own vote is healthy.
         pricedSentinels = sentinelDrafts.flatMap(sn => {
-          const f = swarm.forecasts.find(x => x.linkId === sn.voteId);
-          if (!f || !assessSwarmHealth([f], [sn.voteId]).healthy) return [];
+          const f = forecasts.find(x => x.linkId === sn.voteId);
+          if (!f || !assessSwarmHealth([f], [sn.voteId], healthOpts).healthy) return [];
           return [{
             linkId: sn.linkId, statement: sn.statement, dueAt: sn.dueAt,
             probability: Math.round(f.probability * 10000) / 10000,
@@ -200,8 +264,7 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
           }];
         });
         stats.sentinels = { drafted: sentinelDrafts.length, rejected: drafted.rejected, priced: pricedSentinels.length };
-        addCost(swarm.costUsd, 'SWARM_FORECAST');
-        console.log(`${label} SWARM: ${swarm.validVotes} valid votes / ${swarm.familiesUsed.length} families / $${swarm.costUsd.toFixed(4)}`);
+        console.log(`${label} FORECAST (${agenticMode ? 'agentic' : 'swarm'}): ${agenticResult?.forecasters.length ?? swarm!.forecasts.length} forecasters / ${swarmHealth.healthy ? 'healthy' : swarmHealth.splitElectable ? 'split-electable' : 'unhealthy'}`);
 
         const electable = swarmHealth.healthy || swarmHealth.splitElectable === true;
         if (!electable) {
@@ -217,7 +280,7 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
             stats.swarmSplit = { issues: swarmHealth.issues, electable: true };
             console.log(`${label} SWARM split-electable — proceeding contested: ${swarmHealth.issues.join('; ')}`);
           }
-          if (swarm.forecasts.length >= 2) {
+          if (forecasts.length >= 2) {
           try {
             // OT-7: fold the resolved track record into the forecasts —
             // systematic overconfidence (avg Brier > 0.20 over ≥20 resolved)
@@ -226,7 +289,7 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
             const calib = await getCalibrationShrink();
             stats.swarmCalibration = calib;
             if (calib.factor < 1) {
-              for (const f of swarm.forecasts) {
+              for (const f of forecasts) {
                 f.probability = 0.5 + (f.probability - 0.5) * calib.factor;
               }
               for (const sn of pricedSentinels) {
@@ -237,7 +300,7 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
             const { electScenario } = await import('../mc-elector');
             election = electScenario({
               scenarios: chainDerivation.scenarios,
-              forecasts: swarm.forecasts,
+              forecasts,
               question: query,
             });
             stats.swarmElection = election ?? { skipped: 'insufficient_link_distributions' };
@@ -251,7 +314,7 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
               // Snapshot the election inputs with the run: a resolved
               // sentinel can then re-elect without the pipeline.
               const { buildForecastState } = await import('../forecast-revision');
-              stats.forecastState = buildForecastState(query, chainDerivation.scenarios, swarm.forecasts);
+              stats.forecastState = buildForecastState(query, chainDerivation.scenarios, forecasts);
             }
             if (election) {
               console.log(`${label} ELECTOR: ${election.scenarioId} p=${election.probability.toFixed(3)} contested=${election.contested} dominant=${election.dominant} margin=${(election.dominanceMargin * 100).toFixed(1)}pts winShare=${(election.winShare * 100).toFixed(0)}% runnerUp=${election.runnerUpId ?? 'none'}`);

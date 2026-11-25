@@ -227,20 +227,26 @@ export const SWARM_MAX_IQR = 0.35;
  * A swarm may elect only when every conditioned link has enough independent
  * ballots. Thin or single-family votes are a hold, not an election.
  */
-export function assessSwarmHealth(forecasts: LinkForecast[], neededLinkIds: number[]): SwarmHealth {
+export function assessSwarmHealth(
+  forecasts: LinkForecast[],
+  neededLinkIds: number[],
+  opts?: { minVotesPerLink?: number; minFamilies?: number },
+): SwarmHealth {
+  const minVotes = opts?.minVotesPerLink ?? SWARM_MIN_VOTES_PER_LINK;
+  const minFamilies = opts?.minFamilies ?? SWARM_MIN_FAMILIES;
   const issues: string[] = [];
   for (const id of neededLinkIds) {
     const f = forecasts.find(x => x.linkId === id);
     if (!f) { issues.push(`link ${id}: no forecast`); continue; }
-    if (f.validVotes < SWARM_MIN_VOTES_PER_LINK) issues.push(`link ${id}: ${f.validVotes} valid votes (need ${SWARM_MIN_VOTES_PER_LINK})`);
-    if (f.families < SWARM_MIN_FAMILIES) issues.push(`link ${id}: ${f.families} model family (need ${SWARM_MIN_FAMILIES})`);
+    if (f.validVotes < minVotes) issues.push(`link ${id}: ${f.validVotes} valid votes (need ${minVotes})`);
+    if (f.families < minFamilies) issues.push(`link ${id}: ${f.families} model family (need ${minFamilies})`);
     if (f.iqr > SWARM_MAX_IQR) issues.push(`link ${id}: voters split (IQR ${f.iqr.toFixed(2)} > ${SWARM_MAX_IQR})`);
   }
   // Split-electable: every needed link met the participation floor and every
   // issue is an IQR split — no thin votes, no single-family links.
   const splitElectable = issues.length > 0 && neededLinkIds.every(id => {
     const f = forecasts.find(x => x.linkId === id);
-    return !!f && f.validVotes >= SWARM_MIN_VOTES_PER_LINK && f.families >= SWARM_MIN_FAMILIES;
+    return !!f && f.validVotes >= minVotes && f.families >= minFamilies;
   });
   return { healthy: issues.length === 0, issues, splitElectable };
 }
