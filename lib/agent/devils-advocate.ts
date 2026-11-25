@@ -218,9 +218,30 @@ export async function runDevilsAdvocate(
   assertExecutionActive();
 
   // Parse results
-  const epistemic = epistemicResult.status === "fulfilled" ? epistemicResult.value : null;
-  const strategic = strategicResult.status === "fulfilled" ? strategicResult.value : null;
+  let epistemic = epistemicResult.status === "fulfilled" ? epistemicResult.value : null;
+  let strategic = strategicResult.status === "fulfilled" ? strategicResult.value : null;
   const benchmark = benchmarkResult.status === "fulfilled" ? benchmarkResult.value : null;
+
+  // Bounded self-heal: evaluationComplete requires BOTH adversarial legs,
+  // so one schema-parse flake marks the whole DA 'unavailable' (score 0 →
+  // freshness/availability hold on an otherwise sound artifact — observed
+  // live on run v10's post-revision re-certification). Retry each
+  // incomplete leg exactly once; a still-incomplete retry keeps the
+  // original result (fail-closed semantics unchanged).
+  const incomplete = (r: { evaluationComplete?: boolean } | null) => !r || r.evaluationComplete !== true;
+  if (incomplete(epistemic) || incomplete(strategic)) {
+    const [eRetry, sRetry] = await Promise.allSettled([
+      incomplete(epistemic)
+        ? runEpistemicChallenge(question, analysisContent, sources, debateContext)
+        : Promise.resolve(epistemic),
+      incomplete(strategic)
+        ? runStrategicChallenge(question, analysisContent, targetAudience, mode)
+        : Promise.resolve(strategic),
+    ]);
+    if (eRetry.status === "fulfilled" && eRetry.value?.evaluationComplete === true) epistemic = eRetry.value;
+    if (sRetry.status === "fulfilled" && sRetry.value?.evaluationComplete === true) strategic = sRetry.value;
+    console.log(`[DEVIL'S ADVOCATE] Self-heal retry: epistemic=${epistemic?.evaluationComplete === true} strategic=${strategic?.evaluationComplete === true}`);
+  }
 
   // Aggregate challenges — DEDUP first: the epistemic and strategic calls
   // run in parallel on the same artifact and routinely flag the SAME weakness

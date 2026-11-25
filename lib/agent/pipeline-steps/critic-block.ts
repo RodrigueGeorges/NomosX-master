@@ -273,7 +273,18 @@ export async function runCriticBlock(deps: CriticBlockDeps): Promise<CriticBlock
       ((seEarly.topSuggestions?.length ?? 0) > 0 ? '\nSuggested fixes:\n' + seEarly.topSuggestions.map((s: string) => `- ${s}`).join('\n') : '') +
       ((seEarly.topGaps?.length ?? 0) > 0 ? '\nLogical gaps:\n' + seEarly.topGaps.map((g: string) => `- ${g}`).join('\n') : '')
     : '';
-  const composedInstructions = (savedCriticResult?.repairInstructions || '') + panelBlockPre + structuralBlockPre;
+  // Required-element gaps are WRITING defects, not evidence gaps — retrieval
+  // cannot produce "consequences for a decision-maker". Fold them into the
+  // repair instructions so any re-analysis (same-corpus or enriched) must
+  // contain them explicitly. Run v10: element flagged 5/6, never repaired.
+  const missingElements: string[] = (stats as any).requiredElements?.missing ?? [];
+  const elementBlock = missingElements.length > 0
+    ? '\n\n## REQUIRED ELEMENTS MISSING (must appear in the rewrite)\n' +
+      missingElements.map((m: string) => `- ${m}`).join('\n') +
+      '\nThese are structural requirements of the format — no source can supply them. ' +
+      'The rewritten analysis MUST contain each one explicitly (a dedicated section or paragraph), not merely allude to it.'
+    : '';
+  const composedInstructions = (savedCriticResult?.repairInstructions || '') + panelBlockPre + structuralBlockPre + elementBlock;
   if (composedInstructions.trim().length > 0) {
     (stats as any).repairInstructionsComposed = composedInstructions;
   }
