@@ -1450,6 +1450,14 @@ export async function analystAgentV3(
       console.warn(`[Analyst V3] VALIDATION: removed ${validatedMap.removedMechanisms} mechanisms with invalid citations (${validatedMap.details})`);
     }
 
+    // Lot 3: a pass-1 that yields ZERO mechanisms after citation validation
+    // has no evidence spine — passes 2/3 would draft around nothing and the
+    // artifact must never be adopted. Fail fast with a machine-readable
+    // motif (pipeline maps _meta.failed → structured refusal).
+    if ((validatedMap.map.mechanisms ?? []).length === 0) {
+      throw new Error(`pass1_zero_mechanisms: pass 1 extracted no grounded mechanisms from ${sources.length} sources (${validatedMap.removedMechanisms} removed by validation)`);
+    }
+
     // PRE-DRAFT SCOPE REVIEW — cheap check on the pass-1 direction BEFORE
     // pass 2/3 invest in it. Scope/causality defects are repaired mid-flight
     // via a directive appended to the shared context (visible to both

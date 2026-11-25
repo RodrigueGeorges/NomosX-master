@@ -232,6 +232,16 @@ export interface PositionFirstBriefInput {
    *  `position` after downstream mutations produced rendered/persisted
    *  divergence and a guaranteed central_scenario gate hold. */
   centralScenario?: CentralScenarioDecision;
+  /** Lot 3 note-format dateline: probability + horizon + market odds shown
+   *  next to the verdict, per the publication spec. All fields optional —
+   *  absent data renders nothing (no fabricated figures). */
+  keyFigures?: {
+    probability?: number | null;
+    scenarioName?: string;
+    horizon?: string;
+    marketAvgProbability?: number | null;
+    marketCount?: number;
+  };
 }
 
 export function dimensionsFromClassification(tc: TopicClassification): EditorialDimension[] {
