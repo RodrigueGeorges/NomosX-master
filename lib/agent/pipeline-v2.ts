@@ -576,15 +576,23 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   const preReaderMinSources = Number(process.env.PRE_READER_MIN_SOURCES ?? (isStrategic ? 15 : 8));
   const coreEvidenceShort = typeof screenedCoreCount === 'number' && screenedCoreCount < preReaderMinCore;
   const corpusTooSmall = topSources.length < preReaderMinSources;
-  if (coreEvidenceShort || corpusTooSmall) {
+  // Lot 2 corpus quotas: a policy question whose mandatory evidence mass
+  // (regulatory texts, recent implementation, ex-ante modelling, contrary
+  // sources) could not be filled in two rounds stops BEFORE reader spend —
+  // motif corpus_quota_unmet:<missing>.
+  const corpusQuotas = (stats as any).corpusQuotas as { met?: boolean; missing?: string[] } | undefined;
+  const quotasUnmet = corpusQuotas?.met === false;
+  if (coreEvidenceShort || corpusTooSmall || quotasUnmet) {
     const deferredQueries = (((stats as any).deferredGapRequests?.queries ?? []) as string[]).slice(0, 12);
-    const reason = `corpus_core_evidence_pre_reader: ${screenedCoreCount ?? 'unscreened'} core sources (need ${preReaderMinCore}), ${topSources.length} ranked sources (need ${preReaderMinSources})`;
+    const reason = quotasUnmet
+      ? `corpus_quota_unmet:${(corpusQuotas?.missing ?? []).join('+') || 'unknown'} — ${topSources.length} ranked sources could not fill mandatory policy-corpus quotas before reader spend`
+      : `corpus_core_evidence_pre_reader: ${screenedCoreCount ?? 'unscreened'} core sources (need ${preReaderMinCore}), ${topSources.length} ranked sources (need ${preReaderMinSources})`;
     console.warn(`${label} REFUSAL: ${reason} — refusing before reader spend`);
     stats.structuredRefusal = {
       reason,
       sourceCount: topSources.length,
       required: preReaderMinSources,
-      missing: ['core_evidence', 'reader_extractions'],
+      missing: quotasUnmet ? ['corpus_quota', ...(corpusQuotas?.missing ?? [])] : ['core_evidence', 'reader_extractions'],
       retryQueries: deferredQueries,
       // Extended fields for diagnostics — the declared type stays minimal.
       ...({ coreSourceCount: screenedCoreCount ?? null, requiredCore: preReaderMinCore, gapQueries: deferredQueries } as any),
