@@ -40,6 +40,38 @@ describe('deriveChainScenarios (OT-3)', () => {
     // No probability is produced at this stage.
     expect((out!.scenarios[0] as any).probability).toBeUndefined();
   });
+
+  it('rejects compound, conditional and out-of-horizon axes (Lot 1)', () => {
+    const links = [
+      link(1, 'present_fact'),
+      link(2, 'future_extrapolation', null, { claim: 'Emissions fall but costs surge for importers' }),   // compound
+      link(3, 'future_extrapolation', 2, { claim: 'CBAM revenue funds green transition' }),              // valid
+      link(4, 'active_mechanism', 3, { claim: 'Le cas échéant, exporters relocate to Turkey', unsupported: true }), // conditional + weak
+      link(5, 'present_fact', 4, { claim: 'A verifier en 2035' }),                                       // out-of-horizon? present_fact → not an axis candidate
+      link(6, 'future_extrapolation', 5, { claim: 'Import volumes shift to 2035 corridors' }),           // out-of-horizon
+      link(7, 'future_extrapolation', 6, { claim: 'Free allocation phase-out accelerates' }),            // valid
+    ];
+    const out = deriveChainScenarios(links, 'We look to 2030');
+    expect(out).not.toBeNull();
+    const rejected = out!.rejectedAxes ?? [];
+    expect(rejected.map(r => r.linkId).sort()).toEqual([2, 4, 6]);
+    expect(rejected.find(r => r.linkId === 2)!.reason).toBe('compound_axis');
+    expect(rejected.find(r => r.linkId === 4)!.reason).toBe('conditional_axis');
+    expect(rejected.find(r => r.linkId === 6)!.reason).toBe('out_of_horizon');
+    // The two surviving axes are links 3 and 7.
+    expect(out!.uncertainties.map(u => u.linkId).sort()).toEqual([3, 7]);
+  });
+
+  it('returns null when every uncertain axis is rejected', () => {
+    const links = [
+      link(1, 'present_fact'),
+      link(2, 'future_extrapolation', null, { claim: 'Costs fall but emissions rise' }),
+      link(3, 'future_extrapolation', 2, { claim: 'Si le cas échéant, les exportateurs partent' }),
+      link(4, 'active_mechanism', 3),
+      link(5, 'present_fact', 4),
+    ];
+    expect(deriveChainScenarios(links, 'We look to 2030')).toBeNull();
+  });
 });
 
 describe('electScenario (OT-5)', () => {

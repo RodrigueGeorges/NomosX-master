@@ -70,6 +70,7 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
           scenarioIds: chainDerivation.scenarios.map(s => s.id),
           conditions: chainDerivation.scenarios.map(s => ({ id: s.id, conditions: s.conditions })),
           usedForForesight: false,
+          rejectedAxes: chainDerivation.rejectedAxes,
         }
       : { usedForForesight: false, reason: 'insufficient_uncertainties' };
 

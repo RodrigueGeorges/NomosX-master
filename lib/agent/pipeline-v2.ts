@@ -1232,6 +1232,9 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
         typeof ghostAnalysis?.trajectory === 'object' && ghostAnalysis.trajectory
           ? String((ghostAnalysis.trajectory as { horizon?: string }).horizon ?? '') : undefined,
       );
+      if (ghostChain?.rejectedAxes?.length) {
+        gStats.chainRejectedAxes = ghostChain.rejectedAxes;
+      }
       if (ghostChain && topSources.length >= 10) {
         const contestedExtras = ((gStats.critic as any)?.contestedFindingsDetail ?? [])
           .map((cf: any, i: number) => ({
