@@ -127,6 +127,23 @@ export interface CentralScenarioLabels {
 }
 
 /**
+ * Probability badge honesty gate (run-11 DA killShot): a numeric percentage
+ * is only shown when it comes from a calibrated source — the swarm election
+ * (empiricalProbability, pinned by pinScenariosToCells) or the Delphi
+ * calibrated estimate. Analyst-written "58%" strings are uncalibrated
+ * guesses and collapse to "not established"; qualitative labels pass
+ * through unchanged.
+ */
+function scenarioProbLabel(s: { probability?: unknown; empiricalProbability?: unknown; calibratedProbability?: unknown }): string {
+  for (const v of [s.empiricalProbability, s.calibratedProbability]) {
+    if (typeof v === 'number' && Number.isFinite(v)) return `${Math.round(v * 100)}%`;
+  }
+  const p = String(s.probability ?? '').trim();
+  if (p && !/^\d/.test(p)) return p;
+  return 'not established';
+}
+
+/**
  * Render the single central-scenario block. Shared by the renderer and the
  * revision controller — the gate requires the block to match the persisted
  * decision verbatim, so both paths must emit identical markup.
@@ -337,7 +354,9 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
 
         // Delphi foresight metrics (sidebar/footer, not mid-text)
         const metaParts: string[] = [];
-        if (s.confidenceInterval && Array.isArray(s.confidenceInterval)) {
+        if (Array.isArray(s.confidenceInterval)
+          && Number.isFinite(s.confidenceInterval[0]) && Number.isFinite(s.confidenceInterval[1])
+          && s.confidenceInterval[0] < s.confidenceInterval[1]) {
           metaParts.push(`<span>90% CI: [${Math.round(s.confidenceInterval[0] * 100)}%, ${Math.round(s.confidenceInterval[1] * 100)}%]</span>`);
         }
         if (typeof s.baseRate === 'number') {
@@ -385,7 +404,7 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
     <div class="scenario-row${s.isWildcard ? ' scenario-wildcard' : ''}">
       <div class="scenario-head">
         <span class="scenario-name">${esc(s.name)}${position.dominantScenario === s.name ? ' · central' : ''}${s.isWildcard ? ' · wildcard' : ''}</span>
-        <span class="scenario-prob" data-no-cite>${esc(s.probability)}</span>
+        <span class="scenario-prob" data-no-cite>${esc(scenarioProbLabel(s))}</span>
       </div>
       ${s.axisPosition ? `<div class="scenario-axis" data-no-cite><span class="signal-label">Matrix position:</span> ${esc(s.axisPosition)}</div>` : ''}
       ${narrativeHtml || `<div class="scenario-desc">${replaceCitations(esc(s.description), sources.length)}</div>`}
@@ -604,18 +623,24 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
       const m = String(p ?? '').match(/(\d+(?:\.\d+)?)/);
       return m ? parseFloat(m[1]) : null;
     };
+    const sortProb = (s: (typeof position.scenarios)[number]): number =>
+      typeof s.empiricalProbability === 'number' && Number.isFinite(s.empiricalProbability)
+        ? s.empiricalProbability
+        : (parseProb(s.probability) ?? 0) / 100;
     const tableRows = [...position.scenarios]
-      .sort((a, b) => (parseProb(b.probability) ?? 0) - (parseProb(a.probability) ?? 0))
+      .sort((a, b) => sortProb(b) - sortProb(a))
       .map((s) => {
-        const prob = parseProb(s.probability);
+        const probCell = scenarioProbLabel(s);
         const ci = Array.isArray(s.confidenceInterval)
+          && Number.isFinite(s.confidenceInterval[0]) && Number.isFinite(s.confidenceInterval[1])
+          && s.confidenceInterval[0] < s.confidenceInterval[1]
           ? `${Math.round(s.confidenceInterval[0] * 100)}–${Math.round(s.confidenceInterval[1] * 100)}%`
           : '—';
         const sens = typeof s.sensitivityScore === 'number'
           ? (s.sensitivityScore < 0.3 ? 'robust' : s.sensitivityScore < 0.6 ? 'moderate' : 'fragile')
           : '—';
         const isCentralRow = s.name === central?.name || position.dominantScenario === s.name;
-        return `<tr${isCentralRow ? ' class="scenario-central-row"' : ''}><td data-no-cite>${esc(s.name)}${isCentralRow ? ' · central' : ''}${s.isWildcard ? ' · wildcard' : ''}</td><td data-no-cite>${prob !== null ? `${prob}%` : esc(String(s.probability))}</td><td data-no-cite>${ci}</td><td data-no-cite>${sens}</td><td data-no-cite>${(s.keyDrivers || []).slice(0, 2).map((d: string) => esc(d)).join('; ') || '—'}</td></tr>`;
+        return `<tr${isCentralRow ? ' class="scenario-central-row"' : ''}><td data-no-cite>${esc(s.name)}${isCentralRow ? ' · central' : ''}${s.isWildcard ? ' · wildcard' : ''}</td><td data-no-cite>${esc(probCell)}</td><td data-no-cite>${ci}</td><td data-no-cite>${sens}</td><td data-no-cite>${(s.keyDrivers || []).slice(0, 2).map((d: string) => esc(d)).join('; ') || '—'}</td></tr>`;
       })
       .join('');
     actIIIParts.push(`<section class="nx-block scenario-table-wrap"><table class="scenario-table"><thead><tr><th data-no-cite>Scenario</th><th data-no-cite>Prob.</th><th data-no-cite>90% CI</th><th data-no-cite>Sensitivity</th><th data-no-cite>Key drivers</th></tr></thead><tbody>${tableRows}</tbody></table></section>`);

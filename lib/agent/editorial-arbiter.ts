@@ -111,11 +111,12 @@ function extractScenariosFromAnalysis(analysis: Record<string, unknown>): Scenar
     description: String(s.description ?? s.implications ?? ''),
     signals: Array.isArray(s.signals) ? s.signals.map(String) : undefined,
     empiricalProbability:
-      typeof s.empiricalProbability === 'number'
-        ? s.empiricalProbability
-        : typeof s._simulation === 'object' && s._simulation
-          ? (s._simulation as { empiricalProbability?: number }).empiricalProbability
-          : undefined,
+      // Only a real Monte-Carlo simulation may claim "empirical" — an
+      // analyst-written empiricalProbability is self-certified precision
+      // (run-11 DA killShot: six-decimal invented values, zero-width CIs).
+      typeof s._simulation === 'object' && s._simulation
+        ? (s._simulation as { empiricalProbability?: number }).empiricalProbability
+        : undefined,
   }));
 }
 
