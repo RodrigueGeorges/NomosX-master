@@ -57,6 +57,9 @@ export interface AgenticForecastResult {
   familiesUsed: string[];
   costUsd: number;
   skipped?: string;
+  /** Spec supervisor: fired when question IQR > 0.20 — one targeted
+   *  adjudication pass on the disagreement point, then re-pool. */
+  supervisor?: { triggered: boolean; iqrBefore: number; revised: number; iqrAfter?: number };
 }
 
 const FAMILY_OF: Record<string, string> = {
@@ -174,9 +177,11 @@ export async function runAgenticForecasters(input: {
   const fmt = (cards: SwarmSourceCard[]) => cards.map(c => `[${c.id.slice(-6)}] (${c.qualityScore}/100) ${c.title}\n  ${c.excerpt.slice(0, 400)}`).join('\n');
 
   const forecasters: AgenticForecastResult['forecasters'] = [];
-  // linkId → votes[] for pooling (question link + chain links)
-  const linkVotes = new Map<number, ForecastVote[]>();
-  const questionVotes: ForecastVote[] = [];
+  // Per-forecaster vote buckets — the supervisor pass replaces one
+  // forecaster's votes wholesale, so pooling needs provenance.
+  const fvotes: Array<{ q?: ForecastVote; links: Array<{ linkId: number; vote: ForecastVote }> }> =
+    chosen.map(() => ({ links: [] }));
+  const finalBeliefs: Array<BeliefState | null> = chosen.map(() => null);
   let costUsd = 0;
 
   await Promise.allSettled(chosen.map(async (provider, fi) => {
@@ -238,75 +243,158 @@ export async function runAgenticForecasters(input: {
     rec.iterations = iterations;
     rec.finalP = belief?.p;
     forecasters.push(rec);
+    finalBeliefs[fi] = belief ?? null;
     if (!belief) return;
 
     // Question vote (confidence maps low/med/high → 50/75/95 pool scale).
     const conf = belief.confidence === 'high' ? 95 : belief.confidence === 'medium' ? 75 : 50;
-    questionVotes.push({ claim: 'question', probability: belief.p, confidence: conf, origin: family });
+    fvotes[fi].q = { claim: 'question', probability: belief.p, confidence: conf, origin: family };
     // Link votes.
     for (const u of input.uncertainties) {
       if (u.linkId === QUESTION_LINK_ID) continue;
       const p = belief.links[u.linkId];
       if (p == null) continue;
-      const arr = linkVotes.get(u.linkId) ?? [];
-      arr.push({ claim: `link-${u.linkId}`, probability: p, confidence: conf, origin: family });
-      linkVotes.set(u.linkId, arr);
+      fvotes[fi].links.push({
+        linkId: u.linkId,
+        vote: { claim: `link-${u.linkId}`, probability: p, confidence: conf, origin: family },
+      });
     }
   }));
 
   // Pool per link into LinkForecast shape (same contract as the card swarm).
-  const forecasts: LinkForecast[] = [];
-  for (const u of input.uncertainties) {
-    if (u.linkId === QUESTION_LINK_ID) continue;
-    const votes = linkVotes.get(u.linkId);
-    if (!votes?.length) continue;
-    const calibrated = votes.map(v => ({
-      ...v,
-      probability: applyPlatt(v.probability, getFamilyPlatt(v.origin)),
-    }));
-    const pooled = poolForecasts(calibrated);
-    if (!pooled) continue;
-    const probs = votes.map(v => v.probability).sort((a, b) => a - b);
-    const q1 = probs[Math.floor(probs.length * 0.25)] ?? probs[0];
-    const q3 = probs[Math.floor(probs.length * 0.75)] ?? probs[probs.length - 1];
-    forecasts.push({
-      linkId: u.linkId,
-      claim: u.claim,
-      probability: Math.min(0.95, Math.max(0.05, pooled.pooled)),
-      variance: probs.reduce((a, p) => a + (p - probs.reduce((s, x) => s + x, 0) / probs.length) ** 2, 0) / probs.length,
-      iqr: q3 - q1,
-      validVotes: votes.length,
-      families: new Set(votes.map(v => v.origin)).size,
-      contested: pooled.contested || q3 - q1 > 0.20,
-    });
-  }
-
-  // Question forecast: pooled across the (≤3) forecasters.
-  let questionForecast: AgenticForecastResult['questionForecast'];
-  if (questionVotes.length) {
-    const pooled = poolForecasts(questionVotes.map(v => ({
-      ...v,
-      probability: applyPlatt(v.probability, getFamilyPlatt(v.origin)),
-    })));
-    if (pooled) {
-      const probs = questionVotes.map(v => v.probability).sort((a, b) => a - b);
-      const iqr = (probs[Math.min(probs.length - 1, Math.floor(probs.length * 0.75))] ?? 0.5) - (probs[Math.floor(probs.length * 0.25)] ?? 0.5);
-      questionForecast = {
+  const poolAll = () => {
+    const questionVotes: ForecastVote[] = [];
+    const linkVotes = new Map<number, ForecastVote[]>();
+    for (const fv of fvotes) {
+      if (fv.q) questionVotes.push(fv.q);
+      for (const { linkId, vote } of fv.links) {
+        const arr = linkVotes.get(linkId) ?? [];
+        arr.push(vote);
+        linkVotes.set(linkId, arr);
+      }
+    }
+    const forecasts: LinkForecast[] = [];
+    for (const u of input.uncertainties) {
+      if (u.linkId === QUESTION_LINK_ID) continue;
+      const votes = linkVotes.get(u.linkId);
+      if (!votes?.length) continue;
+      const calibrated = votes.map(v => ({
+        ...v,
+        probability: applyPlatt(v.probability, getFamilyPlatt(v.origin)),
+      }));
+      const pooled = poolForecasts(calibrated);
+      if (!pooled) continue;
+      const probs = votes.map(v => v.probability).sort((a, b) => a - b);
+      const q1 = probs[Math.floor(probs.length * 0.25)] ?? probs[0];
+      const q3 = probs[Math.floor(probs.length * 0.75)] ?? probs[probs.length - 1];
+      forecasts.push({
+        linkId: u.linkId,
+        claim: u.claim,
         probability: Math.min(0.95, Math.max(0.05, pooled.pooled)),
-        iqr,
-        validVotes: questionVotes.length,
-        families: new Set(questionVotes.map(v => v.origin)).size,
-        contested: pooled.contested || iqr > 0.20,
-      };
+        variance: probs.reduce((a, p) => a + (p - probs.reduce((s, x) => s + x, 0) / probs.length) ** 2, 0) / probs.length,
+        iqr: q3 - q1,
+        validVotes: votes.length,
+        families: new Set(votes.map(v => v.origin)).size,
+        contested: pooled.contested || q3 - q1 > 0.20,
+      });
+    }
+
+    // Question forecast: pooled across the (≤3) forecasters.
+    let questionForecast: AgenticForecastResult['questionForecast'];
+    if (questionVotes.length) {
+      const pooled = poolForecasts(questionVotes.map(v => ({
+        ...v,
+        probability: applyPlatt(v.probability, getFamilyPlatt(v.origin)),
+      })));
+      if (pooled) {
+        const probs = questionVotes.map(v => v.probability).sort((a, b) => a - b);
+        const iqr = (probs[Math.min(probs.length - 1, Math.floor(probs.length * 0.75))] ?? 0.5) - (probs[Math.floor(probs.length * 0.25)] ?? 0.5);
+        questionForecast = {
+          probability: Math.min(0.95, Math.max(0.05, pooled.pooled)),
+          iqr,
+          validVotes: questionVotes.length,
+          families: new Set(questionVotes.map(v => v.origin)).size,
+          contested: pooled.contested || iqr > 0.20,
+        };
+      }
+    }
+    return { forecasts, questionForecast };
+  };
+
+  let { forecasts, questionForecast } = poolAll();
+
+  // SUPERVISOR (spec): question IQR > 0.20 → name the disagreement point,
+  // one targeted adjudication call per forecaster, then a single re-pool.
+  // Bounded: exactly one extra call per forecaster, best-effort.
+  let supervisor: AgenticForecastResult['supervisor'];
+  const iqrBefore = questionForecast?.iqr ?? 0;
+  if (questionForecast && iqrBefore > 0.20 && finalBeliefs.some(Boolean)) {
+    const ps = fvotes.map(fv => fv.q?.probability).filter((p): p is number => p != null);
+    const lo = Math.min(...ps), hi = Math.max(...ps);
+    const spread = `VOTER DISAGREEMENT: forecaster probabilities range ${lo.toFixed(2)}–${hi.toFixed(2)} (IQR ${iqrBefore.toFixed(2)}).`;
+    let revised = 0;
+    await Promise.allSettled(chosen.map(async (provider, fi) => {
+      const prior = finalBeliefs[fi];
+      if (!prior) return;
+      const family = familyOfProvider(provider);
+      try {
+        const res = await callLLM({
+          provider,
+          task: 'fact_check',
+          temperature: 0.2,
+          maxTokens: 1600,
+          jsonMode: true,
+          runId: input.runId,
+          traceName: 'agentic_forecast_supervisor',
+          maxCostUsd: 0.04,
+          messages: [
+            { role: 'system', content: SYSTEM },
+            { role: 'user', content: [
+              `RESEARCH QUESTION: ${input.question}\nHORIZON: ${input.horizon ?? 'see links'}\n${questionBlock}`,
+              `UNCERTAIN LINKS:\n${linkList}`,
+              `PRIOR BELIEF STATE:\n${JSON.stringify(prior)}`,
+              spread,
+              'ADJUDICATION PASS — final, one only: name the single most decision-relevant open question or evidence gap behind the disagreement, resolve it from your prior reasoning and the evidence you saw, then output your REVISED belief JSON. Keep base rates honest; do not anchor on the crowd.',
+            ].filter(Boolean).join('\n\n') },
+          ],
+        });
+        costUsd += res.costUsd ?? 0;
+        const next = parseBelief(res.content);
+        if (!next) return;
+        finalBeliefs[fi] = next;
+        revised++;
+        const conf = next.confidence === 'high' ? 95 : next.confidence === 'medium' ? 75 : 50;
+        fvotes[fi] = { links: [] };
+        fvotes[fi].q = { claim: 'question', probability: next.p, confidence: conf, origin: family };
+        for (const u of input.uncertainties) {
+          if (u.linkId === QUESTION_LINK_ID) continue;
+          const p = next.links[u.linkId];
+          if (p == null) continue;
+          fvotes[fi].links.push({
+            linkId: u.linkId,
+            vote: { claim: `link-${u.linkId}`, probability: p, confidence: conf, origin: family },
+          });
+        }
+      } catch { /* supervisor pass is best-effort — prior votes stand */ }
+    }));
+    if (revised > 0) {
+      ({ forecasts, questionForecast } = poolAll());
+      supervisor = { triggered: true, iqrBefore, revised, iqrAfter: questionForecast?.iqr };
+      console.log(`[agentic-forecasters] SUPERVISOR: IQR ${iqrBefore.toFixed(2)} > 0.20 — ${revised} forecaster(s) revised, IQR now ${(questionForecast?.iqr ?? 0).toFixed(2)}`);
+    } else {
+      supervisor = { triggered: true, iqrBefore, revised: 0, iqrAfter: iqrBefore };
     }
   }
 
+  const totalVotes = forecasts.reduce((a, f) => a + f.validVotes, 0)
+    + fvotes.filter(fv => fv.q).length;
   return {
     forecasts,
     questionForecast,
     forecasters,
-    validVotes: forecasts.reduce((a, f) => a + f.validVotes, 0) + questionVotes.length,
+    validVotes: totalVotes,
     familiesUsed: [...new Set(forecasters.map(f => f.family))],
     costUsd,
+    supervisor,
   };
 }

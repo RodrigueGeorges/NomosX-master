@@ -206,6 +206,7 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
               costUsd: agenticResult.costUsd,
               skipped: agenticResult.skipped,
               questionForecast: agenticResult.questionForecast,
+              supervisor: agenticResult.supervisor,
             }
           : {
               mode: 'swarm',
