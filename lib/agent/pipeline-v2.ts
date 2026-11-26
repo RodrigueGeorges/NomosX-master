@@ -124,6 +124,10 @@ export interface PipelineCoreOptions {
    * distilled for the evidence it lacked — scouted as a bounded mission so
    * the retry repairs the corpus gap. */
   priorEvidenceQueries?: string[];
+  /** P0-A: verified falsifiable forecast question from dispatch — the
+   * questionSpec (resolution/metric/source/horizon) is extracted FROM it,
+   * never invented downstream from the research question. */
+  forecastQuestion?: string;
   /** Regeneration loop: readings extracted by the prior attempt — the reader
    * reuses them for sources it already extracted and only reads NEW sources
    * (e.g. gap-fill additions). Skipping a full re-read saves ~5-8min and the
@@ -342,6 +346,10 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     phaseMarks[name] = Date.now() - pipelineStart;
   };
   (stats as any).phaseTimings = phaseMarks;
+  // P0-A: the dispatch-verified forecast question is part of the run's
+  // contract — recorded unconditionally so the question_substituted check
+  // and post-run stats see it even when the swarm/arbiter block is skipped.
+  if (opts.forecastQuestion?.trim()) (stats as any).forecastQuestion = opts.forecastQuestion.trim();
 
   // -- STEP 1: SCOUT — extracted to pipeline-steps/scout-block.ts --
   // Budget lane 'scout': broad discovery fan-out gets its own sub-cap per
@@ -1536,6 +1544,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
         readings,
         pipelineRunId: pipelineRun.id, addCost,
         degraded: arbiterDegraded,
+        forecastQuestion: opts.forecastQuestion,
       });
       institutePosition = arbiterOut.institutePosition;
       analysis = arbiterOut.analysis as typeof analysis;
@@ -2056,6 +2065,9 @@ export interface StrategicPipelineOptions {
   /** HELD-retry: targeted retrieval queries distilled from the prior attempt's
    * missing evidence — scouted as a bounded mission. */
   priorEvidenceQueries?: string[];
+  /** P0-A: verified falsifiable forecast question from dispatch — drives
+   * questionSpec extraction (arbiter-foresight) and the swarm question ballot. */
+  forecastQuestion?: string;
   /** Regeneration loop: readings extracted by the prior attempt — the reader
    * reuses them; only new sources are fetched. */
   priorReadings?: unknown[];
@@ -2137,6 +2149,7 @@ export async function runStrategicPipeline(
     parametricInput: options.parametricInput,
     priorFailureFeedback: options.priorFailureFeedback,
     priorEvidenceQueries: options.priorEvidenceQueries,
+    forecastQuestion: options.forecastQuestion,
     priorReadings: options.priorReadings,
     skipGapFillRetrieval: options.skipGapFillRetrieval,
     primerCoverageCutoff: options.primerCoverageCutoff,
@@ -2280,6 +2293,7 @@ export async function runPipeline(
         useWitness: options.useWitness,
         priorFailureFeedback: options.priorFailureFeedback,
         priorEvidenceQueries: options.priorEvidenceQueries,
+    forecastQuestion: options.forecastQuestion,
         priorReadings: options.priorReadings,
         skipGapFillRetrieval: options.skipGapFillRetrieval,
         primerCoverageCutoff: options.primerCoverageCutoff,

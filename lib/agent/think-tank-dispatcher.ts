@@ -21,9 +21,6 @@ import { runAndPublishInquiry, type InquiryPublishResult } from "./inquiry-orche
 import { publicationTypeToDepth } from "./inquiry-funnel-utils";
 import { runTopicRadar } from "./topic-radar";
 import { editorialTriage, type EditorialDecision } from "./editor-in-chief";
-import { planEditorialAgenda } from "./editorial-planner";
-import { getVerticalForTopic } from "./researcher-ownership";
-import { classifyTopic } from "./topic-classifier";
 import type { InquiryDepth } from "@/lib/types/inquiry";
 // Search providers are now used by the evidence-gatherer module directly
 
@@ -107,6 +104,11 @@ export interface ThinkTankDispatchItem {
    * scouted as a bounded evidence mission so the retry repairs the corpus
    * gap the diagnosis identified. */
   priorEvidenceQueries?: string[];
+  /** P0-A: verified falsifiable forecast question — drives questionSpec,
+   * the swarm ballot and the published thesis. Set only after
+   * verifyDispatchQuestion passes; absent means the item was never
+   * question-verified and must not dispatch. */
+  forecastQuestion?: string;
 }
 
 /** Serializable cycle checkpoint — stored on the Job row between items. */
@@ -261,6 +263,9 @@ function breakingDecisionToItem(decision: EditorialDecision): ThinkTankDispatchI
     depth,
     domain: decision.classification.primaryDomain,
     verticalSlug: decision.classification.verticalSlug,
+    // P0-A: the EiC's forecastQuestion is a CANDIDATE — it still must pass
+    // verifyDispatchQuestion in the preflight loop before dispatch.
+    forecastQuestion: decision.forecastQuestion?.trim() || undefined,
     // Don't pass providers or perProvider — let the pipeline's smart selector + DEFAULT_ACADEMIC_PROVIDERS merge handle it
     strategy: "breaking",
     metadata: {
@@ -452,7 +457,20 @@ async function collectHeldRetryItems(maxItems = 1): Promise<{ items: ThinkTankDi
           }
         }
       } catch { /* reformulation is advisory — never block the retry */ }
-      console.log(`[ThinkTank] HELD RETRY: "${sig.title.slice(0, 60)}" — attempt ${priorHolds + 1} (lastTrust=${checks.trustScore ?? '?'}, feedback ${feedback.length}ch, ${evidenceQueries.length} evidence queries${reformulation ? ', QUESTION REFORMULATED' : ''})`);
+      // P0-A: the retry's question must re-verify against CURRENT signals —
+      // a stale title or a reformulation that drifted off the news is
+      // abandoned with its motif, not re-spent on.
+      const { verifyDispatchQuestion } = await import('./question-verifiers');
+      const vq = await verifyDispatchQuestion({
+        question: dispatchQuestion,
+        topicTitle: sig.title,
+        signalContext: feedback.slice(0, 2000),
+      });
+      if (!vq.pass) {
+        console.log(`[QUESTION-GATE] ❌ HELD RETRY abandoned "${dispatchQuestion.slice(0, 60)}" — ${vq.motif}`);
+        continue;
+      }
+      console.log(`[ThinkTank] HELD RETRY: "${sig.title.slice(0, 60)}" — attempt ${priorHolds + 1} (lastTrust=${checks.trustScore ?? '?'}, feedback ${feedback.length}ch, ${evidenceQueries.length} evidence queries${reformulation ? ', QUESTION REFORMULATED' : ''}) | forecastQ: "${vq.forecastQuestion?.slice(0, 70)}"`);
       items.push({
         question: dispatchQuestion,
         depth: publicationTypeToDepth(selectFormatFromSignal(sig.signalType, sig.priorityScore)),
@@ -462,6 +480,7 @@ async function collectHeldRetryItems(maxItems = 1): Promise<{ items: ThinkTankDi
         retryAttempt: priorHolds + 1,
         priorFailureFeedback: feedback || undefined,
         priorEvidenceQueries: evidenceQueries.length ? evidenceQueries : undefined,
+        forecastQuestion: vq.forecastQuestion,
         metadata: {
           signalType: sig.signalType, priorityScore: sig.priorityScore, heldRetry: true,
           ...(reformulation ? { questionReformulation: reformulation } : {}),
@@ -477,7 +496,7 @@ async function collectHeldRetryItems(maxItems = 1): Promise<{ items: ThinkTankDi
 async function collectBreakingItems(
   maxPublications: number,
   budgetUsd: number
-): Promise<{ items: ThinkTankDispatchItem[]; decideCostUsd: number; phases: Record<string, unknown>; errors: string[] }> {
+): Promise<{ items: ThinkTankDispatchItem[]; decideCostUsd: number; phases: Record<string, unknown>; questionGate?: { costUsd: number; rejected: number }; errors: string[] }> {
   const errors: string[] = [];
   const detectStart = Date.now();
 
@@ -558,6 +577,7 @@ async function collectBreakingItems(
   //   5. Returns a reformulated question if the original was misaligned
   const viableItems: ThinkTankDispatchItem[] = [];
   const preflightResults: Array<{ question: string; viable: boolean; count: number; details: string; semanticScore: number; semanticReasoning: string; strategy: string }> = [];
+  let questionGateCostUsd = 0;
 
   // Pre-validate up to 2x the publication target: when a dispatched
   // candidate is held after the escalation ladder (revision → regeneration),
@@ -602,11 +622,33 @@ async function collectBreakingItems(
     if (check.viable) {
       // If the gatherer reformulated the question, use the reformulated version
       const finalQuestion = check.reformulatedQuestion || question;
-      console.log(`[PREFLIGHT] ✅ "${question.slice(0, 60)}" — ${check.academicCount} sources, semantic=${Math.round(check.semanticScore * 100)}%, strategy=${check.strategy} in ${preflightMs}ms${check.reformulatedQuestion ? ` → reformulated: "${check.reformulatedQuestion.slice(0, 60)}"` : ''}`);
+      // P0-A question gate: verify the forecast question BEFORE any pipeline
+      // spend. The EiC's candidate forecastQuestion is re-verified (or derived
+      // when absent) — a rejection abandons the item with its motif recorded.
+      const { verifyDispatchQuestion } = await import('./question-verifiers');
+      const vq = await verifyDispatchQuestion({
+        question: finalQuestion,
+        topicTitle: decision.topic.title,
+        signalContext: decision.reasoning,
+      });
+      questionGateCostUsd += vq.costUsd ?? 0;
+      if (!vq.pass) {
+        console.log(`[QUESTION-GATE] ❌ "${finalQuestion.slice(0, 60)}" — rejected: ${vq.motif} (quality=${vq.checks.quality} ambiguity=${vq.checks.ambiguity} resolvable=${vq.checks.resolvable})`);
+        preflightResults.push({
+          question: finalQuestion.slice(0, 80), viable: false, count: check.academicCount,
+          details: `question_gate:${vq.motif}`, semanticScore: check.semanticScore,
+          semanticReasoning: `rejected by question verifier — ${vq.motif}`, strategy: 'question_gate',
+        });
+        continue;
+      }
+      console.log(`[PREFLIGHT] ✅ "${question.slice(0, 60)}" — ${check.academicCount} sources, semantic=${Math.round(check.semanticScore * 100)}%, strategy=${check.strategy} in ${preflightMs}ms${check.reformulatedQuestion ? ` → reformulated: "${check.reformulatedQuestion.slice(0, 60)}"` : ''} | forecastQ: "${vq.forecastQuestion?.slice(0, 70)}"`);
       const item = breakingDecisionToItem(decision);
       if (check.reformulatedQuestion) {
         item.question = check.reformulatedQuestion;
       }
+      // The VERIFIED forecast question wins over the EiC's raw candidate —
+      // it is what questionSpec, the swarm ballot and the thesis answer.
+      item.forecastQuestion = vq.forecastQuestion;
       viableItems.push(item);
     } else {
       console.log(`[PREFLIGHT] ❌ Skipping "${question.slice(0, 60)}" — ${check.academicCount} sources, semantic=${Math.round(check.semanticScore * 100)}%, strategy=${check.strategy} in ${preflightMs}ms. ${check.semanticReasoning}`);
@@ -618,7 +660,8 @@ async function collectBreakingItems(
 
   return {
     items: [...watchItems, ...heldRetryItems, ...viableItems],
-    decideCostUsd: triageResult.costUsd,
+    decideCostUsd: triageResult.costUsd + questionGateCostUsd,
+    questionGate: { costUsd: questionGateCostUsd, rejected: preflightResults.filter(r => !r.viable && r.strategy === 'question_gate').length },
     phases: {
       detect: { durationMs: detectMs, topicsFound: radarResult.topics.length, stats: radarResult.stats, predictionTriggersFired: watchItems.length },
       agenda: {
@@ -646,62 +689,41 @@ async function collectBreakingItems(
 async function collectWeeklyItems(
   remainingSlots: number,
   verticalPubCounts: Map<string, number>
-): Promise<{ items: ThinkTankDispatchItem[]; errors: string[] }> {
+): Promise<{ items: ThinkTankDispatchItem[]; decideCostUsd: number; phases: Record<string, unknown>; errors: string[] }> {
   const items: ThinkTankDispatchItem[] = [];
   const errors: string[] = [];
 
-  // Strategy 1: editorial auto-commission
-  try {
-    const agenda = await planEditorialAgenda({ weeklySlots: remainingSlots });
+  // P0-A: weekly mode goes through the SAME path as breaking — radar topics
+  // → editor-in-chief (forecastQuestion/researchQuestion) → preflight →
+  // question verifiers. The editorial planner no longer proposes questions;
+  // it only feeds themes to the radar agenda inside editorialTriage.
+  const collected = await collectBreakingItems(
+    remainingSlots,
+    Number(process.env.WEEKLY_BUDGET_USD ?? 10)
+  );
+  items.push(...collected.items);
+  errors.push(...collected.errors);
 
-    for (const proposal of agenda.autoCommission) {
-      if (items.length >= remainingSlots) break;
-
-      const depth: InquiryDepth = proposal.suggestedFormat === "strategic" ? "strategic"
-        : "standard";
-      const topicClassification = await classifyTopic(proposal.topic).catch(() => null);
-      const matchedSlug = topicClassification?.verticalSlug || getVerticalForTopic(proposal.topic);
-
-      const { resolveDbVerticalSlug } = await import('../think-tank/verticals');
-      const { pickLeastCoveredVerticalForDispatch } = await import('./vertical-resolution');
-      const dbSlug = resolveDbVerticalSlug(matchedSlug);
-      const vertical = dbSlug
-        ? await prisma.vertical.findUnique({
-            where: { slug: dbSlug },
-            select: { id: true, slug: true, config: true },
-          })
-        : await pickLeastCoveredVerticalForDispatch();
-
-      if (vertical && !verticalHasCapacity(vertical.id, vertical.config, verticalPubCounts)) {
-        continue;
-      }
-
-      items.push({
-        question: proposal.topic,
-        depth,
-        domain: topicClassification?.primaryDomain,
-        verticalSlug: matchedSlug ?? vertical?.slug,
-        // Don't pass providers — let the pipeline's smart selector + DEFAULT_ACADEMIC_PROVIDERS merge handle it
-        requireResearcherSignOff: true,
-        strategy: "editorial",
-        metadata: {
-          reason: proposal.reason,
-          confidence: proposal.confidence,
-          editorialPriority: proposal.priority,
-        },
-      });
+  // Vertical capacity still applies in weekly mode — drop items whose
+  // vertical already hit its weekly publication cap.
+  const capacityItems: ThinkTankDispatchItem[] = [];
+  for (const item of items) {
+    if (!item.verticalId) { capacityItems.push(item); continue; }
+    const vertical = await prisma.vertical.findUnique({
+      where: { id: item.verticalId },
+      select: { id: true, slug: true, config: true },
+    }).catch(() => null);
+    if (vertical && !verticalHasCapacity(vertical.id, vertical.config, verticalPubCounts)) {
+      console.log(`[ThinkTank] WEEKLY CAPACITY: "${item.question.slice(0, 60)}" — vertical ${vertical.slug} at weekly cap, dropped`);
+      continue;
     }
-  } catch (err: unknown) {
-    errors.push(`Editorial plan: ${err instanceof Error ? err.message : String(err)}`);
+    capacityItems.push(item);
   }
+  items.length = 0;
+  items.push(...capacityItems);
 
-  // Strategy 1.5: HELD retry — discharge held obligations before spending
-  // remaining slots on new signals (same bounded collection as breaking mode)
-  const heldRetry = await collectHeldRetryItems(1);
-  items.push(...heldRetry.items);
-  errors.push(...heldRetry.errors);
-
-  // Strategy 2: high-priority signals (fill remaining slots)
+  // Fill remaining slots with NEW high-priority signals — each still must
+  // pass the question verifiers before any spend (P0-A).
   const signalSlots = remainingSlots - items.length;
   if (signalSlots > 0) {
     const signals = await prisma.signal.findMany({
@@ -711,7 +733,7 @@ async function collectWeeklyItems(
         detectedAt: { gte: new Date(Date.now() - 7 * 86400000) },
       },
       orderBy: { priorityScore: "desc" },
-      take: signalSlots,
+      take: signalSlots * 2,
       select: {
         id: true,
         title: true,
@@ -721,13 +743,25 @@ async function collectWeeklyItems(
       },
     });
 
+    const { verifyDispatchQuestion } = await import('./question-verifiers');
     for (const signal of signals) {
+      if (items.length >= remainingSlots) break;
+
       const vertical = await prisma.vertical.findUnique({
         where: { id: signal.verticalId },
         select: { id: true, slug: true, config: true },
-      });
-
+      }).catch(() => null);
       if (vertical && !verticalHasCapacity(vertical.id, vertical.config, verticalPubCounts)) {
+        continue;
+      }
+
+      const vq = await verifyDispatchQuestion({
+        question: signal.title,
+        topicTitle: signal.title,
+        signalContext: `signalType=${signal.signalType} priorityScore=${signal.priorityScore}`,
+      });
+      if (!vq.pass) {
+        console.log(`[QUESTION-GATE] ❌ signal "${signal.title.slice(0, 60)}" abandoned — ${vq.motif}`);
         continue;
       }
 
@@ -737,8 +771,10 @@ async function collectWeeklyItems(
           selectFormatFromSignal(signal.signalType, signal.priorityScore)
         ),
         verticalId: signal.verticalId,
+        verticalSlug: vertical?.slug,
         signalId: signal.id,
         strategy: "signal",
+        forecastQuestion: vq.forecastQuestion,
         metadata: {
           signalType: signal.signalType,
           priorityScore: signal.priorityScore,
@@ -747,7 +783,7 @@ async function collectWeeklyItems(
     }
   }
 
-  return { items, errors };
+  return { items, decideCostUsd: collected.decideCostUsd, phases: collected.phases ?? {}, errors };
 }
 
 // ─── Dispatch queue ────────────────────────────────────────────
@@ -1178,6 +1214,9 @@ export async function executeDispatchQueue(
             ...(item.priorEvidenceQueries?.length
               ? { priorEvidenceQueries: item.priorEvidenceQueries }
               : {}),
+            // P0-A: the verified forecast question drives questionSpec,
+            // the swarm question ballot and the published thesis.
+            ...(item.forecastQuestion ? { forecastQuestion: item.forecastQuestion } : {}),
             executionId: itemExecutionId,
           },
           metadata: { strategy: item.strategy, ...item.metadata },
@@ -1447,6 +1486,8 @@ export async function runThinkTankCycle(
     maxExecutions = options.maxPublications ?? cadence.remainingSlots;
     const collected = await collectWeeklyItems(maxExecutions, cadence.verticalPubCounts);
     items = collected.items;
+    decideCostUsd = collected.decideCostUsd;
+    phases = collected.phases;
     errors.push(...collected.errors);
   }
 
