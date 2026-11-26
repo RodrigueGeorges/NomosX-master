@@ -416,6 +416,31 @@ export async function quantAgent(
     .map(r => r.value)
     .filter((s): s is QuantSeries => s !== null && s.points.length >= 3);
 
+  // P0-C quantitative floor: EVERY note attempts real macro series —
+  // DBnomics (INSEE/Eurostat/OECD/IMF) + FRED, domain-matched specs first,
+  // always-on macro floor behind them. Abstract-only numeric claims are
+  // not verified evidence; the gate requires ≥1 fetched series.
+  try {
+    const { fetchMacroSeries } = await import('./macro-series');
+    const macro = await fetchMacroSeries(query);
+    for (const ms of macro.series.slice(0, 3)) {
+      const stats = computeStats(downsample(ms.points));
+      series.push({
+        label: ms.label,
+        unit: ms.unit,
+        provider: ms.provider,
+        sourceId: ms.sourceId,
+        points: downsample(ms.points),
+        ...stats,
+      });
+    }
+    if (macro.series.length > 0) {
+      console.log(`[QUANT] Macro floor: ${macro.series.length} real series from ${[...new Set(macro.series.map(s => s.provider))].join(', ')} (${macro.attempted} specs attempted)`);
+    }
+  } catch (err) {
+    console.warn('[QUANT] Macro floor failed (non-blocking):', err);
+  }
+
   const facts = series.flatMap(seriesToFacts);
 
   // Build the evidence block for the ANALYST prompt

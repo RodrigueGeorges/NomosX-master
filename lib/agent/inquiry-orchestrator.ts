@@ -574,6 +574,14 @@ export async function runAndPublishInquiry(
       questionSubstitution: (p.stats.questionSubstitution as PublicationGateInput['questionSubstitution'] | undefined)?.substituted === true
         ? (p.stats.questionSubstitution as PublicationGateInput['questionSubstitution'])
         : undefined,
+      // P0-C: a verified forecastQuestion makes ≥1 real fetched series a
+      // publication requirement — abstract-only numeric claims are not
+      // verified evidence. quant.series undefined = quant never ran →
+      // the gate check stays absent (fail-open contract).
+      requiresQuantSeries: typeof p.stats.forecastQuestion === 'string' && p.stats.forecastQuestion.trim().length > 0,
+      quantSeriesCount: typeof (p.stats.quant as { series?: number } | undefined)?.series === 'number'
+        ? (p.stats.quant as { series: number }).series
+        : undefined,
       failedEvaluations: ['critic', 'criticPanel', 'devilsAdvocate', 'structuralEditor'].filter(key => {
         if (key === 'devilsAdvocate') return !aDa && !optionalDa;
         const evaluation = (p.stats[key] ?? p.lineage[key]) as Record<string, unknown> | undefined;
