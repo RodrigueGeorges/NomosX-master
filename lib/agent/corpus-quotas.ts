@@ -58,9 +58,18 @@ export interface CorpusQuotaReport {
 // ── Policy-question detection ────────────────────────────────────────────
 const POLICY_RE = /\b(regulation|directive|policy|CBAM|carbon border|ETS|emissions trading|sanction|tariff|quota|subsidy|mandate|ban|treaty|agreement|climate|emission|decarboni|energy transition|industrial policy|export control|rare earth|chip act|inflation reduction|carbon price|cap.and.trade|free allocation|border adjustment|local content|carbon leakage)\b/i;
 const POLICY_ACTION_RE = /\b(20\d{2}|by |will |impact|effect|reduce|cut|increase|comply|adopt|phase|implement|apply|enforce|exempt)\b/i;
+// Policy-relevant domains: forecast- or topic-phrased questions in these
+// domains ("renewables reach 50% of capacity by 2030", "mineral resource
+// dependencies") carry no policy keyword yet are exactly what the quotas
+// exist for. Domain membership alone triggers evaluation — the exAnte
+// bucket already scales to zero without a dated horizon, and unmet quotas
+// only refuse after two bounded refill rounds. Observed live (radar run
+// 11): 3/3 policy-relevant runs skipped quota evaluation entirely.
+const POLICY_DOMAIN_RE = /\b(energy|climate|emission|renewable|solar|wind|grid|capacity|storage|battery|mineral|lithium|cobalt|nickel|graphite|rare earth|semiconductor|supply.chain|trade|tariff|sanction|border|carbon|decarboni|fossil|hydrocarbon|nuclear|hydrogen|utilities|export.control|industrial.policy)\b/i;
 
 export function detectPolicyQuestion(query: string): boolean {
-  return POLICY_RE.test(query) && POLICY_ACTION_RE.test(query);
+  if (POLICY_RE.test(query) && POLICY_ACTION_RE.test(query)) return true;
+  return POLICY_DOMAIN_RE.test(query);
 }
 
 export function hasDatedHorizon(query: string): boolean {
