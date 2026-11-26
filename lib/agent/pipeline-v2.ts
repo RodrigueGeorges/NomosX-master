@@ -791,6 +791,16 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   if (coverageBlock) {
     fullContextBlock = (fullContextBlock || '') + coverageBlock;
   }
+  // P0-B: the published thesis IS the forecast. When a dispatch-verified
+  // forecastQuestion reached the pipeline, the verdict must commit to
+  // "P(resolution)=x by horizon because [engines]" — a descriptive backdrop
+  // that never takes a position is held downstream as question_substituted.
+  if (opts.forecastQuestion?.trim()) {
+    fullContextBlock = (fullContextBlock || '') +
+      `\n\nFORECAST MANDATE (mandatory thesis form):\n` +
+      `The question this note MUST answer: "${opts.forecastQuestion.trim()}"\n` +
+      `Your verdict must take an explicit position on it — state a probability or calibrated likelihood for the resolution BY its horizon, and name the causal engines (with their evidence) that drive it. A descriptive backdrop that never commits to "will X happen, and how likely" is a substituted thesis and will be held.`;
+  }
   const positioningBrief = analystCtx.positioningBrief;
   const savedCanaResult = analystCtx.savedCanaResult;
   const savedScatterResult = analystCtx.savedScatterResult;
