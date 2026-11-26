@@ -302,6 +302,10 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
               scenarios: chainDerivation.scenarios,
               forecasts,
               question: query,
+              // Agentic mode: 3 deep forecasters × 1 ballot — the health
+              // floor is already 2 (healthOpts above); keep election and
+              // health on the same participation bar.
+              minValidVotes: agenticMode ? 2 : 3,
             });
             stats.swarmElection = election ?? { skipped: 'insufficient_link_distributions' };
             if (election && swarmHealth.splitElectable) {
