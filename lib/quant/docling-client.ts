@@ -48,6 +48,17 @@ function noteDoclingFailure(): void {
   }
 }
 
+/**
+ * Hard-disable docling for the process — called by the pipeline pre-flight
+ * when quant-service /health reports the capability missing (run-11: 27
+ * parses × 95s timeout on a route answering 503). Unlike the failure
+ * breaker this does not cool down: the capability cannot appear mid-run.
+ */
+export function disableDocling(reason: string): void {
+  doclingOpenUntil = Number.MAX_SAFE_INTEGER;
+  console.warn(`[DOCLING] disabled for process: ${reason} — pdf-parse only`);
+}
+
 export async function doclingParsePdf(url: string): Promise<DoclingParseResult | null> {
   const base = quantServiceUrl();
   if (!base || process.env.NOMOSX_DOCLING !== "1" || !doclingCircuitClosed()) return null;
