@@ -23,6 +23,15 @@ describe('detectPolicyQuestion', () => {
     expect(detectPolicyQuestion('Who will win the Nobel Prize in Physics?')).toBe(false);
     expect(detectPolicyQuestion('Best pizza in Naples')).toBe(false);
   });
+  it('detects policy-domain questions phrased as forecasts/topics (run-11 gap)', () => {
+    // Radar run 11: all 3 policy-relevant runs skipped quotas because the
+    // operationalized question carried no policy keyword.
+    expect(detectPolicyQuestion('Global renewable energy capacity reaches at least 50% of total installed electricity capacity by the end of 2030')).toBe(true);
+    expect(detectPolicyQuestion('What are the critical mineral resource dependencies of the energy transition?')).toBe(true);
+    expect(detectPolicyQuestion('Mineral Resource Dependencies')).toBe(true);
+    // Still rejects genuinely non-policy domains
+    expect(detectPolicyQuestion('What evidence exists on the empirical validation of structured consensus methods in guideline development?')).toBe(false);
+  });
 });
 
 describe('hasDatedHorizon', () => {
