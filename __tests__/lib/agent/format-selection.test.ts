@@ -60,9 +60,9 @@ describe("Publication quality gate — uniform thresholds", () => {
     }
   });
 
-  it("all formats share the same minQualityScore (70)", () => {
+  it("all formats share the same minQualityScore (72 — raised pending Conformal calibration)", () => {
     for (const fmt of formats) {
-      expect(PUBLICATION_QUALITY_RULES[fmt].minQualityScore).toBe(70);
+      expect(PUBLICATION_QUALITY_RULES[fmt].minQualityScore).toBe(72);
     }
   });
 
