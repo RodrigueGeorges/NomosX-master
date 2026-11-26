@@ -326,7 +326,7 @@ export function createGapRequestProcessor(deps: GapFillDeps) {
  * in the output (the DA pass covers it adversarially downstream).
  * Missing elements become NOT_REACHED research gaps → targeted retrieval.
  */
-export function checkRequiredElements(analysisObj: Record<string, any>): {
+export function checkRequiredElements(analysisObj: Record<string, any>, quantSeriesCount?: number): {
   present: string[]; missing: string[]; advisory: string[]; gaps: string[];
 } {
   const str = (v: unknown) => (typeof v === 'string' ? v : '');
@@ -354,6 +354,12 @@ export function checkRequiredElements(analysisObj: Record<string, any>): {
     return Number.isFinite(n) && n !== 0;
   });
   const hasQuantCore = figures.length >= 2 && nonZeroFigure;
+  // P0-C: figures typed into the analysis are not a verified series — the
+  // quantitative core requires ≥1 REAL series fetched by the quant core
+  // (DBnomics/FRED/Eurostat/World Bank…). When quant ran and returned 0,
+  // the element is missing regardless of how many numbers the prose cites.
+  // undefined = quant never ran → text heuristic stands (fail-open).
+  const realSeriesFetched = typeof quantSeriesCount === 'number' ? quantSeriesCount > 0 : true;
 
   // Tipping points must come from real disagreements — a boilerplate
   // rejectedAlternative ("none", "n/a") is not a disagreement.
@@ -374,7 +380,7 @@ export function checkRequiredElements(analysisObj: Record<string, any>): {
 
   const checks: Array<{ id: string; label: string; ok: boolean; gap: string }> = [
     { id: 'base_rate', label: 'base rate with named reference class', ok: str(analysisObj?.anchoringBasis).trim().length > 30 || /(base rate|taux de base|historical|historique|analogue|référence)/i.test(str(analysisObj?.anchoringBasis)), gap: 'historical base rate and named reference class for comparable cases' },
-    { id: 'quantitative_core', label: 'quantitative core (real series with numbers)', ok: hasQuantCore && chain.length >= 2, gap: 'quantitative series, figures with units and periods' },
+    { id: 'quantitative_core', label: 'quantitative core (real series with numbers)', ok: hasQuantCore && chain.length >= 2 && realSeriesFetched, gap: 'quantitative series, figures with units and periods — backed by a fetched primary-data series' },
     { id: 'actor_map', label: 'actor map (incentives, binding vs non-binding commitments)', ok: hasActorMap, gap: 'key actors, their incentives and whether commitments are binding' },
     { id: 'tipping_points', label: 'two tipping points from disagreements', ok: chain.length >= 2 && substantiveRejections >= 1, gap: 'alternative scenarios and what would tip the central scenario' },
     { id: 'watch_indicators', label: 'what would change our mind (dated indicators)', ok: hasWatch, gap: 'dated indicators that would change the assessment' },
@@ -532,7 +538,7 @@ export async function runGapFillStage(deps: GapFillDeps): Promise<void> {
 
     // Required-elements barrier: missing mandatory elements become targeted
     // NOT_REACHED gaps so the enrichment checkpoint retrieves their evidence.
-    const elements = checkRequiredElements(analysisObj);
+    const elements = checkRequiredElements(analysisObj, (stats.quant as { series?: number } | undefined)?.series);
     stats.requiredElements = {
       present: elements.present, missing: elements.missing, advisory: elements.advisory,
     };

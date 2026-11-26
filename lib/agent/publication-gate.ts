@@ -77,6 +77,13 @@ export interface PublicationGateInput {
     unavailable?: boolean;
     maxUnsupportedRatio?: number;
   };
+  /** P0-C: real primary-data series fetched by the quant core
+   *  (stats.quant.series). Required ≥1 when the run carries a verified
+   *  forecastQuestion — a forecast note without a real cited series is
+   *  unverifiable. Undefined count = quant never ran → check skipped
+   *  (fail-open, matching conditional-check contract). */
+  quantSeriesCount?: number;
+  requiresQuantSeries?: boolean;
 }
 
 export interface PublicationGateCheck {
@@ -439,11 +446,24 @@ export function evaluatePublicationGate(input: PublicationGateInput): Publicatio
         : 'thesis answers the operationalized question',
     });
   }
+  // P0-C quantitative core: a forecast note must rest on ≥1 REAL fetched
+  // series (DBnomics/FRED/Eurostat/World Bank…), not abstract-only numbers.
+  // Only enforced when the run carries a verified forecastQuestion —
+  // qualitative non-dispatch runs keep the fail-open contract.
+  if (input.requiresQuantSeries === true && typeof input.quantSeriesCount === 'number') {
+    checks.push({
+      checkType: 'quant_series',
+      passed: input.quantSeriesCount >= 1,
+      details: input.quantSeriesCount >= 1
+        ? `${input.quantSeriesCount} real primary-data series fetched (quant core)`
+        : 'no real data series fetched — numeric claims would rest on abstracts alone',
+    });
+  }
   const failedChecks = checks.filter((check) => !check.passed);
   // quality_score is advisory when trust_score passes AND quality ≥ 40 — don't treat as hard failure
   // But quality < 40 is always a hard failure (prevents publishing garbage with good trust)
   const hardFailures = failedChecks.filter((check) =>
-    ["source_depth", "trust_score", "word_count", "researcher_signoff", "citation_coverage", "central_scenario", "evaluation_freshness", "evaluation_availability", "thesis_adherence", "corpus_core_evidence", "question_answered"].includes(check.checkType)
+    ["source_depth", "trust_score", "word_count", "researcher_signoff", "citation_coverage", "central_scenario", "evaluation_freshness", "evaluation_availability", "thesis_adherence", "corpus_core_evidence", "question_answered", "quant_series"].includes(check.checkType)
     || (check.checkType === "quality_score" && typeof check.score === "number" && check.score < 40)
   );
   const decision: PublicationGateDecision = failedChecks.length === 0
