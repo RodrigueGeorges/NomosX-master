@@ -77,6 +77,12 @@ function replaceCitations(text: string): string {
   // Normalize LLM citation variants to [SRC-N] format:
   // "(SRC-2, SRC-8)" → "[SRC-2][SRC-8]", "SRC-3" → "[SRC-3]"
   let normalized = text
+    // Bracket-comma multi-citations "[SRC-7, SRC-19]" → "[SRC-7][SRC-19]".
+    // MUST run before the bare-SRC pass: without it, "(?!\])" backtracks
+    // "SRC-19]" to "SRC-1" + orphan "9]" — observed live as
+    // "[SRC-7, <sup>1</sup>9]" corrupting the rendered rationale.
+    .replace(/\[SRC-\d+(?:\s*,\s*SRC-\d+)*\]/g, (m) =>
+      (m.match(/SRC-\d+/g) ?? []).map(r => `[${r}]`).join(''))
     .replace(/\(SRC-(\d+)(?:\s*,\s*SRC-(\d+))*\)/g, (match, ...nums) => {
       const refs = match.match(/SRC-(\d+)/g) || [];
       return refs.map(r => `[${r}]`).join('');

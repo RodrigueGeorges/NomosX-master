@@ -364,8 +364,9 @@ export function evaluatePublicationGate(input: PublicationGateInput): Publicatio
         .replace(/&lt;/g, '<')
         .replace(/&gt;/g, '>')
         // Evidence markers render as [E41] (no dash) while source refs use
-        // [SRC-41] (dash) — strip BOTH forms.
-        .replace(/\[(?:SRC-?|E-?)\d+\]/g, '')
+        // [SRC-41] (dash) — strip BOTH forms, including bracket-comma
+        // multi-citations "[SRC-7, SRC-19]" the persisted decision keeps raw.
+        .replace(/\[(?:SRC-?|E-?)\d+(?:\s*,\s*(?:SRC-?|E-?)\d+)*\]/g, '')
         .replace(/[\u2018\u2019\u02BC]/g, "'")
         .replace(/[\u201C\u201D]/g, '"')
         .replace(/\s+([.,;:!?])/g, '$1')
