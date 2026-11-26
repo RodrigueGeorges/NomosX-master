@@ -118,6 +118,21 @@ describe('electScenario (OT-5)', () => {
     const e = electScenario({ scenarios, forecasts: [mkForecasts(2, 0.7)], question: 'q' });
     expect(e).toBeNull();
   });
+
+  it('honors minValidVotes — agentic floor 2 admits 3-forecaster ballots (run-11 bug)', () => {
+    // Live failure: agentic mode emits validVotes=2 per link (3 deep
+    // forecasters, one ballot each) while electScenario hard-required 3 —
+    // every forecast filtered out, election always null.
+    const thin = (linkId: number, p: number): LinkForecast => ({
+      linkId, claim: `c${linkId}`, probability: p, variance: 0.02, iqr: 0.1,
+      validVotes: 2, families: 2, contested: false,
+    });
+    const forecasts = [thin(2, 0.7), thin(3, 0.6)];
+    expect(electScenario({ scenarios, forecasts, question: 'q' })).toBeNull();
+    const e = electScenario({ scenarios, forecasts, question: 'q', minValidVotes: 2, runs: 3000 });
+    expect(e).not.toBeNull();
+    expect(Object.values(e!.probabilities).reduce((a, b) => a + b, 0)).toBeCloseTo(1, 5);
+  });
 });
 
 describe('electScenario — probability integrity', () => {

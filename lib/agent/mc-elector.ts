@@ -141,14 +141,21 @@ export function electScenario(input: {
   forecasts: LinkForecast[];
   question: string;
   runs?: number;
+  /** Participation floor per link. Card swarm: 3 (default). Agentic
+   *  forecasters: 2 — three deep voters, one ballot each; the health
+   *  check already admits minVotesPerLink:2, so a hardcoded 3 here made
+   *  election mathematically impossible (live: insufficient_link_
+   *  distributions on every agentic run). */
+  minValidVotes?: number;
 }): ElectedScenario | null {
   const { scenarios, forecasts } = input;
+  const minValidVotes = input.minValidVotes ?? 3;
   if (!scenarios.length || !forecasts.length) return null;
 
   const means = new Map<number, number>();
   const linkDist = new Map<number, { a: number; b: number }>();
   for (const f of forecasts) {
-    if (f.validVotes < 3) continue; // too thin to elect on
+    if (f.validVotes < minValidVotes) continue; // too thin to elect on
     // Clamp link means to [0.05, 0.95] — the BLF/ForecastBench finding:
     // capable models overestimate tail probabilities on long horizons and
     // Brier can't see it. [0.02,0.98] let a near-certain link dominate the
