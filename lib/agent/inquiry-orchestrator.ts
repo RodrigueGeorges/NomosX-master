@@ -482,6 +482,11 @@ export async function runAndPublishInquiry(
   // 5. Scores & gate — packaged into `assess` so the bounded regeneration
   // round can re-run the identical evaluation (scores → sign-off → gate →
   // revision round) on a regenerated artifact.
+  // Spec shared across candidates: the question is identical for the
+  // original and any regen, so a spec extracted once operationalizes all of
+  // them. A regen whose extraction flaked inherits it — the substitution
+  // check must run on the FINAL adopted artifact, not silently skip.
+  let sharedQuestionSpec: import('./question-spec').QuestionSpec | undefined;
   const assess = async (p: InquiryPipelineResult) => {
     const scores = extractPipelineScores(
       p.stats,
@@ -593,14 +598,31 @@ export async function runAndPublishInquiry(
     // in stats; only explicit `answers:false` produces a HOLD motif.
     if (p.stats.questionSubstitution === undefined) {
       const tb = p.stats.thesisBinding as { origin?: string } | undefined;
-      const spec = p.stats.questionSpec as import('./question-spec').QuestionSpec | undefined;
+      // Propagate the spec across candidates (same question): a regen whose
+      // extraction flaked inherits the original's operationalization instead
+      // of skipping the check — run-11 had the check absent on 2 of 3 finals.
+      let spec = (p.stats.questionSpec as import('./question-spec').QuestionSpec | undefined) ?? sharedQuestionSpec;
+      // Mandatory on the final artifact: if EVERY candidate flaked spec
+      // extraction, derive it once here (bounded ~$0.01 call, shared across
+      // candidates) rather than silently skipping question_substituted.
+      if (!spec && tb?.origin === 'corpus_derived') {
+        try {
+          const { extractQuestionSpec } = await import('./question-spec');
+          spec = (await extractQuestionSpec(question)) ?? undefined;
+          if (spec) sharedQuestionSpec = spec;
+        } catch { /* spec stays absent — check skips, never fabricates */ }
+      }
+      if (spec) {
+        p.stats.questionSpec = spec;
+        sharedQuestionSpec = spec;
+      }
       const analysis = (p.lineage?.analysis ?? p.stats.analysis) as { verdict?: string; throughLine?: string } | undefined;
-      if (tb?.origin === 'corpus_derived' && spec?.resolvable !== false && typeof analysis?.verdict === 'string') {
+      if (tb?.origin === 'corpus_derived' && spec && spec.resolvable !== false && typeof analysis?.verdict === 'string') {
         try {
           const { checkQuestionSubstitution } = await import('./question-spec');
           const sub = await checkQuestionSubstitution({
             question,
-            spec: spec!,
+            spec,
             verdict: analysis!.verdict!,
             throughLine: analysis?.throughLine,
           });

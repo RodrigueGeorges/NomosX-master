@@ -105,12 +105,15 @@ export interface QuestionSubstitution {
  */
 export async function checkQuestionSubstitution(input: {
   question: string;
-  spec: QuestionSpec;
+  spec: QuestionSpec | null | undefined;
   verdict: string;
   throughLine?: string;
 }): Promise<QuestionSubstitution | null> {
   const { question, spec, verdict, throughLine } = input;
-  if (!spec.resolvable || verdict.trim().length < 20) return null;
+  // spec may be absent (extraction flake, regen without arbiter-foresight) —
+  // run-11 crashed here on `spec.resolvable` when the caller's `?.` guard
+  // passed undefined through (`undefined !== false` is true).
+  if (!spec?.resolvable || verdict.trim().length < 20) return null;
   try {
     const res = await captureInput('question:answered', async () => {
       const r = await callLLM({

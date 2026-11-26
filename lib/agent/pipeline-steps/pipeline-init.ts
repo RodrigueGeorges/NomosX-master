@@ -175,6 +175,20 @@ export async function runPipelineInit(query: string, opts: PipelineCoreOptions) 
           signal: ctrl.signal,
           headers: quantAuthHeaders(),
         });
+        // /health reports per-capability flags (docling/chronos/minicheck) —
+        // run-11 paid 27×95s docling timeouts on a service whose route
+        // answered 503 "docling not installed". A capability flag of false
+        // opens the client breaker for the process: every PDF goes straight
+        // to pdf-parse instead of paying the parse timeout first.
+        let healthBody: { docling?: boolean } | null = null;
+        try { healthBody = await res.json(); } catch { /* non-JSON health */ }
+        if (healthBody?.docling === false) {
+          const { disableDocling } = await import('../../quant/docling-client');
+          disableDocling('quant-service /health reports docling unavailable');
+          (stats as Record<string, unknown>).docling = { enabled: true, serviceAvailable: false, action: 'breaker_opened' };
+        } else {
+          (stats as Record<string, unknown>).docling = { enabled: process.env.NOMOSX_DOCLING === '1', serviceAvailable: healthBody?.docling ?? null };
+        }
         (stats as Record<string, unknown>).quantService = {
           configured: true,
           alive: res.ok,
@@ -500,6 +514,31 @@ export async function runPipelineInit(query: string, opts: PipelineCoreOptions) 
     const before = providers.length;
     providers = filterFreeRunProviders(providers);
     console.log(`${label} FREE RUN: ${before - providers.length} paid providers dropped, ${providers.length} free remain`);
+  }
+
+  // ── PRE-FLIGHT: SearXNG self-hosted probe ──
+  // Run-11: public instances hung past the scout budget (23×90s overruns,
+  // 8 circuit cuts). When SEARXNG_URL is configured we probe it once — a
+  // dead instance drops the provider instead of burning a scout timeout on
+  // every query. Per-request timeout inside the provider stays ≤20s.
+  if ((providers as string[]).includes('searxng')) {
+    try {
+      const { env } = await import('../../env');
+      if (env.SEARXNG_URL) {
+        const { fetchFromProvider } = await import('../../http-client');
+        await fetchFromProvider('searxng-preflight', `${env.SEARXNG_URL}/search?q=prefli&format=json`, {
+          timeout: 5000, retries: 0,
+          headers: { 'Accept': 'application/json', 'User-Agent': 'NomosX Research Agent/1.0' },
+        });
+        (stats as Record<string, unknown>).preflightSearxng = { configured: true, alive: true };
+      } else {
+        (stats as Record<string, unknown>).preflightSearxng = { configured: false, note: 'public instances only — unverified' };
+      }
+    } catch (searxErr) {
+      providers = (providers as string[]).filter(p => p !== 'searxng') as Providers;
+      (stats as Record<string, unknown>).preflightSearxng = { configured: true, alive: false, reason: String(searxErr).slice(0, 200) };
+      console.warn(`${label} PRE-FLIGHT: searxng self-hosted instance unreachable — dropped from providers`);
+    }
   }
 
   // ── SKILL BANK: bias provider order toward configurations that previously

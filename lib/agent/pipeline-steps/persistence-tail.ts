@@ -147,7 +147,11 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
   // keep their own try/catch, and are awaited before the final pipelineRun
   // update which persists the stats bag. The KG extraction is an LLM call —
   // running it concurrently with the DB writes removes its wall-time.
-  await Promise.allSettled([
+  // Detached scope (run-11 fix): these are durability/learning writes, not
+  // paid research — the dispatch deadline can legally fire mid-tail, and a
+  // closing scope made the Cohere embedding fallback fail → 279 zero vectors
+  // persisted to ConceptNode. Same rationale as the publication commit.
+  await withExecutionDetached(() => Promise.allSettled([
 
     // T10: Register predictions in the Prediction table for retrospective auditing
     // Frozen during replay/record — prediction rows from cassette runs would
@@ -211,7 +215,7 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
       console.log(`${label} KNOWLEDGE GRAPH: extracting concepts`);
       try {
         const kg = await extractAndStoreConcepts(brief.id, query, html, topSources.map((s: any) => s.id), useTemporalMemory);
-        stats.knowledgeGraph = { entities: kg.concepts.length, relations: kg.relations.length, clusters: 0, bridges: 0, costUsd: kg.costUsd };
+        stats.knowledgeGraph = { entities: kg.concepts.length, relations: kg.relations.length, clusters: 0, bridges: 0, costUsd: kg.costUsd, refusedEmbeddings: kg.refusedEmbeddings ?? 0 };
         console.log(`${label} KNOWLEDGE GRAPH: ${kg.concepts.length} concepts, ${kg.relations.length} relations`);
       } catch (err) {
         console.warn(`${label} KNOWLEDGE GRAPH: failed (non-blocking):`, err);
@@ -287,7 +291,7 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
         }
       }
     })(),
-  ]);
+  ]));
 
   // STEP 17: PREDICTION AUDITOR — retrospectively check past predictions against new evidence
   // Runs asynchronously (non-blocking) to avoid slowing down the pipeline
