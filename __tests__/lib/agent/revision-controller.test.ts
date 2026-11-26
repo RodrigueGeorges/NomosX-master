@@ -247,11 +247,32 @@ describe('shouldRegenerate', () => {
     expect(res.regenerate).toBe(false);
   });
 
-  it('regenerates on substance failures (DA reject / low quality / adversarial challenges)', () => {
+  it('regenerates on substance failures within 5pts of the bar (DA reject / low quality / adversarial challenges)', () => {
+    const res = shouldRegenerate({
+      gate: gate([{ checkType: 'devils_advocate', passed: false }]),
+      devilsAdvocate: { publishabilityScore: 30, fatalChallenges: 1, verdict: 'reject' },
+      qualityScore: 68, trustScore: 72,
+    });
+    expect(res.regenerate).toBe(true);
+  });
+
+  it('P1-B: refuses targeted regen when >5pts below the quality bar — next candidate instead', () => {
     const res = shouldRegenerate({
       gate: gate([{ checkType: 'devils_advocate', passed: false }]),
       devilsAdvocate: { publishabilityScore: 30, fatalChallenges: 1, verdict: 'reject' },
       qualityScore: 60, trustScore: 72,
+    });
+    expect(res.regenerate).toBe(false);
+    expect(res.reason).toContain('5pts below bar');
+  });
+
+  it('P1-B: a revise-decision gate regenerates even slightly below the band (near-pass by construction)', () => {
+    const g = gate([{ checkType: 'devils_advocate', passed: false }]);
+    g.decision = 'revise';
+    const res = shouldRegenerate({
+      gate: g,
+      devilsAdvocate: { publishabilityScore: 55, fatalChallenges: 1, verdict: 'major_revision' },
+      qualityScore: 64, trustScore: 72,
     });
     expect(res.regenerate).toBe(true);
   });
@@ -285,7 +306,7 @@ describe('shouldRegenerate', () => {
         { checkType: 'corpus_core_evidence', passed: true },
       ]),
       devilsAdvocate: { publishabilityScore: 30, fatalChallenges: 1, verdict: 'reject' },
-      qualityScore: 60, trustScore: 72,
+      qualityScore: 68, trustScore: 72,
     });
     expect(res.regenerate).toBe(true);
   });
@@ -317,7 +338,7 @@ describe('shouldRegenerate', () => {
           { type: 'overstated_conclusion', text: 'claim exceeds warrant' },
         ],
       },
-      qualityScore: 60, trustScore: 72,
+      qualityScore: 68, trustScore: 72,
     });
     expect(res.regenerate).toBe(true);
   });

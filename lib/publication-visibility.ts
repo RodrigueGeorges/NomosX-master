@@ -45,13 +45,16 @@ export type PublicationQualityRule = {
  * What varies is only the minimum word count and source count (format length).
  *
  *   minTrustScore:       65 for ALL formats (same credibility bar)
- *   minQualityScore:     70 for ALL formats (same analytical rigor)
+ *   minQualityScore:     72 for ALL formats (same analytical rigor;
+ *                        raised 70→72 pending Conformal calibration —
+ *                        Claude P1-B: manual threshold until ~50 labeled
+ *                        notes, then a 10% faulty-publication budget)
  *   minCitationCoverage: 50% for ALL formats (same evidence standard)
  *   minWordCount:        varies by format (500 → 8000) — benchmarked against top think tanks
  *   minSourceCount:      varies by format (5 → 20)
  */
 const UNIFORM_MIN_TRUST = 65;
-const UNIFORM_MIN_QUALITY = 70;
+const UNIFORM_MIN_QUALITY = 72;
 const UNIFORM_MIN_CITATION = 0.50;
 
 export const PUBLICATION_QUALITY_RULES: Record<string, PublicationQualityRule> = {

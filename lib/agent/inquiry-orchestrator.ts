@@ -847,7 +847,7 @@ export async function runAndPublishInquiry(
   // corpus — the dispatcher falls back to the next radar candidate. ──
   if (assessment.gate.decision !== "publish" || !assessment.readiness.ok) {
     try {
-      const { shouldRegenerate, buildFailureFeedback, attemptScore, daFailureSignature } = await import('./revision-controller');
+      const { shouldRegenerate, buildFailureFeedback, attemptScore, daFailureSignature, judgeRegenWinner } = await import('./revision-controller');
       // Regen-futility memory (R2-MAD-style): the experience bank records
       // 'regen' entries when a same-corpus regen reproduced the identical DA
       // failure signature. A related question that already paid for that
@@ -1000,17 +1000,43 @@ export async function runAndPublishInquiry(
           const reAssessed = await assess(regenPipeline);
           const before = attemptScore({ gate: assessment.gate, trustScore: assessment.scores.trustScore, qualityScore: assessment.scores.qualityScore });
           const after = attemptScore({ gate: reAssessed.gate, trustScore: reAssessed.scores.trustScore, qualityScore: reAssessed.scores.qualityScore });
-          if (after > before) {
-            console.log(`[InquiryOrchestrator] REGEN adopted: attempt ${before} → ${after} (gate ${assessment.gate.decision} → ${reAssessed.gate.decision})`);
+          // P1-B independent winner judge: the original-vs-regen choice is a
+          // winner's-curse trap on composite scores — one bounded LLM call
+          // picks the attempt closer to publishable (position-blind A/B).
+          // Null → fall back to the monotone attemptScore witness.
+          const origAnalysis = (pipeline.lineage?.analysis ?? pipeline.stats.analysis) as { verdict?: string; throughLine?: string } | undefined;
+          const regenAnalysis = (regenPipeline.lineage?.analysis ?? regenPipeline.stats.analysis) as { verdict?: string; throughLine?: string } | undefined;
+          const gateFailsOf = (g: typeof assessment.gate) => g.checks.filter(c => !c.passed).map(c => c.checkType ?? 'unknown');
+          const judged = await judgeRegenWinner({
+            question,
+            original: {
+              verdict: origAnalysis?.verdict, throughLine: origAnalysis?.throughLine,
+              gateFails: gateFailsOf(assessment.gate),
+              trustScore: assessment.scores.trustScore, qualityScore: assessment.scores.qualityScore,
+            },
+            regen: {
+              verdict: regenAnalysis?.verdict, throughLine: regenAnalysis?.throughLine,
+              gateFails: gateFailsOf(reAssessed.gate),
+              trustScore: reAssessed.scores.trustScore, qualityScore: reAssessed.scores.qualityScore,
+            },
+            runId: pipeline.stats?.runId as string | undefined,
+          });
+          // P1-B: the judge picks the winner; attemptScore is telemetry +
+          // fallback when the judge is unavailable.
+          const adoptRegen = judged ? judged.winner === 'regen' : after > before;
+          if (adoptRegen) {
+            console.log(`[InquiryOrchestrator] REGEN adopted${judged ? ` (independent judge: ${judged.reason.slice(0, 120)})` : ''}: attempt ${before} → ${after} (gate ${assessment.gate.decision} → ${reAssessed.gate.decision})`);
             (regenPipeline.stats as Record<string, unknown>).regeneration = {
               adopted: true, scoreBefore: before, scoreAfter: after, reason: regen.reason,
+              winnerJudge: judged ?? undefined,
             };
             pipeline = regenPipeline;
             assessment = reAssessed;
           } else {
-            console.log(`[InquiryOrchestrator] REGEN discarded: attempt ${before} → ${after} — stagnation/regression, original kept`);
+            console.log(`[InquiryOrchestrator] REGEN discarded${judged ? ` (independent judge: ${judged.reason.slice(0, 120)})` : `: attempt ${before} → ${after} — stagnation/regression`}, original kept`);
             (pipeline.stats as Record<string, unknown>).regeneration = {
               adopted: false, scoreBefore: before, scoreAfter: after, reason: regen.reason,
+              winnerJudge: judged ?? undefined,
             };
             // Futility signal: the regen reproduced the IDENTICAL DA failure
             // signature — rewriting cannot fix this failure class on this
@@ -1064,6 +1090,29 @@ export async function runAndPublishInquiry(
   const triangularOverride = assessment.triangularOverride;
   const gate = assessment.gate;
   const readiness = assessment.readiness;
+
+  // P1-B.4 — barrier audit for the future Conformal Risk Control calibration:
+  // every run logs the gate decision, its component scores, and the objective
+  // defects observed (fatal pipeline error, question substitution, DA fatal
+  // objection). Prediction resolution is joined post-hoc from the forecast
+  // ledger — this row is the label-side input for the ~50-note calibration.
+  try {
+    const failedNames = gate.checks.filter(c => !c.passed).map(c => c.checkType ?? 'unknown');
+    const daNow = da as { verdict?: string; fatalChallenges?: number } | undefined;
+    (pipeline.stats as Record<string, unknown>).barrierAudit = {
+      gateDecision: gate.decision,
+      failedChecks: failedNames,
+      trustScore, qualityScore,
+      devilsAdvocateVerdict: daNow?.verdict ?? null,
+      devilsAdvocateFatal: daNow?.fatalChallenges ?? 0,
+      questionSubstituted: (pipeline.stats.questionSubstitution as { substituted?: boolean } | undefined)?.substituted === true,
+      thesisAdhered: (pipeline.stats.thesisBinding as { adhered?: boolean } | undefined)?.adhered ?? null,
+      qualityBar: Number(process.env.NOMOSX_QUALITY_BAR ?? 72),
+      regen: (pipeline.stats.regeneration as { adopted?: boolean; winnerJudge?: { winner?: string } } | undefined) ?? null,
+      predictionResolution: 'pending', // resolved later from the forecast ledger
+      recordedAt: new Date().toISOString(),
+    };
+  } catch { /* audit is telemetry — never block */ }
 
   // OT-8: persist the final gate verdict into PipelineRun.steps so the
   // per-check decision is reconstructible from the run record (previously
@@ -1781,9 +1830,9 @@ async function persistQualityChecks(
   checks.push({
     publicationId,
     checkType: "THRESHOLD",
-    passed: qualityScore >= 70,
+    passed: qualityScore >= 72,
     score: qualityScore,
-    details: { checkName: "quality_score", threshold: 70, detail: `Quality score ${qualityScore} (min 70)` },
+    details: { checkName: "quality_score", threshold: 72, detail: `Quality score ${qualityScore} (min 72)` },
   });
 
   // CITATION checks — threshold aligned with the actual gate
