@@ -608,7 +608,12 @@ export async function runAndPublishInquiry(
       if (!spec && tb?.origin === 'corpus_derived') {
         try {
           const { extractQuestionSpec } = await import('./question-spec');
-          spec = (await extractQuestionSpec(question)) ?? undefined;
+          // P0-A: prefer the dispatch-verified forecastQuestion over the raw
+          // research question — the spec must operationalize the ASKED
+          // forecast, not whatever title the run happened to carry.
+          const fq = typeof p.stats.forecastQuestion === 'string' && p.stats.forecastQuestion.trim()
+            ? p.stats.forecastQuestion.trim() : question;
+          spec = (await extractQuestionSpec(fq)) ?? undefined;
           if (spec) sharedQuestionSpec = spec;
         } catch { /* spec stays absent — check skips, never fabricates */ }
       }

@@ -39,6 +39,10 @@ export interface EditorialDecision {
   estimatedCostUsd: number;
   /** Analytical research question reformulated from the raw headline (think-tank framing) */
   researchQuestion?: string;
+  /** P0-A: falsifiable forecast question anchored on the signal — verified
+   *  by question-verifiers before any pipeline spend; drives questionSpec,
+   *  the swarm ballot and the thesis. */
+  forecastQuestion?: string;
   /** How much the question challenges conventional thinking (0-100) */
   intellectualAmbition?: number;
   /** Strength of heterodox/contrarian angle (0-100) */
@@ -172,6 +176,7 @@ export async function editorialTriage(
       classification,
       estimatedCostUsd: estimatedCost,
       researchQuestion: selected.researchQuestion,
+      forecastQuestion: selected.forecastQuestion,
       intellectualAmbition: selected.intellectualAmbition,
       contrarianSignal: selected.contrarianSignal,
     });
@@ -219,6 +224,7 @@ export async function editorialTriage(
           classification: cls!,
           estimatedCostUsd: estCost,
           researchQuestion: dropped.researchQuestion,
+          forecastQuestion: dropped.forecastQuestion,
           intellectualAmbition: dropped.intellectualAmbition,
           contrarianSignal: dropped.contrarianSignal,
         };
@@ -249,6 +255,7 @@ interface TriageSelection {
   reasoning: string;
   priority: number;
   researchQuestion?: string;
+  forecastQuestion?: string;
   intellectualAmbition?: number;  // 0-100 — how much the question challenges conventional thinking
   contrarianSignal?: number;      // 0-100 — strength of heterodox/contrarian angle
 }
@@ -366,9 +373,12 @@ Rules:
 - INNOVATION: Where possible, frame the question in a way that CHALLENGES the conventional framing. Don't just ask "What is the impact of X?" — ask "Who benefits from framing this as an X problem?" or "What assumptions are hidden in the dominant discourse on X?" or "How does X connect to the deeper question of Y?"
 - CROSS-DOMAIN: Where possible, frame the question to invite cross-domain insights. Don't just ask an economics question — ask how economics, anthropology, and philosophy intersect on this issue.
 
+FORECAST QUESTION (required for every selection):
+alongside researchQuestion, emit "forecastQuestion" — ONE falsifiable question anchored on THIS signal that a forecaster could price and a third party could resolve from public data by a stated date. It must name a metric, an actor/scope and a horizon ("Will X reach Y by DATE?"). Reject-in-spirit: vague themes, questions whose obvious answer is already public, hyper-specific events whose answer is trivially "no".
+
 TOPIC REFERENCE: each topic has an "index" field (integer 0-${Math.min(15, topics.length) - 1}). Return THAT integer as "topicId" — do not copy the opaque "id" string, do not invent ids.
 
-Return JSON: { "selections": [{ "topicId": <integer index>, "action": "publish_signal|publish_memo|publish_brief|publish_strategic|monitor|skip", "reasoning": "one sentence", "priority": 0-100, "researchQuestion": "analytical question reformulated from the headline", "intellectualAmbition": 0-100, "contrarianSignal": 0-100 }] }`
+Return JSON: { "selections": [{ "topicId": <integer index>, "action": "publish_signal|publish_memo|publish_brief|publish_strategic|monitor|skip", "reasoning": "one sentence", "priority": 0-100, "researchQuestion": "analytical question reformulated from the headline", "forecastQuestion": "falsifiable forecast question anchored on the signal with metric+scope+horizon", "intellectualAmbition": 0-100, "contrarianSignal": 0-100 }] }`
         },
         {
           role: 'user',
@@ -392,6 +402,7 @@ Return JSON: { "selections": [{ "topicId": <integer index>, "action": "publish_s
         reasoning: s.reasoning || '',
         priority: typeof s.priority === 'number' ? s.priority : 50,
         researchQuestion: s.researchQuestion,
+        forecastQuestion: typeof s.forecastQuestion === 'string' ? s.forecastQuestion : undefined,
         intellectualAmbition: typeof s.intellectualAmbition === 'number' ? s.intellectualAmbition : undefined,
         contrarianSignal: typeof s.contrarianSignal === 'number' ? s.contrarianSignal : undefined,
       }))

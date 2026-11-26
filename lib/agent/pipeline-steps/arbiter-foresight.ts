@@ -39,6 +39,10 @@ export interface ArbiterForesightDeps {
    *  premium scenario-writing tokens aren't spent on a piece that won't
    *  publish. */
   degraded?: boolean;
+  /** P0-A: dispatch-verified falsifiable forecast question. When present the
+   *  questionSpec is extracted FROM it (never re-invented from the research
+   *  question) and recorded on stats for the question_substituted gate. */
+  forecastQuestion?: string;
 }
 
 export interface ArbiterForesightOutcome {
@@ -85,7 +89,13 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
         const { extractQuestionSpec, QUESTION_LINK_ID } = await import('../question-spec');
         const horizonText = typeof analysis.trajectory === 'object' && analysis.trajectory
           ? String((analysis.trajectory as { horizon?: string }).horizon ?? '') : undefined;
-        const questionSpec = await extractQuestionSpec(query, horizonText || undefined);
+        // P0-A: the dispatch-verified forecastQuestion IS the operationalized
+        // question — extractQuestionSpec parses resolution/metric/source/
+        // horizon from it. Fall back to the research question only when no
+        // verified forecast question reached the pipeline (non-dispatch runs).
+        const fq = deps.forecastQuestion?.trim();
+        if (fq) stats.forecastQuestion = fq;
+        const questionSpec = await extractQuestionSpec(fq || query, horizonText || undefined);
         if (questionSpec) {
           stats.questionSpec = questionSpec;
           if (typeof questionSpec.costUsd === 'number') addCost(questionSpec.costUsd, 'QUESTION_SPEC');
