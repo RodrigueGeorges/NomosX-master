@@ -1,0 +1,2573 @@
+{
+  "generatedAt": "2026-11-26T18:27:38.283Z",
+  "runs": [
+    {
+      "id": "4cd9f52f-de89-4841-80dd-6645780d1242",
+      "createdAt": "2026-11-26T00:33:52.233Z",
+      "status": "COMPLETED",
+      "durationMs": 1796668,
+      "question": "global energy transition",
+      "trustScore": 86,
+      "qualityScore": 69,
+      "stats": {
+        "questionForecast": {
+          "iqr": 0.73,
+          "families": 3,
+          "contested": true,
+          "resolution": "Global renewable energy capacity reaches at least 50% of total installed electricity capacity by the end of 2030",
+          "validVotes": 3,
+          "probability": 0.42
+        },
+        "questionSpec": {
+          "metric": "Percentage of renewable energy capacity to total installed electricity capacity",
+          "costUsd": 0.0001661,
+          "horizon": "December 31, 2030",
+          "threshold": "50%",
+          "dataSource": "International Energy Agency (IEA) or International Renewable Energy Agency (IRENA) global electricity capacity reports",
+          "resolution": "Global renewable energy capacity reaches at least 50% of total installed electricity capacity by the end of 2030",
+          "resolvable": true
+        },
+        "swarmForecasts": {
+          "mode": "agentic",
+          "costUsd": 0.1733569,
+          "forecasts": [
+            {
+              "iqr": 0.12,
+              "linkId": 8,
+              "families": 2,
+              "variance": 0.0036,
+              "contested": false,
+              "validVotes": 2,
+              "probability": 0.87
+            },
+            {
+              "iqr": 0.17,
+              "linkId": 9,
+              "families": 2,
+              "variance": 0.007225000000000003,
+              "contested": false,
+              "validVotes": 2,
+              "probability": 0.85
+            },
+            {
+              "iqr": 0.2000000000000001,
+              "linkId": 9001,
+              "families": 2,
+              "variance": 0.01000000000000001,
+              "contested": true,
+              "validVotes": 2,
+              "probability": 0.71
+            },
+            {
+              "iqr": 0.15,
+              "linkId": 9002,
+              "families": 2,
+              "variance": 0.005625000000000002,
+              "contested": true,
+              "validVotes": 2,
+              "probability": 0.47
+            },
+            {
+              "iqr": 0.09999999999999998,
+              "linkId": 8000,
+              "families": 2,
+              "variance": 0.002499999999999999,
+              "contested": false,
+              "validVotes": 2,
+              "probability": 0.55
+            }
+          ],
+          "validVotes": 13,
+          "forecasters": [
+            {
+              "family": "glm",
+              "finalP": 0.12,
+              "costUsd": 0.0123463,
+              "provider": "glm",
+              "iterations": 10
+            },
+            {
+              "family": "kimi",
+              "finalP": 0.85,
+              "costUsd": 0.1610106,
+              "provider": "kimi",
+              "iterations": 10
+            },
+            {
+              "family": "freepool",
+              "finalP": 0.32,
+              "costUsd": 0,
+              "provider": "freepool",
+              "iterations": 10
+            }
+          ],
+          "familiesUsed": [
+            "glm",
+            "kimi",
+            "freepool"
+          ],
+          "questionForecast": {
+            "iqr": 0.73,
+            "families": 3,
+            "contested": true,
+            "validVotes": 3,
+            "probability": 0.42
+          }
+        },
+        "swarmElection": {
+          "skipped": "insufficient_link_distributions"
+        },
+        "swarmHealth": {
+          "issues": [],
+          "healthy": true,
+          "splitElectable": false
+        },
+        "swarmCalibration": {
+          "factor": 1,
+          "avgBrier": null,
+          "resolved": 0
+        },
+        "chainScenarios": {
+          "conditions": [
+            {
+              "id": "scn-u8-u9-convergent",
+              "conditions": {
+                "u8": true,
+                "u9": true
+              }
+            },
+            {
+              "id": "scn-u8-u9-u1-only",
+              "conditions": {
+                "u8": true,
+                "u9": false
+              }
+            },
+            {
+              "id": "scn-u8-u9-u2-only",
+              "conditions": {
+                "u8": false,
+                "u9": true
+              }
+            },
+            {
+              "id": "scn-u8-u9-neither",
+              "conditions": {
+                "u8": false,
+                "u9": false
+              }
+            }
+          ],
+          "scenarioIds": [
+            "scn-u8-u9-convergent",
+            "scn-u8-u9-u1-only",
+            "scn-u8-u9-u2-only",
+            "scn-u8-u9-neither"
+          ],
+          "uncertainties": [
+            {
+              "kind": "future_extrapolation",
+              "claim": "We project that, through 2030, comparative records of completed renewable-electricity projects will continue to identify policy design, financing conditions or ",
+              "linkId": 8,
+              "downstream": 0
+            },
+            {
+              "kind": "future_extrapolation",
+              "claim": "The central scenario concerns **how to assess** renewable-electricity deployment, not a predicted generation share. We project that comparisons of proposed and ",
+              "linkId": 9,
+              "downstream": 0
+            }
+          ],
+          "usedForForesight": false
+        },
+        "centralScenario": {
+          "name": "The Locked Gate",
+          "horizon": "The horizon ends on 31 December 2030, matching the supplied projection and providing a fixed date for comparing proposed projects with operating generation; it is not a source-derived climate deadline. [SRC-4][SRC-8]",
+          "rationale": "We select The Locked Gate as the central editorial planning case because the panel identifies several deployment associations and the Indonesia framework describes interacting investment, procurement and transmission barriers. Those observations justify testing joint constraints, not asserting that this cell will dominate the world. The strongest alternative is The Queue, but selecting it would require greater confidence that investment conditions improve while networks lag; the supplied evidence does not establish that sequence. The 35% weight is computed from disclosed assumptions and should not be mistaken for source-derived precision. [SRC-4][SRC-8]",
+          "confidence": "medium",
+          "selectedBy": "editorial",
+          "description": "By 2030, erratic procurement, expensive capital and constrained connections will keep project announcements ahead of operating generation in the deployment environments captured by our central planning case. [SRC-4][SRC-8] Officials will face two unresolved gates rather than one, while the stipulated Paris commitment will remain a promise whose delivery must be measured. [SRC-6][SRC-8] Inherited fossil plants, renewable generators and transmission networks will continue shaping daily supply, and each renewable addition will still require a separate fossil-displacement test. [SRC-4] Heating, shipping and industrial production will follow their own technical paths, leaving citizens with a transition described by targets but judged through delivered energy, bills and service. [SRC-3][SRC-8]",
+          "implications": [
+            "Require finance and connection readiness before treating a procurement award as credible near-term supply; verify operation afterward. [SRC-4][SRC-8]",
+            "Keep deployment, fossil displacement and household-cost measures separate so success on one cannot conceal failure on another. [SRC-3][SRC-4]"
+          ],
+          "revisionTriggers": [
+            "By 31 December 2030, withdraw the limited deployment projection if repeated, comparable cross-country project tests—with adequate power and controls for selection and policy–generation feedback—exclude policy-relevant conditional associations for each of procurement conditions, financing and usable grid access. [SRC-4][SRC-8]",
+            "By December 2028, replace The Locked Gate as the central planning case if a predeclared project sample shows sustained improvement in both financing closure and usable connections across four consecutive quarterly cohorts. Use completed operating generation to confirm that the improvement reaches delivery. [SRC-4][SRC-8]",
+            "By 31 December 2030, reassess any country-specific scenario whose observed finance and grid conditions place it in another matrix cell; do not preserve a global narrative by ignoring local outcomes. [SRC-4][SRC-8]"
+          ],
+          "simulationLeader": "The Queue",
+          "simulationDisagrees": true
+        },
+        "sentinels": {
+          "priced": 2,
+          "drafted": 2,
+          "rejected": 0
+        },
+        "requiredElements": {
+          "missing": [
+            "quantitative core (real series with numbers)"
+          ],
+          "present": [
+            "base rate with named reference class",
+            "actor map (incentives, binding vs non-binding commitments)",
+            "two tipping points from disagreements",
+            "what would change our mind (dated indicators)",
+            "consequences for a decision-maker"
+          ],
+          "advisory": [
+            "pre-mortem of the central scenario (covered by the adversarial pass downstream)"
+          ]
+        },
+        "factChecker": {
+          "verified": 0,
+          "fatalIssues": 0,
+          "majorIssues": 0,
+          "totalClaims": 0,
+          "integrityScore": 100,
+          "artifactVersion": 5,
+          "evaluatedClaims": 0,
+          "evaluatedArtifact": "html"
+        },
+        "devilsAdvocate": {
+          "costUsd": 0.09074600000000001,
+          "verdict": "revise",
+          "killShot": "The analysis demands careful separation of observations from projections, then assigns four scenarios six-decimal “empirical” probabilities and zero-width confidence intervals without an estimable basis—and misidentifies which scenario has the largest stated weight. That inconsistency most directly undermines its claim to calibrated uncertainty.",
+          "topChallenges": [
+            {
+              "text": "The analysis presents precise probabilities, calibrated probabilities and zero-width confidence intervals without a model, dataset, calibration procedure or cited basis. These are not merely illustrative scenario weights: the labels claim empirical estimation. The problem is especially visible where",
+              "type": "non_evidence"
+            },
+            {
+              "text": "The supplied SRC-4 excerpt discusses institutional factors and incentive design but does not establish the 134-country count, variable construction, reported associations or acknowledged feedback attributed to that panel. Likewise, the detailed Argentina–Brazil finding and several sectoral results r",
+              "type": "non_evidence"
+            },
+            {
+              "text": "This is written as an outcome that will occur, not explicitly as a conditional illustration or a dated projection with an observation that would falsify it. The central projection has a falsifier, but that does not automatically test four different scenario outcomes. The cited institutional framewor",
+              "type": "overstated_conclusion"
+            }
+          ],
+          "artifactVersion": 2,
+          "fatalChallenges": 0,
+          "majorChallenges": 6,
+          "overallStrength": 50,
+          "evaluatedArtifact": "analysis",
+          "evaluationComplete": true,
+          "vulnerabilityTexts": [
+            "By late 2028, political resistance to land use, transmission siting or bill increases could dominate project outcomes even where procurement, financing and nominal grid capacity improve. The three-con",
+            "By late 2028, storage, flexible demand or behind-the-meter generation could change what counts as a usable connection and which projects reach completion. Fixed grid-queue and connection-time threshol",
+            "By late 2028, renewable output could rise alongside electricity demand while fossil generation fails to fall materially. The brief warns of this distinction, but its project-delivery scenarios would l"
+          ],
+          "publishabilityScore": 50,
+          "futureVulnerabilities": 3
+        },
+        "publicationGate": {
+          "checks": [
+            {
+              "check": "source_depth",
+              "passed": true,
+              "details": "45/8 sources minimum"
+            },
+            {
+              "check": "trust_score",
+              "passed": true,
+              "details": "86/100 trust score"
+            },
+            {
+              "check": "quality_score",
+              "passed": false,
+              "details": "69/100 quality score"
+            },
+            {
+              "check": "citation_coverage",
+              "passed": true,
+              "details": "92% citation coverage"
+            },
+            {
+              "check": "word_count",
+              "passed": true,
+              "details": "10823/1200 words minimum (adaptive: 45 sources)"
+            },
+            {
+              "check": "claim_citation_density",
+              "passed": true,
+              "details": "5/66 claim-like sentences uncited"
+            },
+            {
+              "check": "fatal_challenges",
+              "passed": true,
+              "details": "0 fatal challenge(s)"
+            },
+            {
+              "check": "devils_advocate",
+              "passed": true,
+              "details": "50/100 adversarial publishability score"
+            },
+            {
+              "check": "researcher_signoff",
+              "passed": false,
+              "details": "Researcher decision: revise"
+            },
+            {
+              "check": "minicheck_support",
+              "passed": true,
+              "details": "12 published claims checked — 0% not_supported (max 40%)"
+            },
+            {
+              "check": "novlangue_density",
+              "passed": true,
+              "details": "8 novlangue pattern(s) detected (0.6/1000 words): \"restructuring\" → layoffs / reorganization; \"optimization\" → layoffs / cost-cutting; \"optimization\" → layoffs / cost-cutting..."
+            },
+            {
+              "check": "central_scenario",
+              "passed": true,
+              "details": "Central scenario complete and consistent with final HTML"
+            },
+            {
+              "check": "evaluation_freshness",
+              "passed": true,
+              "details": "All verdict evaluations match the current artifact version"
+            },
+            {
+              "check": "thesis_adherence",
+              "passed": true,
+              "details": "Verdict within the bound thesis"
+            },
+            {
+              "check": "question_answered",
+              "passed": false,
+              "details": "question_substituted: The note examines determinants of renewable deployment (policy, finance, grid access) and explicitly declines to offer any global capacity or deployment estimate, so it never addresses whether renewables reach 50% of installed capacity by 2030."
+            }
+          ],
+          "reasons": [
+            "quality_score: 69/100 quality score",
+            "researcher_signoff: Researcher decision: revise",
+            "question_answered: question_substituted: The note examines determinants of renewable deployment (policy, finance, grid access) and explicitly declines to offer any global capacity or deployment estimate, so it never addresses whether renewables reach 50% of installed capacity by 2030."
+          ],
+          "decision": "hold",
+          "readinessOk": true,
+          "binaryChecks": [
+            {
+              "id": "claims_entailed",
+              "detail": "claim→passage entailment 100% (need 100%)",
+              "passed": true
+            },
+            {
+              "id": "numbers_in_ledger",
+              "detail": "no data — numbers ledger not measured on this run",
+              "passed": false
+            },
+            {
+              "id": "scenarios_from_chain",
+              "detail": "central scenario selectedBy='editorial' — swarm elector not yet active (OT-5)",
+              "passed": false
+            },
+            {
+              "id": "swarm_healthy",
+              "detail": "min 2 valid votes per link / min 2 families per link / healthy=true (need ≥8, ≥2, healthy-or-contested)",
+              "passed": false
+            },
+            {
+              "id": "objections_answered",
+              "detail": "0 sourced objection(s) unanswered",
+              "passed": true
+            },
+            {
+              "id": "predictions_registered",
+              "detail": "5 resolvable predictions registered (need ≥3)",
+              "passed": true
+            }
+          ],
+          "degradedSteps": [
+            {
+              "step": "READER_EXTRACTION",
+              "reason": "1/39 sources fell back to rule_based — https://openalex.org/W2749409476: Reader V3 timed out after 120000ms"
+            }
+          ]
+        },
+        "thinkTankFormGrid": {
+          "score": 100,
+          "total": 8,
+          "passed": 8,
+          "criteria": [
+            {
+              "name": "recommendations",
+              "detail": "Addressed recommendations / implications section present",
+              "passed": true
+            },
+            {
+              "name": "objections_addressed",
+              "detail": "No fatal challenges remained after adversarial review",
+              "passed": true
+            },
+            {
+              "name": "methodology_limits",
+              "detail": "Methodology, data sources or limitations disclosed in artifact",
+              "passed": true
+            },
+            {
+              "name": "sources_disclosed",
+              "detail": "Rendered source list present",
+              "passed": true
+            },
+            {
+              "name": "calibrated_uncertainty",
+              "detail": "Scenario / probability / confidence framing present",
+              "passed": true
+            },
+            {
+              "name": "computed_exhibit",
+              "detail": "Computed exhibit injected (evidence_base)",
+              "passed": true
+            },
+            {
+              "name": "executive_summary",
+              "detail": "Summary / orientation section present",
+              "passed": true
+            },
+            {
+              "name": "pipeline_integrity",
+              "detail": "1 non-critical step(s) degraded: READER_EXTRACTION",
+              "passed": true
+            }
+          ]
+        },
+        "binaryCriteriaJudge": {
+          "mode": "shadow",
+          "total": 8,
+          "costUsd": 0.014988,
+          "enforce": false,
+          "criteria": [
+            {
+              "id": "falsifiable_thesis",
+              "label": "Thesis is a falsifiable, dated claim (not a topic)",
+              "passed": true,
+              "reason": "The central projection is dated (31 December 2030) with an explicit falsification condition involving comparable project-level evidence."
+            },
+            {
+              "id": "scenario_probability",
+              "label": "Central scenario carries a probability and an interval",
+              "passed": false,
+              "reason": "Probabilities are offered (24%, 35%) and are mutually inconsistent, and no uncertainty interval is provided."
+            },
+            {
+              "id": "required_elements",
+              "label": "The mandatory analytical elements are present (base rate, quantitative core, actor map, tipping points, watch indicators, decision consequences)",
+              "passed": false,
+              "reason": "The quantitative core is absent—no real data series with numbers underpins the analysis, as the note itself concedes."
+            },
+            {
+              "id": "ranked_sources",
+              "label": "Each substantive section rests on at least one high-authority source",
+              "passed": false,
+              "reason": "Sources appear only as bare numeric citations with no named high-authority references or authority ranking."
+            },
+            {
+              "id": "counter_evidence",
+              "label": "Contrary sources are discussed, not merely cited",
+              "passed": true,
+              "reason": "Contrary considerations and limitations (policy–generation feedback, uncontrolled country differences, lack of empirical estimates) are discussed substantively rather than merely cited."
+            },
+            {
+              "id": "conclusions_bounded",
+              "label": "Conclusions do not exceed the evidence; projections are labeled",
+              "passed": true,
+              "reason": "The note repeatedly labels projections as illustrative/editorial, denies causal effect sizes, and bounds claims to the evidence."
+            },
+            {
+              "id": "decision_ready",
+              "label": "A decision-maker knows what to do or watch",
+              "passed": true,
+              "reason": "It tells decision-makers what to measure (operating generation, displacement), what to watch (dated indicators), and recommends a preferred option."
+            },
+            {
+              "id": "format_style",
+              "label": "Fixed format and style rules respected",
+              "passed": false,
+              "reason": "Truncated text, contradictory probability figures, and broken citation formatting violate fixed format expectations."
+            }
+          ],
+          "allPassed": false,
+          "judgeFamily": "kimi",
+          "passedCount": 4,
+          "judgeProvider": "kimi"
+        },
+        "evaluationFreshness": {
+          "stale": [],
+          "verdictStale": [],
+          "htmlArtifactVersion": 5,
+          "analysisArtifactVersion": 2
+        },
+        "totalCostUsd": 1.3288297,
+        "thesisBinding": {
+          "id": "T1",
+          "origin": "corpus_derived",
+          "adhered": true,
+          "verdict": "supported",
+          "statement": "Renewable-electricity expansion in the global energy transition depends on more than generation costs: studies across countries identify policy design, financing conditions, and grid access as important deployment considerations.",
+          "confidence": 76,
+          "checkedVerdict": "The central finding is narrow but consequential: renewable-electricity expansion in the global energy transition depends on more than generation costs. Studies across countries identify policy design, financing conditions and grid access as important deployment considerations. A cross-country panel associates solar and wind generation with regulatory conditions, capital costs, grid access and project preparation; a comparison of Argentina and Brazil reports that Argentina’s incentives did not secure deployment under unfavorable financing conditions. An Indonesia-focused framework identifies interacting procurement, investment and transmission barriers, but supplies no new effect estimates. These sources support a deployment judgment, not a quantified causal effect for any policy. [SRC-4][SRC-16][SRC-8] That judgment does not make renewable electricity a proxy for the entire transition. The evidence distinguishes operating generation from proposed projects, and generation additions from fossil-fuel displacement. The cross-country panel reports an association between fossil and renewable generation shares, not a measured global rate at which new renewables retire fossil plants. Studies of rural Chinese heating, maritime fuels and industrial materials address different end uses through models or sectoral analysis rather than an observed, comparable global transition series. [SRC-4][SRC-28][SRC-3][SRC-38] Nor does a lower generation cost settle reliability or affordability: grid-planning research examines storage and network operation, while a maritime scenario estimates product-cost increases that differ across regions. [SRC-24][SRC-3] Confidence is tempered. The panel acknowledges feedback between policy and generation; the country comparison cannot isolate financing from every other national difference; and the Indonesia framework offers no new empirical estimates. Island vulnerability, mining labor conditions and lifecycle fuel impacts also show why an aggregate electricity indicator cannot describe who pays or which environmental pressures move elsewhere. [SRC-4][SRC-16][SRC-8][SRC-30][SRC-23][SRC-14] **Our central scenario for 2030** is that policy design, financing conditions and usable grid access will remain observable considerations in comparative renewable-project delivery, without implying a particular global deployment or emissions rate. Repeated, comparable project-level evidence available by 2030 showing no conditional relationship between completed deployment and **any** of those three considerations would overturn that projection. [SRC-4][SRC-16][SRC-8]",
+          "adherenceReason": "The verdict restates the thesis, adds only scope-narrowing caveats (no causal effect, no displacement-rate claims), and its 2030 statement is an explicitly labelled scenario with a horizon and named d",
+          "contraryEvidence": [],
+          "supportingSources": 3,
+          "evaluationComplete": true,
+          "supportingEvidence": [
+            "[SRC-4] A 134-country panel identifies solar and wind generation as sensitive to regulation, capital costs, and grid access.",
+            "[SRC-16] A comparison of Argentina and Brazil reports that incentives alone were insufficient for deployment in Argentina, where financing conditions were unfavorable.",
+            "[SRC-8] An Indonesia-focused framework identifies interacting investment, procurement, and grid-readiness barriers, though it provides no new empirical estimates."
+          ]
+        },
+        "numericalGate": {
+          "passed": true,
+          "details": [],
+          "violations": 0
+        },
+        "critic": {
+          "biases": 5,
+          "costUsd": 0.0180121,
+          "verdict": "repair",
+          "durationMs": 149130,
+          "claimsCount": 37,
+          "groundedness": 0.8108108108108109,
+          "overallScore": 55,
+          "stageResults": {
+            "bias": {
+              "flagsRaised": 5,
+              "highSeverity": 0
+            },
+            "citations": {
+              "issuesFound": 0
+            },
+            "grounding": {
+              "derived": 13,
+              "partial": 4,
+              "supported": 15,
+              "unsupported": 3,
+              "contradicted": 0,
+              "unverifiable": 2
+            },
+            "decomposition": {
+              "claimsExtracted": 37
+            },
+            "contradictions": {
+              "pairsFound": 3,
+              "severeCount": 0,
+              "contestedCount": 1
+            }
+          },
+          "citationIssues": 0,
+          "contradictions": 3,
+          "artifactVersion": 2,
+          "contestedFindings": 1,
+          "evaluatedArtifact": "analysis",
+          "contestedFindingsDetail": [
+            {
+              "claim1": "Studies do not report a measured global rate at which new renewables retire fossil plants.",
+              "claim2": "A South Pole optimization models substantial diesel displacement under unusually remote-site conditions.",
+              "explanation": "Claim 14 states there's no measured global rate of renewables displacing fossil plants, while claim 2 describes a specific case (South Pole) where renewables do displace fossil fuels, creating a contr"
+            }
+          ]
+        },
+        "criticPanel": {
+          "veto": false,
+          "costUsd": 0.0042436,
+          "dimensions": [
+            {
+              "score": 8,
+              "mustFix": false,
+              "findings": [
+                "The analysis does not explicitly address emissions scenarios used in the energy transition, which is a domain requirement.",
+                "The analysis does not assess rebound effects, another domain requirement that appears to be unchecked.",
+                "There is potential anchoring bias on the cross-country panel of 134 countries, which may rely on outdated emissions scenarios without explicit verification.",
+                "The analysis neglects indirect land use change effects, which is a known domain bias to audit."
+              ],
+              "dimension": "methodology"
+            },
+            {
+              "score": 5,
+              "mustFix": false,
+              "findings": [
+                "No treatment of legal/institutional dimensions beyond policy design - the analysis mentions regulatory conditions but doesn't explore legal frameworks, institutional capacity, or governance structures that enable or hinder energy transition",
+                "No explicit treatment of economic dimensions beyond financing conditions - the analysis doesn't address broader economic impacts, cost-benefit analysis, or economic inequality resulting from the transition",
+                "No treatment of social dimensions - the analysis doesn't examine social acceptance, community impacts, or equity considerations in the energy transition",
+                "No treatment of historical precedent - the analysis doesn't draw lessons from past energy transitions or historical patterns of technological change in energy systems"
+              ],
+              "dimension": "coverage"
+            },
+            {
+              "score": 8,
+              "mustFix": false,
+              "findings": [
+                "The analysis appropriately distinguishes between findings and projections, with the central projection explicitly labeled and dated ('Our central scenario for 2030')",
+                "The text clearly flags limitations in the evidence, such as acknowledging that 'the panel acknowledges feedback between policy and generation' and that 'the country comparison cannot isolate financing from every other national difference'",
+                "The analysis provides a falsification condition for its projection: 'Repeated, comparable project-level evidence available by 2030 showing no conditional relationship between completed deployment and any of those three considerations would overturn that projection'"
+              ],
+              "dimension": "epistemic"
+            },
+            {
+              "score": 7,
+              "mustFix": false,
+              "findings": [
+                "The through-line is clear but somewhat convoluted, with the thesis being narrow but consequential, though the causal chain could be more streamlined.",
+                "The prose is generally specific and concrete, though some sections contain repetitive phrasing that could be tightened.",
+                "Sections build on each other logically, but there's some redundancy in the causal chain that could be eliminated without losing meaning.",
+                "The structure would be acceptable to a demanding editor at a serious publication, though it could benefit from more concise organization."
+              ],
+              "dimension": "editorial"
+            },
+            {
+              "score": 7,
+              "mustFix": false,
+              "findings": [
+                "The analysis adds value by covering the methodological dimension of comprehensive quantitative modeling of energy transition costs and benefits across different scenarios, which competitors missed.",
+                "It challenges the weak consensus claim that energy externalities can be fully internalized through policy reform by providing evidence that policy design, financing conditions, and grid access are important deployment considerations beyond just generation costs.",
+                "The analysis goes deeper on mechanism than the strongest competitor by examining the specific factors that influence renewable electricity deployment and distinguishing between generation costs and actual transition progress."
+              ],
+              "dimension": "differentiation"
+            }
+          ],
+          "durationMs": 8849,
+          "vetoReasons": [],
+          "overallScore": 70,
+          "artifactVersion": 2,
+          "evaluatedArtifact": "analysis"
+        }
+      }
+    },
+    {
+      "id": "4329c0c5-aee3-489a-9a19-1ceb5dea2a4b",
+      "createdAt": "2026-11-26T01:04:43.001Z",
+      "status": "COMPLETED",
+      "durationMs": 3084632,
+      "question": "Mineral Resource Dependencies",
+      "trustScore": 65,
+      "qualityScore": 65,
+      "stats": {
+        "chainScenarios": {
+          "reason": "insufficient_uncertainties",
+          "usedForForesight": false
+        },
+        "centralScenario": {
+          "name": "The Familiar Lifeline",
+          "horizon": "We assess outcomes through 31 December 2030, the supplied analysis's decision horizon, not a source-established completion date for the initiatives; reviews in February and November 2027 should test whether announcements are becoming deliveries [SRC-2][SRC-13].",
+          "rationale": "The observations establish initiatives and delivery obstacles, not measured displacement; we infer that a gap between action and demonstrated dependence reduction deserves the central position [SRC-2][SRC-13][SRC-22][SRC-23]. The Familiar Lifeline expresses that gap without assuming a disruption that the evidence does not establish, while The Open Circuit requires delivery outcomes absent from the supplied record [SRC-2][SRC-13][SRC-14]. Absence of measured output is not proof of future failure: the 42% weight remains assumption-driven, and this central scenario is the largest individual case, not a more-likely-than-not prediction [SRC-2][SRC-13].",
+          "confidence": "medium",
+          "selectedBy": "editorial",
+          "description": "By 2030, factories will keep buying through familiar foreign routes, and documented mineral vulnerabilities will persist without becoming a general shortage [SRC-3][SRC-13][SRC-14]. Japan will retain acquisition, recycling, substitutes, stockpiling and diplomacy, while the U.S. recovery collaboration will continue to promise additional routes [SRC-2][SRC-13]. Yet alternatives will fall short of scaled delivery as permitting and community tensions, infrastructure gaps and regulatory impediments delay conversion of resources into usable supply [SRC-22][SRC-23]. Procurement teams will keep production supplied, but governments will lack the audited output and displaced-import records needed to claim that the covered measures reduced dependence [SRC-2][SRC-13].",
+          "implications": [
+            "Separate funding decisions from success claims: authorize promising alternatives before displacement occurs, but certify reduced dependence only after mineral-specific verification [SRC-2][SRC-13].",
+            "Maintain workable incumbent trade while alternatives develop; treat a forced break as a contingency to manage, not an achievement in itself [SRC-13][SRC-14]."
+          ],
+          "revisionTriggers": [
+            "By 31 December 2030, an audited account linking a covered Japanese measure or the U.S. recovery initiative to usable mineral-specific output, displaced vulnerable imports and a changed route would overturn the evidentiary-gap projection for that chain [SRC-2][SRC-13].",
+            "By the November 2027 review, verified scaled deliveries would warrant raising delivery assumptions, while sustained documented restrictions would warrant lowering workable-access assumptions; either would require recomputing all four weights [SRC-2][SRC-13].",
+            "We exclude a quantified shortage frequency, inflation shock or economy-wide loss from this assessment because the supplied evidence does not establish those outcomes; direct disruption and economic-impact records would reopen them [SRC-13][SRC-14]."
+          ],
+          "simulationLeader": "The Familiar Lifeline",
+          "simulationDisagrees": false
+        },
+        "requiredElements": {
+          "missing": [
+            "quantitative core (real series with numbers)",
+            "actor map (incentives, binding vs non-binding commitments)"
+          ],
+          "present": [
+            "base rate with named reference class",
+            "two tipping points from disagreements",
+            "what would change our mind (dated indicators)",
+            "consequences for a decision-maker"
+          ],
+          "advisory": [
+            "pre-mortem of the central scenario (covered by the adversarial pass downstream)"
+          ]
+        },
+        "factChecker": {
+          "citance": {
+            "nei": 11,
+            "total": 25,
+            "supported": 14,
+            "supportRate": 0.56,
+            "contradicted": 0,
+            "evaluationComplete": true
+          },
+          "verified": 25,
+          "fatalIssues": 0,
+          "majorIssues": 29,
+          "totalClaims": 29,
+          "integrityScore": 62,
+          "artifactVersion": 5,
+          "evaluatedClaims": 54,
+          "evaluatedArtifact": "html"
+        },
+        "devilsAdvocate": {
+          "costUsd": 0.08862400000000001,
+          "verdict": "revise",
+          "killShot": "The brief's governing test is internally unstable: it requires changed vulnerable imports to recognize reduced dependence, yet lists stockpiles and substitutes as relevant responses, and its purported falsifier would confirm—not disprove—its central distinction between announcements and demonstrated results.",
+          "topChallenges": [
+            {
+              "text": "The numerical anchor cannot be verified against the supplied evidence: SRC-13 has a title but no evidence excerpt. The same problem affects central claims attributed to SRC-14 and to SRC-22, SRC-23, SRC-53 and SRC-64, which are not among the available sources. Other cited passages are too short to v",
+              "type": "non_evidence"
+            },
+            {
+              "text": "This rule treats an observed import change as necessary proof of reduced dependence, without explaining why. Added domestic capacity could reduce vulnerability by providing a usable reserve or an option to switch suppliers even while imports continue. Conversely, imports could fall because demand co",
+              "type": "missing_warrant"
+            },
+            {
+              "text": "The four scenarios assign precise probabilities and identical lower and upper confidence bounds, yet give no observations, elicitation procedure or calibration method that could justify either the estimates or zero-width intervals. This is a numerical claim presented with more precision than the sta",
+              "type": "non_evidence"
+            }
+          ],
+          "artifactVersion": 3,
+          "fatalChallenges": 0,
+          "majorChallenges": 6,
+          "overallStrength": 48,
+          "evaluatedArtifact": "analysis",
+          "evaluationComplete": true,
+          "vulnerabilityTexts": [
+            "By November 2028, buyers could have materially reduced interruption risk through qualified second-source processing, contracts or inventories while vulnerable-import totals remain unchanged because de",
+            "A recovery or mining project could deliver tonnage but fail commercial qualification, processing economics or community approval. Treating its output as an alternative route would then prove premature",
+            "An access disruption or rapid change in processing capacity could make the scenario probabilities and trigger thresholds look arbitrary, even if the brief's narrower exposure finding remains correct."
+          ],
+          "publishabilityScore": 48,
+          "futureVulnerabilities": 3,
+          "recertifiedAfterRevision": true
+        },
+        "publicationGate": {
+          "checks": [
+            {
+              "check": "source_depth",
+              "passed": true,
+              "details": "67/8 sources minimum"
+            },
+            {
+              "check": "trust_score",
+              "passed": true,
+              "details": "65/100 trust score"
+            },
+            {
+              "check": "quality_score",
+              "passed": false,
+              "details": "65/100 quality score"
+            },
+            {
+              "check": "citation_coverage",
+              "passed": true,
+              "details": "99% citation coverage"
+            },
+            {
+              "check": "word_count",
+              "passed": true,
+              "details": "11125/1200 words minimum (adaptive: 67 sources)"
+            },
+            {
+              "check": "claim_citation_density",
+              "passed": true,
+              "details": "1/147 claim-like sentences uncited"
+            },
+            {
+              "check": "fatal_challenges",
+              "passed": true,
+              "details": "0 fatal challenge(s)"
+            },
+            {
+              "check": "devils_advocate",
+              "passed": true,
+              "details": "48/100 adversarial publishability score"
+            },
+            {
+              "check": "researcher_signoff",
+              "passed": false,
+              "details": "Researcher decision: revise"
+            },
+            {
+              "check": "corpus_core_evidence",
+              "passed": true,
+              "details": "20 core sources (≥8 required)"
+            },
+            {
+              "check": "minicheck_support",
+              "passed": true,
+              "details": "6 published claims checked — 0% not_supported (max 40%)"
+            },
+            {
+              "check": "novlangue_density",
+              "passed": true,
+              "details": "18 novlangue pattern(s) detected (0.5/1000 words): \"disruption\" → market change / displacement; \"disruption\" → market change / displacement; \"disruption\" → market change / displacement..."
+            },
+            {
+              "check": "central_scenario",
+              "passed": true,
+              "details": "Central scenario complete and consistent with final HTML"
+            },
+            {
+              "check": "evaluation_freshness",
+              "passed": true,
+              "details": "All verdict evaluations match the current artifact version"
+            },
+            {
+              "check": "thesis_adherence",
+              "passed": true,
+              "details": "Verdict within the bound thesis"
+            }
+          ],
+          "reasons": [
+            "quality_score: 65/100 quality score",
+            "researcher_signoff: Researcher decision: revise"
+          ],
+          "decision": "hold",
+          "readinessOk": true,
+          "binaryChecks": [
+            {
+              "id": "claims_entailed",
+              "detail": "claim→passage entailment 60% (need 100%)",
+              "passed": false
+            },
+            {
+              "id": "numbers_in_ledger",
+              "detail": "numbers traced to evidence cards 46% (need 100%)",
+              "passed": false
+            },
+            {
+              "id": "scenarios_from_chain",
+              "detail": "central scenario selectedBy='editorial' — swarm elector not yet active (OT-5)",
+              "passed": false
+            },
+            {
+              "id": "swarm_healthy",
+              "detail": "no data — swarm voter not yet active (OT-4)",
+              "passed": false
+            },
+            {
+              "id": "objections_answered",
+              "detail": "0 sourced objection(s) unanswered",
+              "passed": true
+            },
+            {
+              "id": "predictions_registered",
+              "detail": "5 resolvable predictions registered (need ≥3)",
+              "passed": true
+            }
+          ],
+          "degradedSteps": []
+        },
+        "thinkTankFormGrid": {
+          "score": 100,
+          "total": 8,
+          "passed": 8,
+          "criteria": [
+            {
+              "name": "recommendations",
+              "detail": "Addressed recommendations / implications section present",
+              "passed": true
+            },
+            {
+              "name": "objections_addressed",
+              "detail": "No fatal challenges remained after adversarial review",
+              "passed": true
+            },
+            {
+              "name": "methodology_limits",
+              "detail": "Methodology, data sources or limitations disclosed in artifact",
+              "passed": true
+            },
+            {
+              "name": "sources_disclosed",
+              "detail": "Rendered source list present",
+              "passed": true
+            },
+            {
+              "name": "calibrated_uncertainty",
+              "detail": "Scenario / probability / confidence framing present",
+              "passed": true
+            },
+            {
+              "name": "computed_exhibit",
+              "detail": "Computed exhibit injected (evidence_base)",
+              "passed": true
+            },
+            {
+              "name": "executive_summary",
+              "detail": "Summary / orientation section present",
+              "passed": true
+            },
+            {
+              "name": "pipeline_integrity",
+              "detail": "No degraded steps recorded",
+              "passed": true
+            }
+          ]
+        },
+        "binaryCriteriaJudge": {
+          "mode": "shadow",
+          "total": 8,
+          "costUsd": 0.019737,
+          "enforce": false,
+          "criteria": [
+            {
+              "id": "falsifiable_thesis",
+              "label": "Thesis is a falsifiable, dated claim (not a topic)",
+              "passed": true,
+              "reason": "The central scenario is dated to 31 December 2030 and carries an explicit falsification condition (audited mineral-specific records showing delivered output and displaced vulnerable imports)."
+            },
+            {
+              "id": "scenario_probability",
+              "label": "Central scenario carries a probability and an interval",
+              "passed": true,
+              "reason": "The central scenario is assigned a 64% probability (and a 42% computed weight) over a defined horizon through 31 December 2030."
+            },
+            {
+              "id": "required_elements",
+              "label": "The mandatory analytical elements are present (base rate, quantitative core, actor map, tipping points, watch indicators, decision consequences)",
+              "passed": false,
+              "reason": "No actor map of incentives and binding vs non-binding commitments exists, and no two tipping points derived from source disagreements are presented."
+            },
+            {
+              "id": "ranked_sources",
+              "label": "Each substantive section rests on at least one high-authority source",
+              "passed": false,
+              "reason": "Citations are bare numeric footnotes with no named or ranked high-authority sources; even the DOE and Japan policy documents are referenced only anonymously."
+            },
+            {
+              "id": "counter_evidence",
+              "label": "Contrary sources are discussed, not merely cited",
+              "passed": true,
+              "reason": "The note substantively engages contrary material, e.g., explaining why petroleum-rent evidence cannot be transferred to cobalt/copper and what records would overturn its scenario."
+            },
+            {
+              "id": "conclusions_bounded",
+              "label": "Conclusions do not exceed the evidence; projections are labeled",
+              "passed": true,
+              "reason": "Claims are repeatedly bounded ('exposure finding, not a finding that shortages are frequent') and projections are explicitly labeled as judgmental rather than empirically calibrated."
+            },
+            {
+              "id": "decision_ready",
+              "label": "A decision-maker knows what to do or watch",
+              "passed": true,
+              "reason": "A concrete decision rule (count reduced dependence only on audited deliveries and changed sourcing) and dated review points (February and November 2027) give a decision-maker clear actions and watch indicators."
+            },
+            {
+              "id": "format_style",
+              "label": "Fixed format and style rules respected",
+              "passed": false,
+              "reason": "The note contains duplicated blocks (the Position section repeated verbatim), HTML entity artifacts (&#039;), and truncated sentences, violating clean fixed-format execution."
+            }
+          ],
+          "allPassed": false,
+          "judgeFamily": "kimi",
+          "passedCount": 5,
+          "judgeProvider": "kimi"
+        },
+        "evaluationFreshness": {
+          "stale": [],
+          "verdictStale": [],
+          "htmlArtifactVersion": 5,
+          "analysisArtifactVersion": 3
+        },
+        "totalCostUsd": 1.5896229,
+        "thesisBinding": {
+          "id": "T1",
+          "origin": "corpus_derived",
+          "adhered": true,
+          "verdict": "supported",
+          "statement": "Critical minerals needed for clean-energy technologies have documented supply-chain vulnerabilities, including concentrated sourcing and risks in cobalt production.",
+          "confidence": 82,
+          "checkedVerdict": "The central finding is that clean-energy technologies depend on minerals with documented supply-chain vulnerabilities, including concentrated sourcing and risks in cobalt production [SRC-3][SRC-13][SRC-14]. This is an exposure finding, not a finding that shortages are frequent, that China controls a specified global share, or that a mineral interruption has already caused measurable GDP or inflation losses. Japan identifies concentration concerns that differ by mineral; a cobalt case study examines a supply chain involving the Democratic Republic of Congo and China without establishing their global shares in the supplied material [SRC-13][SRC-14]. This analysis argues for a decision rule: count a measure as reduced dependence only when mineral-specific records show delivered material and a corresponding change in vulnerable imports. Japan lists overseas acquisition, recycling, substitute development, stockpiling and resource diplomacy; the United States Department of Energy has launched a laboratory-led recovery and recycling collaboration [SRC-13][SRC-2]. Those are actions and stated approaches, not measured import displacement. Equally, mapped deposits are not delivered supply: a United States study identifies permitting and community tensions, while an Indonesian policy account identifies infrastructure and regulatory impediments [SRC-22][SRC-23]. Our central scenario, projected to 31 December 2030 with tempered confidence, is that public claims of greater mineral security will still require this distinction between measures announced and dependence demonstrably reduced. Audited, mineral-specific records published by that date showing recovered or alternative output, displaced vulnerable imports and changed sourcing would disprove the scenario for the minerals and countries covered. Its chief uncertainty is that the supplied studies contain no comparable sourcing trend or evaluation of these initiatives' eventual output [SRC-2][SRC-13][SRC-14]. Producer economies face a different question: evidence concerning petroleum rents and growth must not be transferred to cobalt, copper or lithium without mineral-specific tests [SRC-7][SRC-11][SRC-64].",
+          "adherenceReason": "The verdict restates the exposure finding within the thesis's scope, explicitly disclaims broader causal or quantitative claims, and its forward-looking statement is labelled as a scenario with a hori",
+          "contraryEvidence": [],
+          "supportingSources": 3,
+          "evaluationComplete": true,
+          "supportingEvidence": [
+            "[SRC-13] Identifies rare metals used in carbon-neutral technologies and reports supply risks associated with concentrated production and refining.",
+            "[SRC-14] A cobalt supply-chain case study identifies governance, labor, environmental and security vulnerabilities.",
+            "[SRC-3] Describes critical minerals as essential to the energy transition and electromobility."
+          ]
+        },
+        "numericalGate": {
+          "passed": false,
+          "details": [
+            {
+              "match": "34%",
+              "suggestion": "Number \"34%\" lacks a [SRC-N] citation within 100 chars — add source or remove"
+            },
+            {
+              "match": "42%",
+              "suggestion": "Number \"42%\" lacks a [SRC-N] citation within 100 chars — add source or remove"
+            },
+            {
+              "match": "34%",
+              "suggestion": "Number \"34%\" lacks a [SRC-N] citation within 100 chars — add source or remove"
+            },
+            {
+              "match": "42%",
+              "suggestion": "Number \"42%\" lacks a [SRC-N] citation within 100 chars — add source or remove"
+            },
+            {
+              "match": "11%",
+              "suggestion": "Number \"11%\" lacks a [SRC-N] citation within 100 chars — add source or remove"
+            }
+          ],
+          "violations": 5
+        },
+        "critic": {
+          "biases": 5,
+          "costUsd": 0.017272,
+          "verdict": "repair",
+          "durationMs": 145672,
+          "claimsCount": 30,
+          "groundedness": 0.8166666666666667,
+          "overallScore": 54,
+          "stageResults": {
+            "bias": {
+              "flagsRaised": 5,
+              "highSeverity": 0
+            },
+            "citations": {
+              "issuesFound": 0
+            },
+            "grounding": {
+              "derived": 9,
+              "partial": 1,
+              "supported": 15,
+              "unsupported": 1,
+              "contradicted": 1,
+              "unverifiable": 3
+            },
+            "decomposition": {
+              "claimsExtracted": 30
+            },
+            "contradictions": {
+              "pairsFound": 4,
+              "severeCount": 0,
+              "contestedCount": 1
+            }
+          },
+          "citationIssues": 0,
+          "contradictions": 4,
+          "artifactVersion": 3,
+          "contestedFindings": 1,
+          "evaluatedArtifact": "analysis",
+          "adoptedCandidateRescore": true,
+          "contestedFindingsDetail": [
+            {
+              "claim1": "A cobalt case study examines a supply chain involving the Democratic Republic of Congo and China without establishing their global shares in the supplied material.",
+              "claim2": "The cobalt case study identifies corruption, child labor, environmental damage and security issues.",
+              "explanation": "Claim 7 states that the cobalt case study examines supply chains without establishing global shares, while claim 25 states that the same case study identifies specific issues (corruption, child labor,"
+            }
+          ]
+        },
+        "criticPanel": {
+          "veto": false,
+          "costUsd": 0.0035429,
+          "dimensions": [
+            {
+              "score": 8,
+              "mustFix": false,
+              "findings": [
+                "The analysis clearly distinguishes between documented exposure and unproven remedies, avoiding overclaim about mineral shortages or specific global shares controlled by China.",
+                "The causal chain is well-developed with specific mechanisms (e.g., 'Recovery or substitution can reduce reliance on a vulnerable input only when usable material replaces that input').",
+                "Counter-evidence and alternative explanations are engaged with, including rejected scenarios about 'concentrated supply will necessarily become state coercion or military escalation by 2030'.",
+                "Quantitative claims are properly sourced and internally consistent, with clear distinctions between different types of measures (e.g., Japan's self-sufficiency rates vs. global production shares)."
+              ],
+              "dimension": "methodology"
+            },
+            {
+              "score": 6,
+              "mustFix": false,
+              "findings": [
+                "No treatment of legal/institutional dimensions of mineral resource dependencies, such as international trade agreements, regulatory frameworks, or institutional mechanisms governing resource extraction and trade",
+                "No explicit analysis of economic dimensions beyond self-sufficiency rates, such as cost-benefit analyses of dependency reduction measures, market dynamics, or economic impacts of resource dependencies",
+                "Limited treatment of social dimensions, with only brief mention of community tensions and worker exposure in specific cases (cobalt production) without broader analysis of social impacts or community engagement",
+                "No historical precedent analysis, such as how past resource dependencies (e.g., oil, rare earth metals) have evolved and what lessons can be drawn"
+              ],
+              "dimension": "coverage"
+            },
+            {
+              "score": 8,
+              "mustFix": false,
+              "findings": [
+                "The analysis clearly distinguishes between documented supply chain vulnerabilities and unproven remedies, marking the latter as policy actions rather than measured outcomes.",
+                "The central scenario is explicitly labeled as a projection with a specific horizon (31 December 2030) and falsification conditions, which aligns with proper epistemic calibration.",
+                "The analysis avoids overclaiming certainty about future outcomes, explicitly stating that the scenario could be disproven by specific evidence by 2030.",
+                "The text carefully distinguishes between present facts (like Japan's self-sufficiency rates) and future projections, without conflating them."
+              ],
+              "dimension": "epistemic"
+            },
+            {
+              "score": 7,
+              "mustFix": false,
+              "findings": [
+                "The through-line is clear but could be more explicitly stated at the beginning of the analysis.",
+                "The causal chain is logical but contains some repetition (claims 5, 6, and 7 are very similar).",
+                "The prose is generally specific and concrete, though some sections could benefit from more concise phrasing.",
+                "The structure builds well overall, but the rejected alternatives section feels somewhat disconnected from the main analysis."
+              ],
+              "dimension": "editorial"
+            }
+          ],
+          "durationMs": 7535,
+          "vetoReasons": [],
+          "overallScore": 72,
+          "artifactVersion": 3,
+          "evaluatedArtifact": "analysis",
+          "rescoredPostMutation": true
+        }
+      }
+    },
+    {
+      "id": "c560057b-f6c3-44ed-8fae-ef3d048b1239",
+      "createdAt": "2026-11-26T03:08:27.127Z",
+      "status": "COMPLETED",
+      "durationMs": 2341728,
+      "question": "What evidence exists on the empirical validation of structured consensus methods in guideline development?",
+      "trustScore": 65,
+      "qualityScore": 66,
+      "stats": {
+        "chainScenarios": {
+          "reason": "insufficient_uncertainties",
+          "usedForForesight": false
+        },
+        "centralScenario": {
+          "name": "Procedural Citadel",
+          "horizon": "We look to end-2027 because the ACCORD reporting guideline is completing its EQUATOR adoption cycle within this window, and whatever institutional path the field takes — standardization, validation, or drift — will be locked in by then. The five-year horizon captures one full guideline-development generation.",
+          "rationale": "We select 'Procedural Citadel' as our central forecast because the evidence base shows institutional investment flowing toward reporting standardization rather than outcome validation [SRC-7, SRC-19], and the historical base rate for validation emergence within 5 years of reporting-standard adoption is 0.25. The ACCORD reporting guideline is completing its EQUATOR adoption cycle, and no comparative trial of consensus methods on guideline-quality or patient-outcome endpoints exists in the corpus or in trial registries. The field's measurement culture is agreement-centric: every study we examined measures consensus percentages, rounds to convergence, or items retained — none measures whether the agreement was right [SRC-10, SRC-20, SRC-7]. The S3/AGREE II experience demonstrates that even when structured consensus is bundled with systematic evidence search, the resulting quality scores cannot be attributed to the consensus step because the steps are confounded [SRC-6]. We observe that the field is solving the problem it can measure (reporting transparency) rather than the problem that matters (effectiveness). The predetermined elements — persistent conflicts of interest [SRC-12], practitioners with preliminary understanding [SRC-19], four methods coexisting without comparison [SRC-7] — all point toward procedural consolidation without empirical foundation. We distinguish observation from inference: the observation is that no validation study exists and investment flows toward reporting; the inference is that this pattern will persist through 2027 because the structural incentives that produce it are unchanged.",
+          "confidence": "high",
+          "selectedBy": "editorial",
+          "description": "By 2027, the field has built its citadel. ACCORD reporting standards, adopted by major journals and accreditation bodies, specify panel size, round structure, Likert scale granularity, and conflict-of-interest disclosure with checklist precision. Guideline developers comply. The compliance machinery runs smoothly — every published guideline carries its ACCORD badge, every panel reports its composition, every Delphi round is documented. But no one has tested whether a 9-point scale produces better recommendations than a 7-point scale, or whether three rounds yield more valid guidance than two. The field has substituted procedural compliance for demonstrated effectiveness. Guideline quality scores on AGREE II rise modestly in the domains ACCORD touches — clarity, transparency, stakeholder description — and remain flat in applicability and editorial independence, the domains that proxy whether guidelines change practice free of sponsor influence [SRC-6, SRC-12]. The validation gap, now institutionalized behind walls of procedure, has become invisible because the reporting infrastructure makes it look filled.",
+          "implications": [
+            "Guideline developers and funders should expect that ACCORD compliance will become a baseline expectation without evidence that compliant methods produce better guidelines — plan for procedural compliance costs without expecting quality returns.",
+            "Clinicians and policymakers using consensus-based guidelines should treat the consensus stamp as a transparency marker, not a quality marker — the presence of structured consensus tells you how the recommendation was produced, not whether it is right.",
+            "The validation gap will widen as reporting standards make the process appear more rigorous, potentially reducing the perceived urgency of funding comparative trials — the citadel effect hides the gap it creates."
+          ],
+          "revisionTriggers": [
+            "A published or registered comparative trial — Delphi versus nominal group, or structured versus unstructured consensus — with guideline quality, clinical-practice adherence, or patient outcomes as endpoints. A single rigorous study converts the verdict from 'unvalidated' to 'validation emerging' and shifts the central scenario from 'Procedural Citadel' toward 'Evidence Reckoning'.",
+            "A major funder (NIH, Horizon Europe, Gates Foundation) issuing an RFP specifically targeting consensus-method validation rather than guideline production, signaling institutional demand for effectiveness evidence.",
+            "Evidence that ACCORD adoption is failing to gain traction — if no journal or accreditation body references ACCORD within 18 months of publication, the probability of 'Open Bazaar' rises and the central scenario shifts."
+          ],
+          "simulationLeader": "Evidence Reckoning",
+          "simulationDisagrees": true
+        },
+        "requiredElements": {
+          "missing": [],
+          "present": [
+            "base rate with named reference class",
+            "quantitative core (real series with numbers)",
+            "actor map (incentives, binding vs non-binding commitments)",
+            "two tipping points from disagreements",
+            "what would change our mind (dated indicators)",
+            "consequences for a decision-maker"
+          ],
+          "advisory": [
+            "pre-mortem of the central scenario (covered by the adversarial pass downstream)"
+          ]
+        },
+        "factChecker": {
+          "citance": {
+            "nei": 9,
+            "total": 25,
+            "supported": 16,
+            "supportRate": 0.64,
+            "contradicted": 0,
+            "evaluationComplete": true
+          },
+          "verified": 40,
+          "fatalIssues": 0,
+          "majorIssues": 21,
+          "totalClaims": 36,
+          "integrityScore": 76,
+          "artifactVersion": 6,
+          "evaluatedClaims": 61,
+          "evaluatedArtifact": "html"
+        },
+        "devilsAdvocate": {
+          "costUsd": 0.0254126,
+          "verdict": "revise",
+          "killShot": "The analysis's central claim — 'no study in the published literature tests whether these methods produce recommendations that improve patient outcomes' — is a universal negative asserted on the basis of 27 sources, then partially retracted three paragraphs later with 'this analysis cannot exclude validation studies existing outside these 27 sources.' A peer reviewer would note that the corpus incl",
+          "topChallenges": [
+            {
+              "text": "The projection's warrant is 'institutional inertia plus incentive structure' — the claim that no funder mandate, registered trial, or outcome-linkage infrastructure appears in the corpus. But absence of evidence in a 27-source corpus is not evidence of absence in the field. The corpus itself acknowl",
+              "type": "missing_warrant"
+            },
+            {
+              "text": "The analysis applies Knorr's 1975 sociology-of-science findings about research-line selection in social sciences [SRC-4] to interpret a pattern across two clinical consensus exercises [SRC-9, SRC-20]. The analogy is structurally invalid. Knorr's claim concerns how research communities select researc",
+              "type": "invalid_analogy"
+            },
+            {
+              "text": "The analysis identifies two facts — (a) ACCORD exists and targets reporting [SRC-13], (b) no validation study appears in the corpus [SRC-7] — and infers a substitution dynamic: investment is flowing into reporting 'rather than' validation. But the analysis's own evidence assessment concedes this is ",
+              "type": "causation_from_correlation"
+            }
+          ],
+          "artifactVersion": 2,
+          "fatalChallenges": 0,
+          "majorChallenges": 8,
+          "overallStrength": 32,
+          "evaluatedArtifact": "analysis",
+          "evaluationComplete": true,
+          "vulnerabilityTexts": [
+            "AI-driven evidence synthesis tools bypass the human consensus bottleneck entirely, making the debate over Delphi vs. NGT irrelevant and the 2027 projection look antiquated.",
+            "A major payer or regulator (e.g., NICE, CMS) mandates a specific consensus methodology based on internal proprietary validation, rendering the academic 'validation gap' moot in practice.",
+            "A large-scale reproducibility crisis in clinical guidelines—unrelated to consensus methods but impacting the underlying evidence base—shifts the entire focus of guideline validation away from process "
+          ],
+          "publishabilityScore": 32,
+          "futureVulnerabilities": 3,
+          "recertifiedAfterRevision": true
+        },
+        "publicationGate": {
+          "checks": [
+            {
+              "check": "source_depth",
+              "passed": true,
+              "details": "27/20 sources minimum"
+            },
+            {
+              "check": "trust_score",
+              "passed": true,
+              "details": "65/100 trust score"
+            },
+            {
+              "check": "quality_score",
+              "passed": false,
+              "details": "66/100 quality score"
+            },
+            {
+              "check": "citation_coverage",
+              "passed": true,
+              "details": "95% citation coverage"
+            },
+            {
+              "check": "word_count",
+              "passed": true,
+              "details": "12940/8000 words minimum (adaptive: 27 sources)"
+            },
+            {
+              "check": "claim_citation_density",
+              "passed": true,
+              "details": "5/108 claim-like sentences uncited"
+            },
+            {
+              "check": "fatal_challenges",
+              "passed": true,
+              "details": "0 fatal challenge(s)"
+            },
+            {
+              "check": "devils_advocate",
+              "passed": false,
+              "details": "32/100 adversarial publishability score"
+            },
+            {
+              "check": "minicheck_support",
+              "passed": true,
+              "details": "6 published claims checked — 0% not_supported (max 40%)"
+            },
+            {
+              "check": "novlangue_density",
+              "passed": true,
+              "details": "4 novlangue pattern(s) detected (0.2/1000 words): \"best practices\" → conformity to convention (often unexamined); \"reform\" → policy change (often deregulation); \"streamlining\" → layoffs / cost-cutting..."
+            },
+            {
+              "check": "central_scenario",
+              "passed": false,
+              "details": "Rendered central scenario differs from the persisted decision"
+            },
+            {
+              "check": "evaluation_freshness",
+              "passed": true,
+              "details": "All verdict evaluations match the current artifact version"
+            },
+            {
+              "check": "thesis_adherence",
+              "passed": true,
+              "details": "Verdict within the bound thesis"
+            }
+          ],
+          "reasons": [
+            "quality_score: 66/100 quality score",
+            "devils_advocate: 32/100 adversarial publishability score",
+            "central_scenario: Rendered central scenario differs from the persisted decision"
+          ],
+          "decision": "hold",
+          "readinessOk": true,
+          "binaryChecks": [
+            {
+              "id": "claims_entailed",
+              "detail": "claim→passage entailment 82% (need 100%)",
+              "passed": false
+            },
+            {
+              "id": "numbers_in_ledger",
+              "detail": "numbers traced to evidence cards 66% (need 100%)",
+              "passed": false
+            },
+            {
+              "id": "scenarios_from_chain",
+              "detail": "central scenario selectedBy='editorial' — swarm elector not yet active (OT-5)",
+              "passed": false
+            },
+            {
+              "id": "swarm_healthy",
+              "detail": "no data — swarm voter not yet active (OT-4)",
+              "passed": false
+            },
+            {
+              "id": "objections_answered",
+              "detail": "0 sourced objection(s) unanswered",
+              "passed": true
+            },
+            {
+              "id": "predictions_registered",
+              "detail": "6 resolvable predictions registered (need ≥3)",
+              "passed": true
+            }
+          ],
+          "degradedSteps": []
+        },
+        "thinkTankFormGrid": {
+          "score": 100,
+          "total": 8,
+          "passed": 8,
+          "criteria": [
+            {
+              "name": "recommendations",
+              "detail": "Addressed recommendations / implications section present",
+              "passed": true
+            },
+            {
+              "name": "objections_addressed",
+              "detail": "No fatal challenges remained after adversarial review",
+              "passed": true
+            },
+            {
+              "name": "methodology_limits",
+              "detail": "Methodology, data sources or limitations disclosed in artifact",
+              "passed": true
+            },
+            {
+              "name": "sources_disclosed",
+              "detail": "Rendered source list present",
+              "passed": true
+            },
+            {
+              "name": "calibrated_uncertainty",
+              "detail": "Scenario / probability / confidence framing present",
+              "passed": true
+            },
+            {
+              "name": "computed_exhibit",
+              "detail": "Computed exhibit injected (evidence_base)",
+              "passed": true
+            },
+            {
+              "name": "executive_summary",
+              "detail": "Summary / orientation section present",
+              "passed": true
+            },
+            {
+              "name": "pipeline_integrity",
+              "detail": "No degraded steps recorded",
+              "passed": true
+            }
+          ]
+        },
+        "binaryCriteriaJudge": {
+          "mode": "shadow",
+          "total": 8,
+          "costUsd": 0.0010269,
+          "enforce": false,
+          "criteria": [
+            {
+              "id": "falsifiable_thesis",
+              "label": "Thesis is a falsifiable, dated claim (not a topic)",
+              "passed": true,
+              "reason": "The thesis is falsifiable by the end of 2027 if comparative validation trials are published."
+            },
+            {
+              "id": "scenario_probability",
+              "label": "Central scenario carries a probability and an interval",
+              "passed": false,
+              "reason": "No probability is established for the central scenario projection through end-2027."
+            },
+            {
+              "id": "required_elements",
+              "label": "The mandatory analytical elements are present (base rate, quantitative core, actor map, tipping points, watch indicators, decision consequences)",
+              "passed": true,
+              "reason": "All required elements are present: base rate with references, quantitative core, actor map, tipping points, watch indicators, and decision consequences."
+            },
+            {
+              "id": "ranked_sources",
+              "label": "Each substantive section rests on at least one high-authority source",
+              "passed": true,
+              "reason": "Each substantive section rests on high-authority sources, including systematic reviews and empirical studies."
+            },
+            {
+              "id": "counter_evidence",
+              "label": "Contrary sources are discussed, not merely cited",
+              "passed": true,
+              "reason": "Contrary evidence is discussed, including the AGREE II appraisal and potential limitations of the corpus."
+            },
+            {
+              "id": "conclusions_bounded",
+              "label": "Conclusions do not exceed the evidence; projections are labeled",
+              "passed": true,
+              "reason": "Conclusions are bounded by the evidence, with explicit qualifications about the corpus being bounded and methods being heterogeneous."
+            },
+            {
+              "id": "decision_ready",
+              "label": "A decision-maker knows what to do or watch",
+              "passed": true,
+              "reason": "The note clearly states the priority is to fund and register comparative validation trials now."
+            },
+            {
+              "id": "format_style",
+              "label": "Fixed format and style rules respected",
+              "passed": true,
+              "reason": "Fixed format and style rules are respected throughout the document."
+            }
+          ],
+          "allPassed": false,
+          "judgeFamily": "glm",
+          "passedCount": 7,
+          "judgeProvider": "glm"
+        },
+        "evaluationFreshness": {
+          "stale": [],
+          "verdictStale": [],
+          "htmlArtifactVersion": 6,
+          "analysisArtifactVersion": 2
+        },
+        "totalCostUsd": 0.6763560999999999,
+        "thesisBinding": {
+          "id": "T1",
+          "origin": "corpus_derived",
+          "adhered": true,
+          "verdict": "supported",
+          "statement": "In this evidence base, empirical studies of structured consensus in guideline development document its use and the agreement it produces, but do not validate that it improves guideline quality or patient outcomes.",
+          "confidence": 85,
+          "checkedVerdict": "The central finding of this analysis is that, within this evidence base, empirical studies of structured consensus methods in guideline development document their use and the agreement they produce, but do not validate that they improve guideline quality or patient outcomes. This is a claim about the research record, not about the methods' actual value — and the distinction matters for every downstream inference. What the data demonstrates is use, measured as agreement. A Delphi exercise among French obesity experts evaluated forty-three proposed recommendations in a first round, with four achieving strong consensus [SRC-10]. A multispecialty panel on injectable biologics for chronic pain reached consensus points with more than 80% agreement, while simultaneously acknowledging high uncertainty in the underlying evidence [SRC-20]. A web-based survey of 290 guideline-development participants across 31 Chinese provinces found Delphi the most commonly reported consensus method (132 respondents, 42.31%), with nearly half of respondents reporting only a preliminary understanding of the methods they were applying [SRC-19]. A systematic review of 198 core outcome set studies found Delphi, nominal group technique, consensus conferences, and unstructured discussion coexisting with no comparative evaluation of any against another [SRC-7]. Each of these studies measures the process's output as agreement; none measures whether the agreement was right. The strongest apparent counter-signal is the AGREE II appraisal of 25 European dermatology guidelines, in which the seven S3 guidelines — built on systematic literature search plus structured consensus conference — scored within acceptable ranges on clarity of presentation and scope and purpose [SRC-6]. This analysis reads that finding as correlational and confounded, not as validation: S3 bundles the evidence search with the consensus procedure, so the consensus step cannot be isolated, and the domains where S3 scored poorly — applicability, stakeholder involvement, editorial independence — are precisely the domains that proxy whether a guideline changes practice free of sponsor influence [SRC-6]. Conflicts and confluence of interest remain documented impediments to guideline development from 2011 through 2020 [SRC-12]. Appraisal instruments generate association; they cannot attribute quality to the consensus procedure itself. The institutional response to this gap is telling. The field's investment is flowing into reporting standardization — the ACCORD guideline, developed through a five-stage EQUATOR-guided process with an 11-member multidisciplinary steering committee, exists because poor reporting of consensus definitions and panelist selection undermines confidence and hinders reproducibility [SRC-13]. ACCORD is already being applied as an appraisal instrument in a 2026 systematic review of vocal fold paralysis guidelines [SRC-18]. Transparency about method is being standardized; whether the method produces valid judgments remains untested. This analysis proposes, as its interpretive frame, that sociology-of-science findings — selection processes favoring trivial decisions, high consensus coexisting with non-cumulative knowledge [SRC-4] — correctly predict the corpus's pattern: agreement rates above 80% cluster on definitional items such as surgical terminology [SRC-9], while contested clinical recommendations carry acknowledged evidence uncertainty [SRC-20]. Confidence is tempered by three qualifications. The corpus is bounded: this analysis cannot exclude validation studies existing outside these 27 sources. The methods are heterogeneous: Delphi-as-terminology-tool [SRC-9] and Delphi-as-recommendation-generator [SRC-20] are different objects, and the verdict applies to the validation record across both without implying the methods are worthless in either role. And nothing here supports abandoning structured consensus — informal alternatives are less documented, not better validated [SRC-14]. We project, as our central scenario through end-2027, that the field will continue producing use-and-agreement documentation and reporting-standard uptake without a published head-to-head trial comparing structured consensus methods against each other or against unstructured consensus on guideline quality or downstream outcomes. This projection is falsified by the registration or publication of any such comparative method trial, or by any study linking consensus method choice to clinical-practice adherence or patient outcomes, before 31 December 2027.",
+          "adherenceReason": "The verdict restates the bound thesis as its central finding, supports it with evidence about documented use and agreement without validation of quality or outcomes, explicitly avoids causal attributi",
+          "contraryEvidence": [
+            "[SRC-17] Describes Delphi as producing clinically relevant, actionable guidelines, but provides no quantitative validation in the supplied account."
+          ],
+          "supportingSources": 3,
+          "evaluationComplete": true,
+          "supportingEvidence": [
+            "[SRC-19] A survey of 290 guideline-development respondents found Delphi was the most commonly reported consensus method (132 respondents, 42.31%); it did not test guideline quality or outcomes.",
+            "[SRC-10] A Delphi study of clinical prescribing recommendations evaluated 43 proposals and reported four with strong consensus, measuring agreement rather than the validity of the recommendations.",
+            "[SRC-20] A clinical guideline consensus report documented greater than 80% panel agreement while noting substantial uncertainty in the underlying clinical evidence."
+          ]
+        },
+        "numericalGate": {
+          "passed": false,
+          "details": [
+            {
+              "match": "42.31%",
+              "suggestion": "Number \"42.31%\" lacks a [SRC-N] citation within 100 chars — add source or remove"
+            },
+            {
+              "match": "42.31%",
+              "suggestion": "Number \"42.31%\" lacks a [SRC-N] citation within 100 chars — add source or remove"
+            },
+            {
+              "match": "42.31%",
+              "suggestion": "Number \"42.31%\" lacks a [SRC-N] citation within 100 chars — add source or remove"
+            },
+            {
+              "match": "42.31%",
+              "suggestion": "Number \"42.31%\" lacks a [SRC-N] citation within 100 chars — add source or remove"
+            },
+            {
+              "match": "47.12%",
+              "suggestion": "Number \"47.12%\" lacks a [SRC-N] citation within 100 chars — add source or remove"
+            },
+            {
+              "match": "80%",
+              "suggestion": "Number \"80%\" lacks a [SRC-N] citation within 100 chars — add source or remove"
+            },
+            {
+              "match": "72.76%",
+              "suggestion": "Number \"72.76%\" lacks a [SRC-N] citation within 100 chars — add source or remove"
+            },
+            {
+              "match": "80%",
+              "suggestion": "Number \"80%\" lacks a [SRC-N] citation within 100 chars — add source or remove"
+            }
+          ],
+          "violations": 8
+        },
+        "critic": {
+          "biases": 5,
+          "costUsd": 0.0132061,
+          "verdict": "repair",
+          "durationMs": 140265,
+          "claimsCount": 24,
+          "groundedness": 0.8095238095238095,
+          "overallScore": 61,
+          "stageResults": {
+            "bias": {
+              "flagsRaised": 5,
+              "highSeverity": 1
+            },
+            "citations": {
+              "issuesFound": 3
+            },
+            "grounding": {
+              "derived": 4,
+              "partial": 4,
+              "supported": 11,
+              "unsupported": 2,
+              "contradicted": 0,
+              "unverifiable": 3
+            },
+            "decomposition": {
+              "claimsExtracted": 24
+            },
+            "contradictions": {
+              "pairsFound": 1,
+              "severeCount": 0,
+              "contestedCount": 2
+            }
+          },
+          "citationIssues": 3,
+          "contradictions": 1,
+          "artifactVersion": 2,
+          "contestedFindings": 2,
+          "evaluatedArtifact": "analysis",
+          "contestedFindingsDetail": [
+            {
+              "claim1": "No source in the corpus compares structured consensus methods against each other or against unstructured consensus on guideline quality, adherence, or patient outcomes.",
+              "claim2": "Of 198 core outcome set studies, methods varied across Delphi, nominal group technique, consensus conferences and unstructured discussion with no comparative evaluation reported.",
+              "explanation": "Claim 10 states that no sources compare structured consensus methods against each other or against unstructured consensus, while claim 11 specifically mentions that of 198 core outcome set studies, me"
+            },
+            {
+              "claim1": "Panel composition is a constitutive, measured property of consensus output: senior professionals dominate, patients and nurses are under-involved, and participants are concentrated in North America an",
+              "claim2": "211 of 290 surveyed guideline developers (72.76%) held senior professional titles, and the consensus process revealed insufficiency in involving pharmacoeconomists, patients, and nurses.",
+              "explanation": "Both claims discuss panel composition in consensus processes, but claim 14 states that patients and nurses are under-involved as a general property of consensus output, while claim 15 specifically men"
+            }
+          ]
+        },
+        "criticPanel": {
+          "veto": false,
+          "costUsd": 0.0042304,
+          "dimensions": [
+            {
+              "score": 7,
+              "mustFix": false,
+              "findings": [
+                "The analysis makes a causal claim that 'structured consensus methods...do not validate that they improve guideline quality or patient outcomes' but only shows that no studies exist that make this validation, not that the methods themselves don't improve outcomes.",
+                "The analysis claims 'panel composition is a constitutive, measured property of consensus output' but doesn't establish the causal mechanism between composition and output quality.",
+                "The analysis identifies WEIRD institutional bias (83% North American, 76% European participants) but doesn't address how this affects the validity of consensus methods.",
+                "The analysis mentions 'technocratic bias' in the domain checklist but doesn't specifically identify where this bias appears in the evidence reviewed."
+              ],
+              "dimension": "methodology"
+            },
+            {
+              "score": 5,
+              "mustFix": false,
+              "findings": [
+                "No treatment of legal/institutional dimensions - no analysis of how regulatory frameworks or institutional policies influence the adoption or implementation of structured consensus methods",
+                "No treatment of economic dimensions - no examination of cost-effectiveness, resource allocation, or economic impact of structured consensus methods",
+                "No treatment of historical precedent - no discussion of how consensus methods have evolved over time or historical context of their development",
+                "No treatment of geographic scope beyond noting North American and European dominance - no analysis of how cultural or regional differences might affect consensus method effectiveness"
+              ],
+              "dimension": "coverage"
+            },
+            {
+              "score": 8,
+              "mustFix": false,
+              "findings": [
+                "The analysis appropriately qualifies its central finding as being about 'the research record, not about the methods' actual value' (finding broader than what the sources establish).",
+                "The projection is properly labeled as a 'central scenario' and includes a specific falsification condition (publication of comparative trials before December 31, 2027).",
+                "The analysis acknowledges limitations of the corpus: 'The corpus is bounded: this analysis cannot exclude validation studies existing outside these 27 sources.'",
+                "The distinction between documentation of use/agreement and validation of outcomes is consistently maintained throughout."
+              ],
+              "dimension": "epistemic"
+            },
+            {
+              "score": 7,
+              "mustFix": false,
+              "findings": [
+                "The through-line is clear but the causal chain is incomplete, with the last claim (id:4) having an incomplete warrant",
+                "The prose is generally specific and concrete, with detailed evidence from multiple sources",
+                "Sections build on each other logically, moving from documentation of use to measurement of agreement to lack of validation",
+                "The projection is properly labeled and includes a falsifier, adhering to the VERDICT SCOPE RULE"
+              ],
+              "dimension": "editorial"
+            },
+            {
+              "score": 8,
+              "mustFix": false,
+              "findings": [
+                "The analysis identifies a critical gap in the literature: no empirical validation of structured consensus methods improving guideline quality or patient outcomes, which is a significant oversight in the field.",
+                "It documents that the field measures agreement rather than validity, highlighting a methodological limitation that competitors have not adequately addressed.",
+                "The analysis identifies the lack of comparative effectiveness studies between different consensus methods as a major research gap that competitors have not filled."
+              ],
+              "dimension": "differentiation"
+            }
+          ],
+          "durationMs": 5515,
+          "vetoReasons": [],
+          "overallScore": 69,
+          "artifactVersion": 2,
+          "evaluatedArtifact": "analysis"
+        }
+      }
+    },
+    {
+      "id": "c5c6bca8-322e-459e-a3c6-015b6f44fab5",
+      "createdAt": "2026-11-25T23:47:51.422Z",
+      "status": "COMPLETED",
+      "durationMs": 2726019,
+      "question": "global energy transition",
+      "trustScore": 55,
+      "qualityScore": 70,
+      "stats": {
+        "chainScenarios": {
+          "reason": "insufficient_uncertainties",
+          "usedForForesight": false
+        },
+        "centralScenario": {
+          "name": "The Substation Queue",
+          "horizon": "We look from late 2026 to 2030, testing whether differences in financing, policy execution and grid integration continue to accompany differences in national solar-and-wind generation shares; this is a projection, not a forecast of the global renewable share [SRC-4][SRC-6].",
+          "rationale": "The observations support a narrow finding: deployment differs alongside financing, regulatory and grid conditions, while integration requires attention beyond generation cost [SRC-4][SRC-5]. Our inference selects “The Substation Queue” as the central planning case because improving project economics can bring investment forward without ensuring matching system readiness; its strongest alternative, “The Open Circuit,” requires coordinated progress on both axes [SRC-2][SRC-5][SRC-8]. The 35% weight is provisional, not evidence that queues will dominate worldwide; none of the four futures commands a majority.",
+          "confidence": "medium",
+          "selectedBy": "editorial",
+          "description": "By 2030, finance ministries will celebrate successful renewable auctions while grid operators will struggle to accommodate the resulting plants. Capital will reach projects faster than network approvals, flexible supply and operating rules will catch up. Existing generators will remain necessary when sunlight or wind falls, even where new renewable capacity stands ready. Countries with stronger inherited networks will fare better than those with limited access or rigid fleets. Paris commitments will remain the starting point, not a connection permit. Security-related procurement disputes may add delays, but this projected queue will arise from mismatched delivery schedules even without them [SRC-4][SRC-5][SRC-6][SRC-8].",
+          "implications": [
+            "Judge procurement by reliable electricity delivered and timely connection, not installed capacity alone; this is our policy inference from the integration evidence [SRC-5][SRC-8].",
+            "Require security reviews to identify a concrete exposure and compare remedies, rather than assume that excluding foreign equipment will improve whole-system reliability [SRC-5][SRC-9]."
+          ],
+          "revisionTriggers": [
+            "A comparable assessment completed in 2030 showing no meaningful dispersion in national solar-and-wind generation shares and no remaining association with policy, financing or grid conditions, after relevant controls, would overturn the central heterogeneity projection [SRC-4].",
+            "In a country sample preregistered by June 2027, a 2030 review finding bankable delivery and flexible grids the most common combination would disprove our selected dominant pathway; we would adopt “The Open Circuit” instead [SRC-4][SRC-5].",
+            "If the 2030 review finds persistent national variation but no remaining association with delivery conditions, we would retain the descriptive finding and withdraw the proposed explanatory mechanism [SRC-4]."
+          ],
+          "simulationLeader": "The Old Grid's Grip",
+          "simulationDisagrees": true
+        },
+        "requiredElements": {
+          "missing": [
+            "quantitative core (real series with numbers)",
+            "consequences for a decision-maker"
+          ],
+          "present": [
+            "base rate with named reference class",
+            "actor map (incentives, binding vs non-binding commitments)",
+            "two tipping points from disagreements",
+            "what would change our mind (dated indicators)"
+          ],
+          "advisory": [
+            "pre-mortem of the central scenario (covered by the adversarial pass downstream)"
+          ]
+        },
+        "factChecker": {
+          "citance": {
+            "nei": 8,
+            "total": 25,
+            "supported": 17,
+            "supportRate": 0.68,
+            "contradicted": 0,
+            "evaluationComplete": true
+          },
+          "verified": 19,
+          "fatalIssues": 3,
+          "majorIssues": 10,
+          "totalClaims": 7,
+          "integrityScore": 69,
+          "artifactVersion": 7,
+          "evaluatedClaims": 32,
+          "evaluatedArtifact": "html"
+        },
+        "devilsAdvocate": {
+          "costUsd": 0.09134199999999999,
+          "verdict": "revise",
+          "killShot": "The four scenarios advertise precise 'empiricalProbability' values and zero-width 'confidenceInterval' values without any disclosed empirical calibration. That false appearance of quantitative validation could discredit the otherwise carefully bounded qualitative thesis.",
+          "topChallenges": [
+            {
+              "text": "The scenario probabilities are presented as empirically calibrated, but no forecasting data, model, elicitation method or citation supports them. A zero-width confidence interval implies certainty about an estimate that has no documented basis. This is more damaging than simply offering judgmental s",
+              "type": "non_evidence"
+            },
+            {
+              "text": "SRC-50 is not among the available sources. The supplied SRC-5 excerpt describes an urban-integration study but does not establish the stated reliability requirement. The general proposition may be sound, yet its cited evidentiary basis cannot be checked here. The same unavailable-source problem affe",
+              "type": "non_evidence"
+            },
+            {
+              "text": "This is not a decisive test of the whole projection. Requiring both negligible dispersion and no conditional association means a finding of substantial national variation but no policy-or-finance association would not trigger withdrawal, even though it would undermine the projection's proposed condi",
+              "type": "missing_warrant"
+            }
+          ],
+          "artifactVersion": 3,
+          "fatalChallenges": 0,
+          "majorChallenges": 7,
+          "overallStrength": 42,
+          "evaluatedArtifact": "analysis",
+          "evaluationComplete": true,
+          "vulnerabilityTexts": [
+            "By November 2028, updated energy-and-emissions accounts show that electricity deployment accelerated while growth in other fuel uses kept economy-wide emissions high. The brief’s narrow finding surviv",
+            "Major projects with finance and available connections stall over tariffs, land rights, local opposition or incumbent-asset obligations. The two-axis scenarios prove too narrow to explain the decisive ",
+            "A 2028 review of actual project outcomes finds that the scenario weights poorly anticipated developments, while several 2024–2025 signals were already observable when the brief was issued. Confidence "
+          ],
+          "publishabilityScore": 42,
+          "futureVulnerabilities": 3
+        },
+        "evaluationFreshness": {
+          "stale": [],
+          "verdictStale": [],
+          "htmlArtifactVersion": 7,
+          "analysisArtifactVersion": 3
+        },
+        "totalCostUsd": 1.4857676,
+        "thesisBinding": {
+          "id": "T1",
+          "origin": "corpus_derived",
+          "adhered": true,
+          "verdict": "supported",
+          "statement": "The global transition to renewable electricity does not follow a uniform national pathway: countries’ prospects differ alongside their policy and financing conditions.",
+          "confidence": 78,
+          "checkedVerdict": "The central finding is that the global transition to renewable electricity does not follow a uniform national pathway: countries’ prospects differ alongside their policy and financing conditions [SRC-4][SRC-6][SRC-13]. This analysis adopts that narrower position, rather than claiming that any one barrier dominates worldwide. A cross-country panel associates solar-and-wind generation with regulatory conditions, capital costs and grid access, while acknowledging that energy policy and deployment can influence each other [SRC-4]. Indonesia’s documented obstacles include fragmented governance and inadequate finance; a comparison of Brazil and Argentina likewise distinguishes renewable-electricity ambitions from the conditions for delivering them [SRC-6][SRC-13]. Cheaper generation is the strongest objection. In a South Pole model, a solar, wind, battery and diesel hybrid has substantially lower lifecycle costs than the all-diesel baseline under the site’s assumptions [SRC-2]. That result matters: favorable project economics can make renewable supply compelling without proving that national grids share the South Pole’s fuel-delivery costs or load profile [SRC-2][SRC-4]. The literature also identifies storage and grid operation as requirements when variable generation must meet demand reliably [SRC-5][SRC-50]. This analysis therefore argues that generation cost, project finance and whole-system reliability must be evaluated together, not ranked as universal explanations. Our central scenario is that national solar-and-wind generation shares will still vary alongside policy, financing and grid conditions in 2030. A comparable cross-country assessment in 2030 showing no meaningful between-country variation and no remaining association with those conditions after accounting for resources, existing generation and grid access would disprove it [SRC-4]. Confidence is tempered and does not exceed the supported thesis’s 78% assessment: the panel cannot isolate policy causation, the country studies are uneven, and the supplied sources lack a current global energy-and-emissions series [SRC-4][SRC-6][SRC-13][SRC-18]. The evidence does not decide whether renewables exceed half of global electricity generation by 2030, which barrier is globally primary, whether carbon pricing yields a specified emissions advantage, how net jobs divide between developed and developing economies, or whether energy-security concerns reversed climate commitments across major economies by 2025 [SRC-1][SRC-5][SRC-6][SRC-7]. Those are open questions, not concealed components of this verdict.",
+          "adherenceReason": "The verdict restates the thesis as its central finding, qualifies cost evidence as site-specific rather than universal, avoids ranking barriers, and its 2030 statement is an explicitly labelled scenar",
+          "contraryEvidence": [
+            "[SRC-2] A modeled renewable system offers large lifecycle cost savings at the South Pole, illustrating that favorable project economics can matter substantially in a particular setting."
+          ],
+          "supportingSources": 3,
+          "evaluationComplete": true,
+          "supportingEvidence": [
+            "[SRC-4] A panel covering 134 countries identifies policy stability and capital conditions as relevant to renewable-energy adoption, particularly solar and wind.",
+            "[SRC-13] Brazil’s renewable-electricity ambitions contrast with greater uncertainty in Argentina, where government hesitation and unfavorable financing conditions are noted.",
+            "[SRC-6] Indonesia’s transition faces institutional as well as technological obstacles."
+          ]
+        },
+        "numericalGate": {
+          "passed": true,
+          "details": [],
+          "violations": 0
+        },
+        "critic": {
+          "biases": 5,
+          "costUsd": 0.0194829,
+          "verdict": "repair",
+          "durationMs": 143907,
+          "claimsCount": 29,
+          "groundedness": 0.9285714285714286,
+          "overallScore": 53,
+          "stageResults": {
+            "bias": {
+              "flagsRaised": 5,
+              "highSeverity": 0
+            },
+            "citations": {
+              "issuesFound": 1
+            },
+            "grounding": {
+              "derived": 9,
+              "partial": 0,
+              "supported": 17,
+              "unsupported": 2,
+              "contradicted": 0,
+              "unverifiable": 1
+            },
+            "decomposition": {
+              "claimsExtracted": 29
+            },
+            "contradictions": {
+              "pairsFound": 3,
+              "severeCount": 0,
+              "contestedCount": 1
+            }
+          },
+          "citationIssues": 1,
+          "contradictions": 3,
+          "artifactVersion": 3,
+          "contestedFindings": 1,
+          "evaluatedArtifact": "analysis",
+          "adoptedCandidateRescore": true,
+          "contestedFindingsDetail": [
+            {
+              "claim1": "The national-deployment comparison is informative, whereas a numerical global net-zero bound for 2050 is non établie in the supplied material.",
+              "claim2": "The projected future state is uneven renewable-electricity deployment, not a quantified global renewable share.",
+              "explanation": "Claim 24 states that a numerical global net-zero bound for 2050 is not established in the material, while claim 28 states that the projected future state is uneven renewable-electricity deployment, no"
+            }
+          ]
+        },
+        "criticPanel": {
+          "veto": false,
+          "costUsd": 0.003554900000000001,
+          "dimensions": [
+            {
+              "score": 7,
+              "mustFix": false,
+              "findings": [
+                "The analysis fails to address domain-specific requirements: Must check technology cost assumptions; Must assess grid integration requirements; Must consider full lifecycle emissions. While there's mention of South Pole lifecycle costs [SRC-2], there's no systematic assessment of technology cost assumptions across the global energy transition.",
+                "The analysis shows uneven engagement with grid integration requirements - mentions storage and grid operation as requirements [SRC-5][SRC-50] but doesn't systematically assess grid integration costs at high renewable penetration, which is a known domain bias to audit.",
+                "The causal claim about policy and financing conditioning deployment through project preparation, procurement and grid connection [claim 3] is somewhat hand-waved without specifying detailed mechanisms of how these factors interact in different contexts.",
+                "The analysis doesn't fully engage with counter-evidence regarding technology optimism bias in cost projections, which is a known domain bias to audit."
+              ],
+              "dimension": "methodology"
+            },
+            {
+              "score": 5,
+              "mustFix": false,
+              "findings": [
+                "No treatment of legal/institutional dimensions beyond regulatory conditions - the analysis mentions regulatory quality but doesn't explore legal frameworks, institutional capacity, or governance structures that enable or hinder energy transition",
+                "No treatment of economic dimensions beyond project costs and financing - the analysis doesn't address broader economic impacts, job markets, economic inequality, or economic growth implications of the energy transition",
+                "No treatment of social dimensions - the analysis doesn't examine social acceptance, public opinion, community impacts, or social equity aspects of the energy transition",
+                "No treatment of historical precedent - the analysis doesn't draw lessons from past energy transitions or historical patterns of technological change in energy systems"
+              ],
+              "dimension": "coverage"
+            },
+            {
+              "score": 8,
+              "mustFix": false,
+              "findings": [
+                "The analysis appropriately qualifies its central projection as a 'central scenario' for 2030 rather than stating it as a certainty.",
+                "The text clearly distinguishes between present facts (historical data) and future projections, with the latter explicitly labeled.",
+                "The analysis provides a falsification condition for its central projection, stating what evidence would prove it wrong.",
+                "Confidence is appropriately tempered, acknowledging limitations such as inability to isolate policy causation and uneven country studies."
+              ],
+              "dimension": "epistemic"
+            },
+            {
+              "score": 7,
+              "mustFix": false,
+              "findings": [
+                "The through-line is clear but could be more explicitly stated earlier in the text",
+                "Some sections repeat information about the central projection and falsifier conditions",
+                "The causal chain is logical but could benefit from clearer transitions between claims",
+                "The prose is generally specific and concrete, though some passages contain technical jargon that may reduce accessibility"
+              ],
+              "dimension": "editorial"
+            }
+          ],
+          "durationMs": 7159,
+          "vetoReasons": [],
+          "overallScore": 67,
+          "artifactVersion": 3,
+          "evaluatedArtifact": "analysis",
+          "rescoredPostMutation": true
+        }
+      }
+    },
+    {
+      "id": "b6f050c5-3829-4fe1-a311-dad989c97369",
+      "createdAt": "2026-11-26T01:56:57.783Z",
+      "status": "COMPLETED",
+      "durationMs": 621768,
+      "question": "Mineral Resource Dependencies",
+      "trustScore": 0,
+      "qualityScore": 53,
+      "stats": {
+        "swarmForecasts": {
+          "ghost": true,
+          "costUsd": 0.0947926,
+          "forecasts": [
+            {
+              "iqr": 0.17,
+              "linkId": 5,
+              "families": 4,
+              "variance": 0.007905325443786982,
+              "contested": false,
+              "validVotes": 13,
+              "probability": 0.86
+            },
+            {
+              "iqr": 0.09999999999999998,
+              "linkId": 6,
+              "families": 4,
+              "variance": 0.00659171597633136,
+              "contested": false,
+              "validVotes": 13,
+              "probability": 0.85
+            }
+          ],
+          "validVotes": 26,
+          "familiesUsed": [
+            "glm",
+            "cohere",
+            "kimi",
+            "google"
+          ]
+        },
+        "swarmElection": {
+          "seed": 3901318159,
+          "ghost": true,
+          "dominant": true,
+          "winShare": 0.9841,
+          "contested": false,
+          "runnerUpId": "scn-u5-u6-u1-only",
+          "scenarioId": "scn-u5-u6-convergent",
+          "selectedBy": "swarm",
+          "probability": 0.731,
+          "probabilities": {
+            "scn-u5-u6-neither": 0.021,
+            "scn-u5-u6-u1-only": 0.129,
+            "scn-u5-u6-u2-only": 0.119,
+            "scn-u5-u6-convergent": 0.731
+          },
+          "monteCarloRuns": 20000,
+          "dominanceMargin": 0.481,
+          "uniformBaseline": 0.25,
+          "confidenceInterval": [
+            0.4500335061661801,
+            0.936367416026002
+          ],
+          "mostSensitiveLinkId": 6,
+          "runnerUpProbability": 0.129
+        },
+        "swarmHealth": {
+          "ghost": true,
+          "issues": [],
+          "healthy": true,
+          "splitElectable": false
+        },
+        "forecastState": {
+          "ghost": true,
+          "links": [
+            {
+              "claim": "Our conditional 2030 projection is that at least one assessed clean-energy input will retain a documented vulnerability at a stage beyond extraction [SRC-10][SRC-21][SRC-22].",
+              "linkId": 5,
+              "families": 4,
+              "variance": 0.007905325443786982,
+              "validVotes": 13,
+              "probability": 0.86
+            },
+            {
+              "claim": "The central scenario is persistent, identifiable exposure rather than a general mineral supply crisis. By 2030, an importing manufacturer assessing at least one clean-energy input would still find a vulnerable stage beyond extraction; a map of deposits or ore suppliers alone would therefore remain an incomplete security test [SRC-10][SRC-21][SRC-22]. A second, independent test would remain necessa",
+              "linkId": 6,
+              "families": 4,
+              "variance": 0.00659171597633136,
+              "validVotes": 13,
+              "probability": 0.85
+            }
+          ],
+          "question": "Mineral Resource Dependencies",
+          "revision": 0,
+          "scenarios": [
+            {
+              "id": "scn-u5-u6-convergent",
+              "name": "Chain scenario 1 (convergent)",
+              "conditions": {
+                "u5": true,
+                "u6": true
+              },
+              "description": "If \"Our conditional 2030 projection is that at least one assessed clean-energy input will retain a documented vulnerability at a stage beyond ex\" is confirmed and \"The central scenario is persistent, identifiable exposure rather than a general mineral supply crisis. By 2030, an importing manufacturer as\" is confirmed by 2030-12-31, the chain resolves along this branch.",
+              "observableAt": "2030-12-31",
+              "uncertaintyIds": [
+                5,
+                6
+              ]
+            },
+            {
+              "id": "scn-u5-u6-u1-only",
+              "name": "Chain scenario 2 (u1-only)",
+              "conditions": {
+                "u5": true,
+                "u6": false
+              },
+              "description": "If \"Our conditional 2030 projection is that at least one assessed clean-energy input will retain a documented vulnerability at a stage beyond ex\" is confirmed and \"The central scenario is persistent, identifiable exposure rather than a general mineral supply crisis. By 2030, an importing manufacturer as\" is not confirmed by 2030-12-31, the chain resolves along this branch.",
+              "observableAt": "2030-12-31",
+              "uncertaintyIds": [
+                5,
+                6
+              ]
+            },
+            {
+              "id": "scn-u5-u6-u2-only",
+              "name": "Chain scenario 3 (u2-only)",
+              "conditions": {
+                "u5": false,
+                "u6": true
+              },
+              "description": "If \"Our conditional 2030 projection is that at least one assessed clean-energy input will retain a documented vulnerability at a stage beyond ex\" is not confirmed and \"The central scenario is persistent, identifiable exposure rather than a general mineral supply crisis. By 2030, an importing manufacturer as\" is confirmed by 2030-12-31, the chain resolves along this branch.",
+              "observableAt": "2030-12-31",
+              "uncertaintyIds": [
+                5,
+                6
+              ]
+            },
+            {
+              "id": "scn-u5-u6-neither",
+              "name": "Chain scenario 4 (neither)",
+              "conditions": {
+                "u5": false,
+                "u6": false
+              },
+              "description": "If \"Our conditional 2030 projection is that at least one assessed clean-energy input will retain a documented vulnerability at a stage beyond ex\" is not confirmed and \"The central scenario is persistent, identifiable exposure rather than a general mineral supply crisis. By 2030, an importing manufacturer as\" is not confirmed by 2030-12-31, the chain resolves along this branch.",
+              "observableAt": "2030-12-31",
+              "uncertaintyIds": [
+                5,
+                6
+              ]
+            }
+          ]
+        },
+        "requiredElements": {
+          "missing": [
+            "actor map (incentives, binding vs non-binding commitments)"
+          ],
+          "present": [
+            "base rate with named reference class",
+            "quantitative core (real series with numbers)",
+            "two tipping points from disagreements",
+            "what would change our mind (dated indicators)",
+            "consequences for a decision-maker"
+          ],
+          "advisory": [
+            "pre-mortem of the central scenario (covered by the adversarial pass downstream)"
+          ]
+        },
+        "evaluationFreshness": {
+          "stale": [],
+          "verdictStale": [],
+          "htmlArtifactVersion": 1,
+          "analysisArtifactVersion": 1
+        },
+        "totalCostUsd": 0.612537,
+        "thesisBinding": {
+          "id": "T1",
+          "origin": "corpus_derived",
+          "adhered": true,
+          "verdict": "supported",
+          "statement": "Clean-energy technologies depend on critical minerals, and the supply chains for those minerals present security and socio-environmental risks.",
+          "confidence": 85,
+          "checkedVerdict": "Clean-energy technologies depend on critical minerals, and their supply chains present security and socio-environmental risks. The dependence is technology-specific: batteries use lithium, nickel and cobalt; high-performance motor magnets use rare earth elements; and some Power-to-X systems use materials including yttrium and iridium [SRC-10][SRC-21]. For an importing manufacturer, access to ore does not by itself settle access to refined material. Japan’s mineral-security assessment accordingly distinguishes production concentration, ore-import stability and refined-product import stability, while a cobalt supply-chain case study examines security, labor and environmental concerns together [SRC-21][SRC-22]. The central finding is an exposure, not a demonstrated shortage or an act of coercion. A security decision must ask whether a specific input can be obtained at the required supply-chain stage if a supplier becomes unavailable. A separate assessment must ask what obtaining that input does to workers and communities. A health synthesis reports toxic-metal exposures in mining and battery recycling, while a review finds that mining-company reporting emphasizes inputs and outputs far more than measured impacts [SRC-14][SRC-18]. Neither finding establishes the net harm of every supply option. Nor does an announced recovery program demonstrate commercially usable replacement material: the US Department of Energy describes a laboratory-led recycling collaboration, not a measured reduction in import dependence [SRC-8]. Confidence in this bounded position is tempered. The strongest sources identify material requirements and assessment methods, but the supplied evidence lacks comparable mineral-by-mineral observations of independent refining alternatives, interruption costs and changes in worker or community exposure [SRC-10][SRC-14][SRC-21][SRC-22]. It cannot establish China’s proposed rare-earth share, a numerical benefit from supplier diversification, conflict-driven economic volatility, diplomatic alignment with suppliers or accelerated substitution at the proposed thresholds [SRC-21][SRC-22]. Our central scenario for 2030 is that at least one assessed clean-energy input still has a documented vulnerability beyond extraction and that its proposed replacement route still requires separate exposure measurement. A 2030, independently audited assessment finding usable independent alternatives at every stage for every assessed input, alongside comparable worker and community measurements showing no associated exposure risk, would disprove that scenario [SRC-14][SRC-21][SRC-22].",
+          "adherenceReason": "The verdict's factual claims stay at exposure-and-risk level without asserting shortage, coercion, or numerical effects, explicitly disclaims unestablished claims, and its 2030 statement is a labelled",
+          "contraryEvidence": [],
+          "supportingSources": 4,
+          "evaluationComplete": true,
+          "supportingEvidence": [
+            "[SRC-9] Identifies critical minerals as essential to the energy transition and electromobility, while noting socio-environmental challenges from extraction.",
+            "[SRC-10] Identifies critical materials needed for Power-to-X systems and examines risks in their existing global supply chains.",
+            "[SRC-21] Describes rare metals needed for batteries and motors and supply risks associated with concentrated production.",
+            "[SRC-22] Identifies security, labor, and environmental concerns in a case study of the cobalt supply chain."
+          ]
+        },
+        "critic": {
+          "biases": 5,
+          "costUsd": 0.0130126,
+          "verdict": "reject",
+          "durationMs": 144216,
+          "claimsCount": 41,
+          "groundedness": 0.6458333333333334,
+          "overallScore": 11,
+          "stageResults": {
+            "bias": {
+              "flagsRaised": 5,
+              "highSeverity": 1
+            },
+            "citations": {
+              "issuesFound": 19
+            },
+            "grounding": {
+              "derived": 2,
+              "partial": 1,
+              "supported": 13,
+              "unsupported": 5,
+              "contradicted": 1,
+              "unverifiable": 19
+            },
+            "decomposition": {
+              "claimsExtracted": 41
+            },
+            "contradictions": {
+              "pairsFound": 3,
+              "severeCount": 0,
+              "contestedCount": 0
+            }
+          },
+          "citationIssues": 19,
+          "contradictions": 3,
+          "artifactVersion": 1,
+          "contestedFindings": 0,
+          "evaluatedArtifact": "analysis",
+          "contestedFindingsDetail": []
+        },
+        "criticPanel": {
+          "veto": false,
+          "costUsd": 0.004270700000000001,
+          "dimensions": [
+            {
+              "score": 7,
+              "mustFix": false,
+              "findings": [
+                "The analysis engages with multiple IR theory lenses by examining security, economic, and environmental dimensions of mineral dependencies, but could more explicitly connect these to specific theoretical frameworks.",
+                "The analysis avoids ethnocentric assumptions by examining Japan's mineral security assessment alongside broader global supply chain issues, though it could further address Western-centric biases in analyzing non-Western actors.",
+                "The causal chain is well-developed with clear mechanisms, particularly in explaining how technology-specific requirements create stage-specific security exposures.",
+                "Counter-evidence and alternative explanations are engaged with, as seen in the discussion about how domestic deposits and recycling programs don't automatically reduce vulnerability."
+              ],
+              "dimension": "methodology"
+            },
+            {
+              "score": 5,
+              "mustFix": false,
+              "findings": [
+                "No treatment of legal/institutional dimensions - no analysis of international trade agreements, mineral governance frameworks, or regulatory mechanisms affecting mineral dependencies",
+                "No treatment of economic dimensions beyond basic supply/demand - no analysis of market concentration, price volatility, or economic impacts of mineral dependencies",
+                "No treatment of historical precedent - no examination of past resource dependency conflicts or resolution strategies",
+                "No treatment of geographic scope beyond general references - no specific analysis of regional concentration patterns or geopolitical implications"
+              ],
+              "dimension": "coverage"
+            },
+            {
+              "score": 8,
+              "mustFix": false,
+              "findings": [
+                "The analysis clearly distinguishes between present facts and future projections, with the 2030 projection explicitly labeled as conditional and including a falsification condition.",
+                "The text appropriately qualifies claims about security exposure, stating it is 'an exposure, not a demonstrated shortage or an act of coercion' and emphasizing that 'access to ore does not by itself settle access to refined material'.",
+                "The analysis acknowledges limitations in the evidence, noting that 'the supplied evidence lacks comparable mineral-by-mineral observations of independent refining alternatives, interruption costs and changes in worker or community exposure'.",
+                "The conviction level is explicitly described as 'tempered,' and the analysis states that 'confidence in this bounded position is tempered.'"
+              ],
+              "dimension": "epistemic"
+            },
+            {
+              "score": 7,
+              "mustFix": false,
+              "findings": [
+                "The through-line is clear but could be more explicitly stated at the beginning of the analysis.",
+                "Some causal chain claims repeat information from previous claims without adding new value.",
+                "The prose is generally specific and concrete, though some sections could benefit from more precise language.",
+                "The structure builds logically from thesis to evidence to implications, though the causal chain could be more tightly organized."
+              ],
+              "dimension": "editorial"
+            },
+            {
+              "score": 7,
+              "mustFix": false,
+              "findings": [
+                "The analysis adds value by covering the methodological dimension of quantitative modeling of mineral resource dependency risks through its stage-specific security exposure assessment approach.",
+                "It challenges the weak consensus claim that 'state capacity alone can resolve community conflicts in mining regions' by emphasizing the need for separate assessment of worker and community exposure beyond just supply continuity.",
+                "The analysis goes deeper on mechanism than the strongest competitor by distinguishing between production concentration, ore-import stability, and refined-product import stability, providing a more nuanced understanding of supply chain vulnerabilities."
+              ],
+              "dimension": "differentiation"
+            }
+          ],
+          "durationMs": 10084,
+          "vetoReasons": [],
+          "overallScore": 67,
+          "artifactVersion": 1,
+          "evaluatedArtifact": "analysis"
+        }
+      }
+    },
+    {
+      "id": "75ba91eb-b32f-49bb-bf74-c359f58b910f",
+      "createdAt": "2026-11-26T02:08:49.901Z",
+      "status": "COMPLETED",
+      "durationMs": 3459952,
+      "question": "What evidence exists on the empirical validation of structured consensus methods in guideline development?",
+      "trustScore": 55,
+      "qualityScore": 62,
+      "stats": {
+        "questionForecast": {
+          "iqr": 0.03,
+          "families": 3,
+          "contested": false,
+          "resolution": "At least one peer-reviewed study published through 31 December 2028 demonstrates that structured consensus methods in guideline development lead to guidelines with higher adoption rates or improved patient outcomes compared to guidelines developed without such methods.",
+          "validVotes": 3,
+          "probability": 0.13
+        },
+        "questionSpec": {
+          "metric": "Adoption rate of guidelines or patient outcomes",
+          "costUsd": 0.0001975,
+          "horizon": "31 December 2028",
+          "threshold": "Higher adoption rates or improved patient outcomes in studies comparing structured consensus methods to non-structured methods",
+          "dataSource": "Peer-reviewed medical literature databases (e.g., PubMed, Cochrane Library)",
+          "resolution": "At least one peer-reviewed study published through 31 December 2028 demonstrates that structured consensus methods in guideline development lead to guidelines with higher adoption rates or improved patient outcomes compared to guidelines developed without such methods.",
+          "resolvable": true
+        },
+        "swarmForecasts": {
+          "mode": "agentic",
+          "costUsd": 0.1374326,
+          "forecasts": [
+            {
+              "iqr": 0.38,
+              "linkId": 6,
+              "families": 2,
+              "variance": 0.0361,
+              "contested": true,
+              "validVotes": 2,
+              "probability": 0.65
+            },
+            {
+              "iqr": 0.32,
+              "linkId": 7,
+              "families": 2,
+              "variance": 0.0256,
+              "contested": true,
+              "validVotes": 2,
+              "probability": 0.29
+            },
+            {
+              "iqr": 0.12,
+              "linkId": 9001,
+              "families": 2,
+              "variance": 0.0036,
+              "contested": false,
+              "validVotes": 2,
+              "probability": 0.16
+            },
+            {
+              "iqr": 0,
+              "linkId": 9002,
+              "families": 2,
+              "variance": 0,
+              "contested": false,
+              "validVotes": 2,
+              "probability": 0.9
+            },
+            {
+              "iqr": 0.08000000000000007,
+              "linkId": 8000,
+              "families": 2,
+              "variance": 0.001600000000000003,
+              "contested": false,
+              "validVotes": 2,
+              "probability": 0.75
+            }
+          ],
+          "validVotes": 13,
+          "forecasters": [
+            {
+              "family": "glm",
+              "finalP": 0.12,
+              "costUsd": 0.011102,
+              "provider": "glm",
+              "iterations": 10
+            },
+            {
+              "family": "kimi",
+              "finalP": 0.13,
+              "costUsd": 0.1263306,
+              "provider": "kimi",
+              "iterations": 10
+            },
+            {
+              "family": "freepool",
+              "finalP": 0.15,
+              "costUsd": 0,
+              "provider": "freepool",
+              "iterations": 10
+            }
+          ],
+          "familiesUsed": [
+            "glm",
+            "kimi",
+            "freepool"
+          ],
+          "questionForecast": {
+            "iqr": 0.03,
+            "families": 3,
+            "contested": false,
+            "validVotes": 3,
+            "probability": 0.13
+          }
+        },
+        "swarmElection": {
+          "skipped": "insufficient_link_distributions"
+        },
+        "swarmHealth": {
+          "issues": [
+            "link 6: voters split (IQR 0.38 > 0.35)"
+          ],
+          "healthy": false,
+          "splitElectable": true
+        },
+        "swarmSplit": {
+          "issues": [
+            "link 6: voters split (IQR 0.38 > 0.35)"
+          ],
+          "electable": true
+        },
+        "swarmCalibration": {
+          "factor": 1,
+          "avgBrier": null,
+          "resolved": 0
+        },
+        "chainScenarios": {
+          "conditions": [
+            {
+              "id": "scn-u6-u7-convergent",
+              "conditions": {
+                "u6": true,
+                "u7": true
+              }
+            },
+            {
+              "id": "scn-u6-u7-u1-only",
+              "conditions": {
+                "u6": true,
+                "u7": false
+              }
+            },
+            {
+              "id": "scn-u6-u7-u2-only",
+              "conditions": {
+                "u6": false,
+                "u7": true
+              }
+            },
+            {
+              "id": "scn-u6-u7-neither",
+              "conditions": {
+                "u6": false,
+                "u7": false
+              }
+            }
+          ],
+          "scenarioIds": [
+            "scn-u6-u7-convergent",
+            "scn-u6-u7-u1-only",
+            "scn-u6-u7-u2-only",
+            "scn-u6-u7-neither"
+          ],
+          "uncertainties": [
+            {
+              "kind": "future_extrapolation",
+              "claim": "The central scenario is deliberately about evaluation, not an unsupported forecast of uptake. We project that, at a review on 31 December 2028, the cited French",
+              "linkId": 6,
+              "downstream": 0
+            },
+            {
+              "kind": "future_extrapolation",
+              "claim": "The central projection fails if: A result available by 31 December 2028 would reverse the projected evidentiary classification if it independently assessed comp",
+              "linkId": 7,
+              "downstream": 0
+            }
+          ],
+          "usedForForesight": false
+        },
+        "centralScenario": {
+          "name": "The Agreement Charter",
+          "horizon": "31 December 2028 is a proposed review deadline, not a predicted scientific milestone. The scenarios concern how a guideline commissioner could respond to the evidence gap; the supplied studies do not support forecasts of worldwide institutional adoption. [SRC-6] [SRC-10] [SRC-19] [SRC-20]",
+          "rationale": "The observations support a narrow conclusion: applications demonstrate agreement, a survey documents reported practice, and an appraisal assesses a bundled development process. They do not establish isolated method effects. Our inference is that transparent consensus will remain usable before that attribution gap closes; this favors The Agreement Charter over The Validation Bottleneck, but only provisionally because the supplied material contains no acceptance-policy trend data. The 49% weight comes from explicit assumptions, not from the studies themselves. New evidence could change the overall conclusion without changing what the original studies measured. [SRC-6] [SRC-10] [SRC-19] [SRC-20]",
+          "confidence": "high",
+          "selectedBy": "editorial",
+          "description": "By December 2028, commissioners in the modeled setting will continue accepting documented consensus, while comparative attribution will remain unresolved. Panels will publish recommendations and explain their votes, but readers will still need to distinguish collective agreement from independent validation. The French prescribing ratings and Chinese methods survey will retain their original evidentiary roles. Chronic-pain agreement above 80% will coexist with acknowledged treatment uncertainty, and the dermatology appraisal will still assess a combined development package. Better reporting will make decisions easier to inspect without itself proving them better. Guidance will proceed; the burden will fall on commissioners to stop procedural credibility from becoming an unsupported claim of clinical accuracy. This is our central projection. [SRC-6] [SRC-10] [SRC-13] [SRC-19] [SRC-20]",
+          "implications": [
+            "Commissioners should require separate statements about agreement, evidence certainty, independent recommendation review, and comparative method validation. [SRC-6] [SRC-20]",
+            "Research funding should target comparisons that separate the decision procedure from evidence-search quality and panel composition, rather than fund another application as if it validated the method. [SRC-6] [SRC-13]"
+          ],
+          "revisionTriggers": [
+            "A result available by 31 December 2028 independently compares sufficiently similar guidelines developed through different decision procedures, documents evidence searches and panel composition, and estimates a reproducible method-attributable difference. A positive, null, or harmful result would each change the evidentiary position. [SRC-6] [SRC-13]",
+            "A binding independent-validation requirement adopted by the modeled commissioner before the deadline would falsify the acceptance-policy branch of The Agreement Charter, even if attribution remained unresolved. [SRC-6] [SRC-20]",
+            "A verified broader search identifies existing comparative studies meeting these criteria; this would require immediate revision rather than waiting until 2028. [SRC-6]"
+          ],
+          "simulationLeader": "The Practical Compact",
+          "simulationDisagrees": true
+        },
+        "sentinels": {
+          "priced": 2,
+          "drafted": 2,
+          "rejected": 0
+        },
+        "requiredElements": {
+          "missing": [],
+          "present": [
+            "base rate with named reference class",
+            "quantitative core (real series with numbers)",
+            "actor map (incentives, binding vs non-binding commitments)",
+            "two tipping points from disagreements",
+            "what would change our mind (dated indicators)",
+            "consequences for a decision-maker"
+          ],
+          "advisory": [
+            "pre-mortem of the central scenario (covered by the adversarial pass downstream)"
+          ]
+        },
+        "factChecker": {
+          "citance": {
+            "nei": 24,
+            "total": 25,
+            "supported": 1,
+            "supportRate": 0.04,
+            "contradicted": 0,
+            "evaluationComplete": true
+          },
+          "verified": 1,
+          "fatalIssues": 0,
+          "majorIssues": 25,
+          "totalClaims": 1,
+          "integrityScore": 33,
+          "artifactVersion": 6,
+          "evaluatedClaims": 26,
+          "evaluatedArtifact": "html"
+        },
+        "devilsAdvocate": {
+          "costUsd": 0.093534,
+          "verdict": "revise",
+          "killShot": "The analysis presents highly precise ‘empirical’ scenario probabilities and confidence intervals while acknowledging that its sources cannot estimate the likelihood of the key future event. That unsupported precision risks undermining confidence in its otherwise careful separation of measured findings from projections.",
+          "topChallenges": [
+            {
+              "text": "This defines method validation exclusively as a comparative effect on guideline quality. Empirical validation can also test whether a procedure reliably reproduces decisions, implements its stated decision rules, or yields judgments that converge with an independent benchmark. None alone proves supe",
+              "type": "overstated_conclusion"
+            },
+            {
+              "text": "The provided [SRC-6] excerpt supports an AGREE II appraisal and reports differences among domains, but does not show the counts, the S3 definition, or the asserted S3 score comparison. These details may be in the full article; they are not verifiable against the passages designated for this review. ",
+              "type": "non_evidence"
+            },
+            {
+              "text": "An ‘empirical’ probability and a zero-width confidence interval imply estimation and near-perfect precision, yet no sampling model, elicitation procedure, calibration data, or uncertainty calculation is supplied. [SRC-6] concerns guideline appraisal, not the probability of future studies or commissi",
+              "type": "non_evidence"
+            }
+          ],
+          "artifactVersion": 3,
+          "fatalChallenges": 0,
+          "majorChallenges": 6,
+          "overallStrength": 48,
+          "evaluatedArtifact": "analysis",
+          "evaluationComplete": true,
+          "vulnerabilityTexts": [
+            "By 31 December 2028, a qualifying independent comparison could isolate a consensus-method effect, meeting the report's stated falsifier and overturning its projected evidentiary classification.",
+            "Independent validation of recommendations or of complete development packages could become the practical acceptance standard, making the report's emphasis on isolating the consensus technique less dec",
+            "Commissioners could adopt provisional, risk-tiered guidance with explicit uncertainty and post-publication review rather than a uniform validation gate; the report offers no implementation or cost fra"
+          ],
+          "publishabilityScore": 48,
+          "futureVulnerabilities": 3
+        },
+        "evaluationFreshness": {
+          "stale": [],
+          "verdictStale": [],
+          "htmlArtifactVersion": 6,
+          "analysisArtifactVersion": 3
+        },
+        "totalCostUsd": 1.123212,
+        "thesisBinding": {
+          "id": "T1",
+          "origin": "corpus_derived",
+          "adhered": true,
+          "verdict": "supported",
+          "statement": "The cited empirical studies show that structured consensus methods are used to develop clinical recommendations, but they report adoption or expert agreement rather than independently validating the recommendations or demonstrating improved guideline quality.",
+          "confidence": 85,
+          "checkedVerdict": "The central finding is that the cited empirical studies show structured consensus methods being used to develop clinical recommendations, but chiefly report method use or expert agreement—not independent validation of the recommendations or an improvement in guideline quality attributable to the consensus method. A French Delphi exercise reports how prescribing proposals were rated; a Chinese survey records developers’ reported methods; and a multispecialty chronic-pain group records agreed guidance while acknowledging uncertainty in its underlying treatment evidence. These are observations about guideline development, not estimates of what structured consensus achieves compared with another development process. [SRC-10] [SRC-19] [SRC-20] The distinction is substantive, not semantic. Agreement answers whether selected participants accepted a statement under a stated procedure. Recommendation validation asks whether that statement withstands independent scrutiny against relevant evidence or outcomes. Method validation asks a further comparative question: whether using Delphi, a nominal group technique, or a structured conference produces better guidance than a credible alternative, holding other important features of development sufficiently constant. The chronic-pain report makes the distinction visible: its consensus points received more than 80% expert agreement, yet its authors describe high uncertainty in the evidence for injectable biologics in chronic-pain indications. Agreement was measured; certainty about treatment effects was a separate assessment. [SRC-20] There is empirical evidence closer to guideline quality, and it must not be erased. An appraisal of European dermatology guidelines used AGREE II and found generally higher scores in some domains for its S3 category. That category combined a systematic literature search with a structured consensus conference. The appraisal therefore observes quality ratings associated with a development package; it cannot assign any difference specifically to the conference. Its poorer ratings in applicability, stakeholder involvement, and editorial independence also prevent a simple claim of uniformly better quality. The central position is consequently narrower than ‘there is no empirical assessment’: an assessment exists, but the supplied assessment does not identify the isolated effect of structured consensus. [SRC-6] A strong objection holds that structured judgment can be useful precisely when trials leave a practical question unanswered. The French prescribing exercise identifies gaps in drug-trial coverage for people with severe obesity, while a methodological account of laryngeal-cancer guidance describes Delphi recommendations as clinically relevant and actionable. That account also notes possible panel-composition bias and time demands and supplies no quantitative validation of the recommendations. This analysis accepts the practical rationale without converting it into a demonstrated comparative effect. A transparent recommendation may be preferable to no recommendation; the cited studies do not test that comparison. [SRC-10] [SRC-17] The evidence base cannot settle the broader literature-wide question. A review of trial outcome-set development lists Delphi, nominal group technique, and consensus development conferences, but outcome-set selection is not clinical guideline validation. A review of randomized-trial protocol-content guidelines concerns another class of guideline. Neither can establish the prevalence or effectiveness of structured methods in clinical treatment guidance. The available studies also do not establish the techniques’ historical origins in guideline development, their relative development times, developer satisfaction, subsequent clinical adherence, or later revision rates. These are limits of this supplied corpus, not assertions that such evidence does not exist elsewhere. [SRC-7] [SRC-14] [SRC-15] [SRC-19] This position carries tempered confidence: confidence is stronger in the distinction between observed agreement and unmeasured comparative effects than in any claim about the completeness of research selection. Our central scenario is that, at an appraisal dated 31 December 2028, these cited applications will still support a process-evidence conclusion unless newly available independent comparisons isolate a consensus method’s contribution. A published comparison by that date that independently appraises otherwise comparable clinical guidelines, separates consensus technique from evidence searching and panel composition, and demonstrates a reproducible quality advantage would prove this projected evidentiary limit wrong. [SRC-6] [SRC-10] [SRC-19] [SRC-20]",
+          "adherenceReason": "The verdict consistently frames the studies as reporting method use or agreement rather than validation, explicitly declines causal/comparative attribution (e.g., the AGREE II appraisal cannot isolate",
+          "contraryEvidence": [
+            "[SRC-17] A methodological account describes Delphi as producing clinically relevant, actionable guidelines, but provides no quantitative validation in the supplied summary."
+          ],
+          "supportingSources": 3,
+          "evaluationComplete": true,
+          "supportingEvidence": [
+            "[SRC-19] A survey of guideline developers found Delphi was the most commonly reported consensus method and identified gaps in stakeholder participation.",
+            "[SRC-20] A guideline working group reported consensus points with over 80% expert agreement while noting high uncertainty in the underlying evidence.",
+            "[SRC-10] A Delphi study reported levels of expert consensus on prescribing recommendations, not independent tests of their validity."
+          ]
+        },
+        "numericalGate": {
+          "passed": false,
+          "details": [
+            {
+              "match": "80%",
+              "suggestion": "Number \"80%\" lacks a [SRC-N] citation within 100 chars — add source or remove"
+            },
+            {
+              "match": "80%",
+              "suggestion": "Number \"80%\" lacks a [SRC-N] citation within 100 chars — add source or remove"
+            },
+            {
+              "match": "80%",
+              "suggestion": "Number \"80%\" lacks a [SRC-N] citation within 100 chars — add source or remove"
+            }
+          ],
+          "violations": 3
+        },
+        "critic": {
+          "biases": 5,
+          "costUsd": 0.0223796,
+          "verdict": "repair",
+          "durationMs": 219686,
+          "claimsCount": 57,
+          "groundedness": 0.9090909090909091,
+          "overallScore": 51,
+          "stageResults": {
+            "bias": {
+              "flagsRaised": 5,
+              "highSeverity": 1
+            },
+            "citations": {
+              "issuesFound": 2
+            },
+            "grounding": {
+              "derived": 24,
+              "partial": 2,
+              "supported": 25,
+              "unsupported": 3,
+              "contradicted": 0,
+              "unverifiable": 3
+            },
+            "decomposition": {
+              "claimsExtracted": 57
+            },
+            "contradictions": {
+              "pairsFound": 4,
+              "severeCount": 0,
+              "contestedCount": 1
+            }
+          },
+          "citationIssues": 2,
+          "contradictions": 4,
+          "artifactVersion": 3,
+          "contestedFindings": 1,
+          "evaluatedArtifact": "analysis",
+          "contestedFindingsDetail": [
+            {
+              "claim1": "Structured consensus methods demonstrably produce clinical recommendations.",
+              "claim2": "The cited studies are observations about guideline development, not estimates of what structured consensus achieves compared with another development process.",
+              "explanation": "Claim 1 asserts that structured consensus methods demonstrably produce clinical recommendations, while claim 7 states that the cited studies only observe guideline development without comparing struct"
+            }
+          ]
+        },
+        "criticPanel": {
+          "veto": true,
+          "costUsd": 0.0033645,
+          "dimensions": [
+            {
+              "score": 8,
+              "mustFix": false,
+              "findings": [
+                "The analysis clearly distinguishes between agreement and validation, which is a crucial methodological distinction that is well-supported by the evidence cited.",
+                "The analysis engages with counter-evidence, such as the European dermatology guidelines appraisal, and explains why it doesn't isolate the effect of structured consensus.",
+                "The projection about the state of evidence through 31 December 2028 is properly labeled as a projection, includes a specific horizon, and provides a clear falsification condition.",
+                "The analysis avoids overclaiming by acknowledging that the corpus has limits and doesn't assert that no evidence exists elsewhere."
+              ],
+              "dimension": "methodology"
+            },
+            {
+              "score": 4,
+              "mustFix": true,
+              "findings": [
+                "No treatment of legal/institutional dimensions - no analysis of how institutional frameworks or legal requirements might influence the implementation or effectiveness of structured consensus methods in guideline development",
+                "No treatment of economic dimensions - no analysis of the cost-effectiveness, resource requirements, or economic impact of structured consensus methods compared to alternative approaches",
+                "No treatment of social dimensions - limited analysis of how social factors, patient perspectives, or stakeholder involvement might affect the implementation and acceptance of guidelines developed through structured consensus",
+                "No treatment of historical precedent - no discussion of the historical evolution of structured consensus methods in guideline development or how historical context might inform current practices"
+              ],
+              "dimension": "coverage"
+            },
+            {
+              "score": 8,
+              "mustFix": false,
+              "findings": [
+                "The analysis clearly distinguishes between observed agreement and unmeasured comparative effects, avoiding overclaiming certainty about the effectiveness of structured consensus methods.",
+                "The text appropriately flags uncertainty in evidence, such as the acknowledgment of high uncertainty about injectable biologics in the chronic-pain group despite high agreement.",
+                "The projection about the state of evidence on December 31, 2028, is explicitly labeled as a projection and includes a clear falsification condition.",
+                "The analysis carefully distinguishes between different types of evidence (method use, expert agreement, guideline quality ratings) without conflating them."
+              ],
+              "dimension": "epistemic"
+            },
+            {
+              "score": 8,
+              "mustFix": false,
+              "findings": [
+                "The through-line is clear but could be more explicitly stated upfront rather than embedded in the analysis.",
+                "Some sections repeat similar points about the distinction between agreement and validation, which could be consolidated.",
+                "The causal chain is well-structured but the temporal status of some claims could be more clearly differentiated."
+              ],
+              "dimension": "editorial"
+            }
+          ],
+          "durationMs": 9355,
+          "vetoReasons": [
+            "[coverage] The analysis fails to address the core question of whether structured consensus methods improve guideline quality or clinical outcomes, focusing instead on agreement without validation. This central omission misleads by not addressing the actual empirical validation question, and the missing dimensions (particularly economic, social, and comparative effectiveness) are critical to a comprehensive evaluation of structured consensus methods in guideline development."
+          ],
+          "overallScore": 68,
+          "artifactVersion": 3,
+          "evaluatedArtifact": "analysis"
+        }
+      }
+    }
+  ]
+}
