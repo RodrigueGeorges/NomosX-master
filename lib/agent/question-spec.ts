@@ -127,8 +127,10 @@ export async function checkQuestionSubstitution(input: {
             role: 'system',
             content: `You check whether a research note answers the question it was asked.
 Output strict JSON: {"answers":true|false,"reason":"<one sentence>"}
-answers=false ONLY when the note's central claim addresses a materially different question (different metric, different outcome, different horizon) — topically adjacent is NOT substitution.
-A note that answers the question partially but honestly still counts as answers=true.`,
+answers=false when EITHER:
+- the note's central claim addresses a materially different question (different metric, different outcome, different horizon) — topically adjacent is NOT substitution; OR
+- the note never commits to a position on the asked outcome — a purely descriptive backdrop ("the transition does not follow a uniform trajectory") that states no probability, likelihood, forecast or explicit stance on the resolution is a SUBSTITUTED thesis, not an answer. A forecast note's thesis IS "P(resolution)=x because [engines]" — descriptive scene-setting alone does not answer "will X happen".
+Partial but honest answers still count as answers=true — the stance may be "unlikely", "too close to call", or a wide interval; what matters is that the note TAKES a position on the asked outcome.`,
           },
           {
             role: 'user',

@@ -597,7 +597,6 @@ export async function runAndPublishInquiry(
     // costs thesis under an emissions question. One bounded call, cached
     // in stats; only explicit `answers:false` produces a HOLD motif.
     if (p.stats.questionSubstitution === undefined) {
-      const tb = p.stats.thesisBinding as { origin?: string } | undefined;
       // Propagate the spec across candidates (same question): a regen whose
       // extraction flaked inherits the original's operationalization instead
       // of skipping the check — run-11 had the check absent on 2 of 3 finals.
@@ -605,7 +604,9 @@ export async function runAndPublishInquiry(
       // Mandatory on the final artifact: if EVERY candidate flaked spec
       // extraction, derive it once here (bounded ~$0.01 call, shared across
       // candidates) rather than silently skipping question_substituted.
-      if (!spec && tb?.origin === 'corpus_derived') {
+      // P0-B: applies to ANY thesis origin — a bound hypothesis can still
+      // ship a descriptive verdict that never answers the forecast question.
+      if (!spec) {
         try {
           const { extractQuestionSpec } = await import('./question-spec');
           // P0-A: prefer the dispatch-verified forecastQuestion over the raw
@@ -622,7 +623,7 @@ export async function runAndPublishInquiry(
         sharedQuestionSpec = spec;
       }
       const analysis = (p.lineage?.analysis ?? p.stats.analysis) as { verdict?: string; throughLine?: string } | undefined;
-      if (tb?.origin === 'corpus_derived' && spec && spec.resolvable !== false && typeof analysis?.verdict === 'string') {
+      if (spec?.resolvable !== false && typeof analysis?.verdict === 'string') {
         try {
           const { checkQuestionSubstitution } = await import('./question-spec');
           const sub = await checkQuestionSubstitution({
