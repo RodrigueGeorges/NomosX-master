@@ -324,18 +324,95 @@ export async function runAgenticForecasters(input: {
   let { forecasts, questionForecast } = poolAll();
 
   // SUPERVISOR (spec): question IQR > 0.20 → name the disagreement point,
-  // one targeted adjudication call per forecaster, then a single re-pool.
-  // Bounded: exactly one extra call per forecaster, best-effort.
+  // TARGETED SEARCH on it, one adjudication call per forecaster, re-pool.
+  // P1-A: the supervisor is PROBABILITY-BLIND — peer vote ranges are never
+  // shown (deliberation with numbers destroys ~2x more diversity benefit
+  // than it adds). Forecasters see only their own prior belief, the
+  // disputed links, and targeted evidence fetched FOR the disagreement.
   let supervisor: AgenticForecastResult['supervisor'];
   const iqrBefore = questionForecast?.iqr ?? 0;
   if (questionForecast && iqrBefore > 0.20 && finalBeliefs.some(Boolean)) {
-    const ps = fvotes.map(fv => fv.q?.probability).filter((p): p is number => p != null);
-    const lo = Math.min(...ps), hi = Math.max(...ps);
-    const spread = `VOTER DISAGREEMENT: forecaster probabilities range ${lo.toFixed(2)}–${hi.toFixed(2)} (IQR ${iqrBefore.toFixed(2)}).`;
+    // Disagreement POINTS without magnitudes: the uncertain links where
+    // forecaster beliefs diverge most (spread ranking only — values hidden).
+    const linkSpread = new Map<number, number>();
+    for (const u of input.uncertainties) {
+      if (u.linkId === QUESTION_LINK_ID) continue;
+      const ps = fvotes.map(fv => fv.links.find(l => l.linkId === u.linkId)?.vote?.probability)
+        .filter((p): p is number => p != null);
+      if (ps.length >= 2) linkSpread.set(u.linkId, Math.max(...ps) - Math.min(...ps));
+    }
+    const disputedLinks = [...linkSpread.entries()]
+      .sort((a, b) => b[1] - a[1]).slice(0, 2)
+      .map(([id]) => input.uncertainties.find(u => u.linkId === id)?.claim ?? `link-${id}`);
+    const disputeBlock = disputedLinks.length
+      ? `DISPUTED POINTS (forecasters disagree — magnitudes withheld):\n${disputedLinks.map((c, i) => `${i + 1}. ${String(c).slice(0, 160)}`).join('\n')}`
+      : 'DISPUTED POINT: the question itself — forecasters disagree on the resolution probability.';
+
+    // PASS A — name the decisive question per forecaster (probability-blind).
+    const decisive = await Promise.allSettled(chosen.map(async (provider, fi) => {
+      const prior = finalBeliefs[fi];
+      if (!prior) return null;
+      try {
+        const res = await callLLM({
+          provider,
+          task: 'fact_check',
+          temperature: 0.2,
+          maxTokens: 500,
+          jsonMode: true,
+          runId: input.runId,
+          traceName: 'agentic_forecast_supervisor_name',
+          maxCostUsd: 0.02,
+          messages: [
+            { role: 'system', content: SYSTEM },
+            { role: 'user', content: [
+              `RESEARCH QUESTION: ${input.question}\nHORIZON: ${input.horizon ?? 'see links'}\n${questionBlock}`,
+              `UNCERTAIN LINKS:\n${linkList}`,
+              `YOUR PRIOR BELIEF STATE:\n${JSON.stringify({ p: prior.p, confidence: prior.confidence, evidenceFor: prior.evidenceFor, evidenceAgainst: prior.evidenceAgainst, openQuestions: prior.openQuestions, baseRate: prior.baseRate, referenceClass: prior.referenceClass })}`,
+              disputeBlock,
+              'NAMING PASS — answer strict JSON only: {"decisiveQuestion":"<the single most decision-relevant question or evidence gap behind the disagreement>","resolvingEvidence":"<what observable evidence would settle it>"}. You do NOT see other forecasters\' numbers — reason from your own belief and the evidence you saw. Do not anchor on any crowd estimate.',
+            ].filter(Boolean).join('\n\n') },
+          ],
+        });
+        costUsd += res.costUsd ?? 0;
+        const parsed = parseJson<{ decisiveQuestion?: string; resolvingEvidence?: string }>(res.content);
+        const dq = typeof parsed?.decisiveQuestion === 'string' ? parsed.decisiveQuestion.trim() : '';
+        const re = typeof parsed?.resolvingEvidence === 'string' ? parsed.resolvingEvidence.trim() : '';
+        return dq.length >= 15 ? { fi, decisiveQuestion: dq.slice(0, 300), resolvingEvidence: re.slice(0, 300) } : null;
+      } catch { return null; }
+    }));
+
+    // TARGETED SEARCH — one bounded SearXNG query per unique decisive
+    // question (max 2), snippets become the adjudication evidence.
+    const decisiveList = decisive
+      .map(r => r.status === 'fulfilled' ? r.value : null)
+      .filter((x): x is NonNullable<typeof x> => x != null);
+    const uniqueQuestions = [...new Set(decisiveList.map(d => d.decisiveQuestion))].slice(0, 2);
+    const evidenceSnippets: string[] = [];
+    if (uniqueQuestions.length > 0) {
+      try {
+        const { searchSearxng } = await import('../providers/searxng');
+        const searches = await Promise.allSettled(
+          uniqueQuestions.map(q => searchSearxng(`${q} ${input.question.split('?')[0]}`, 4))
+        );
+        for (const s of searches) {
+          if (s.status !== 'fulfilled') continue;
+          for (const r of s.value.slice(0, 4)) {
+            evidenceSnippets.push(`- ${String(r.title ?? '').slice(0, 120)}: ${String(r.abstract ?? '').slice(0, 300)}`);
+          }
+        }
+      } catch { /* targeted search is best-effort — adjudication proceeds on priors */ }
+    }
+    const evidenceBlock = evidenceSnippets.length
+      ? `TARGETED EVIDENCE (fetched for the disagreement point):\n${evidenceSnippets.slice(0, 8).join('\n')}`
+      : 'TARGETED EVIDENCE: none retrieved — adjudicate on your prior reasoning and the cards you saw.';
+
+    // PASS B — revised belief with targeted evidence (still probability-blind
+    // toward peers).
     let revised = 0;
     await Promise.allSettled(chosen.map(async (provider, fi) => {
       const prior = finalBeliefs[fi];
       if (!prior) return;
+      const mine = decisiveList.find(d => d.fi === fi);
       const family = familyOfProvider(provider);
       try {
         const res = await callLLM({
@@ -353,8 +430,10 @@ export async function runAgenticForecasters(input: {
               `RESEARCH QUESTION: ${input.question}\nHORIZON: ${input.horizon ?? 'see links'}\n${questionBlock}`,
               `UNCERTAIN LINKS:\n${linkList}`,
               `PRIOR BELIEF STATE:\n${JSON.stringify(prior)}`,
-              spread,
-              'ADJUDICATION PASS — final, one only: name the single most decision-relevant open question or evidence gap behind the disagreement, resolve it from your prior reasoning and the evidence you saw, then output your REVISED belief JSON. Keep base rates honest; do not anchor on the crowd.',
+              disputeBlock,
+              mine ? `YOUR DECISIVE QUESTION: ${mine.decisiveQuestion}\nWHAT WOULD RESOLVE IT: ${mine.resolvingEvidence}` : '',
+              evidenceBlock,
+              'ADJUDICATION PASS — final, one only: weigh the targeted evidence against your prior belief, then output your REVISED belief JSON. Keep base rates honest; do not anchor on the crowd — you never saw peer probabilities.',
             ].filter(Boolean).join('\n\n') },
           ],
         });
