@@ -5,6 +5,7 @@ import { centralScenarioIssues, type CentralScenarioDecision } from './editorial
 import { parseEditorialInquiry } from '@/lib/brand/inquiry-html-parse';
 import { isPositionFirstBrief } from './brief-html-extract';
 import { diagnoseGateResult, type GateDiagnosis } from './gate-diagnosis';
+import { extractHorizonDate } from './question-verifiers';
 
 export type PublicationGateDecision = "publish" | "revise" | "hold";
 
@@ -89,6 +90,19 @@ export interface PublicationGateInput {
    *  Published notes must carry 0 — hard fail when > 0. Undefined when the
    *  numerical gate never ran → check skipped (fail-open). */
   unsourcedNumberCount?: number;
+  /** Claude §1.6 step contracts — deterministic pre-publication checks for
+   *  forecast notes. Present whenever a verified forecastQuestion reached
+   *  the run; every failed contract is a hard-fail motif recorded in
+   *  barrierAudit. `questionDisplayed` is renderer-marked (undefined = the
+   *  marker did not run → that sub-check is skipped, fail-open). */
+  forecastContract?: {
+    thesisOrigin?: string;
+    probability?: number;
+    horizon?: string;
+    /** The verified forecast question — checked for display in the shipped
+     *  HTML (normalized containment of its leading 120 chars). */
+    question?: string;
+  };
 }
 
 export interface PublicationGateCheck {
@@ -476,11 +490,49 @@ export function evaluatePublicationGate(input: PublicationGateInput): Publicatio
         : `${input.unsourcedNumberCount} unsourced statistical number(s) remain in the published artifact`,
     });
   }
+  // Claude §1.6 — forecast step contracts. A contract failure is a hold
+  // with a named motif, never a publication: the note must BE the forecast
+  // (origin 'forecast' + probability), the horizon must be a parseable
+  // future date within 5 years, p stays inside [0.10, 0.90], the published
+  // length respects the 3 500-word cap, and the asked question is displayed.
+  if (input.forecastContract) {
+    const fc = input.forecastContract;
+    const motifs: string[] = [];
+    if (fc.thesisOrigin !== 'forecast') motifs.push('thesis_origin_not_forecast');
+    if (typeof fc.probability !== 'number' || !Number.isFinite(fc.probability)) {
+      motifs.push('probability_missing');
+    } else if (fc.probability < 0.1 || fc.probability > 0.9) {
+      motifs.push(`probability_out_of_band:${fc.probability.toFixed(2)}`);
+    }
+    const horizonDate = fc.horizon ? extractHorizonDate(fc.horizon) : null;
+    if (!horizonDate) {
+      motifs.push('horizon_unparseable');
+    } else {
+      const horizonMs = horizonDate.getTime();
+      const nowMs = Date.now();
+      if (horizonMs < nowMs + 30 * 86400000) motifs.push('horizon_not_future');
+      else if (horizonMs > nowMs + 5 * 366 * 86400000) motifs.push('horizon_beyond_5y');
+    }
+    if (wordCount > 3500) motifs.push(`word_cap_exceeded:${wordCount}`);
+    if (fc.question) {
+      const norm = (s: string) => s.toLowerCase().replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+      const needle = norm(fc.question).slice(0, 120);
+      if (needle && !norm(input.html || '').includes(needle)) motifs.push('question_not_displayed');
+    }
+    checks.push({
+      checkType: 'forecast_contract',
+      passed: motifs.length === 0,
+      score: motifs.length,
+      details: motifs.length === 0
+        ? 'forecast contracts satisfied (origin/probability/horizon/cap/question)'
+        : `forecast contract violations: ${motifs.join(', ')}`,
+    });
+  }
   const failedChecks = checks.filter((check) => !check.passed);
   // quality_score is advisory when trust_score passes AND quality ≥ 40 — don't treat as hard failure
   // But quality < 40 is always a hard failure (prevents publishing garbage with good trust)
   const hardFailures = failedChecks.filter((check) =>
-    ["source_depth", "trust_score", "word_count", "researcher_signoff", "citation_coverage", "central_scenario", "evaluation_freshness", "evaluation_availability", "thesis_adherence", "corpus_core_evidence", "question_answered", "quant_series", "unsourced_numbers"].includes(check.checkType)
+    ["source_depth", "trust_score", "word_count", "researcher_signoff", "citation_coverage", "central_scenario", "evaluation_freshness", "evaluation_availability", "thesis_adherence", "corpus_core_evidence", "question_answered", "quant_series", "unsourced_numbers", "forecast_contract"].includes(check.checkType)
     || (check.checkType === "quality_score" && typeof check.score === "number" && check.score < 40)
   );
   const decision: PublicationGateDecision = failedChecks.length === 0

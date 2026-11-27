@@ -587,6 +587,21 @@ export async function runAndPublishInquiry(
       unsourcedNumberCount: typeof (p.stats.numericalGate as { violations?: number } | undefined)?.violations === 'number'
         ? (p.stats.numericalGate as { violations: number }).violations
         : undefined,
+      // Claude §1.6 step contracts — present iff a verified forecastQuestion
+      // reached the run. Each violated contract is a hard-fail motif.
+      forecastContract: (() => {
+        const fq = typeof p.stats.forecastQuestion === 'string' ? p.stats.forecastQuestion.trim() : '';
+        if (!fq) return undefined;
+        const tb = p.stats.thesisBinding as { origin?: string; probability?: number } | undefined;
+        const qSpec = p.stats.questionSpec as { horizon?: string } | undefined;
+        const qFc = p.stats.questionForecast as { probability?: number } | undefined;
+        return {
+          thesisOrigin: tb?.origin,
+          probability: typeof tb?.probability === 'number' ? tb.probability : qFc?.probability,
+          horizon: qSpec?.horizon || fq,
+          question: fq,
+        };
+      })(),
       failedEvaluations: ['critic', 'criticPanel', 'devilsAdvocate', 'structuralEditor'].filter(key => {
         if (key === 'devilsAdvocate') return !aDa && !optionalDa;
         const evaluation = (p.stats[key] ?? p.lineage[key]) as Record<string, unknown> | undefined;
@@ -1124,6 +1139,14 @@ export async function runAndPublishInquiry(
       devilsAdvocateVerdict: daNow?.verdict ?? null,
       devilsAdvocateFatal: daNow?.fatalChallenges ?? 0,
       questionSubstituted: (pipeline.stats.questionSubstitution as { substituted?: boolean } | undefined)?.substituted === true,
+      // Claude §1.6: forecast-contract motifs (thesis_origin_not_forecast,
+      // probability_out_of_band, horizon_*, word_cap_exceeded,
+      // question_not_displayed) — the calibration label side needs the
+      // named defect, not just the check name.
+      forecastContract: (() => {
+        const c = gate.checks.find(x => x.checkType === 'forecast_contract');
+        return c ? { passed: c.passed, details: c.details } : null;
+      })(),
       thesisAdhered: (pipeline.stats.thesisBinding as { adhered?: boolean } | undefined)?.adhered ?? null,
       qualityBar: Number(process.env.NOMOSX_QUALITY_BAR ?? 72),
       regen: (pipeline.stats.regeneration as { adopted?: boolean; winnerJudge?: { winner?: string } } | undefined) ?? null,
