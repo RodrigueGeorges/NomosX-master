@@ -236,7 +236,10 @@ const TASK_ASSIGNMENT: Record<LLMTask, TaskAssignment> = {
   casting:                { provider: "glm", model: GLM_FAST, timeoutMs: 30_000 },
   // One call per cycle that picks the subjects and drafts the forecast
   // questions — judgement, not volume.
-  editor_in_chief:        { provider: "glm", model: GLM_WRITER, timeoutMs: 180_000 },
+  // glm-5.3 thinks unboundedly on the 15-topic triage — observed >180s (run 19
+  // timeout → kimi fallback delivered in 239s). Give the primary room; the
+  // kimi fallback still catches true stalls.
+  editor_in_chief:        { provider: "glm", model: GLM_WRITER, timeoutMs: 360_000 },
   swarm_persona:          { provider: "glm", model: GLM_FAST, timeoutMs: 30_000 },
 
   // Extraction / verification — Claude §2: DeepSeek V4 Pro verifies text it
