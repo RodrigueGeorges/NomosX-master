@@ -77,17 +77,18 @@ describe('langfuse sink', () => {
     });
   });
 
-  it('enqueues correctly-formed v3 events when enabled', async () => {
+  it('enqueues correctly-formed OTLP spans when enabled', async () => {
     process.env.ENABLE_LANGFUSE = 'true';
     process.env.LANGFUSE_PUBLIC_KEY = 'pk-test';
     process.env.LANGFUSE_SECRET_KEY = 'sk-test';
     process.env.LANGFUSE_BASE_URL = 'http://localhost:9'; // unreachable — flush must swallow errors
     const fetchSpy = jest.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('offline'));
-    const { tracePipelineStart, traceStep, traceLLMGeneration, flushAllTraces } = await import('@/lib/agent/langfuse');
+    const { tracePipelineStart, tracePipelineEnd, traceStep, traceLLMGeneration, flushAllTraces } = await import('@/lib/agent/langfuse');
     await withTraceContext({ runId: 'r2', traceId: 'trace_abc', name: 'pipeline.memo' }, async () => {
       tracePipelineStart('r2', 'test question');
       traceStep('r2', 'ANALYST', 'started', 'running');
       traceStep('r2', 'ANALYST', 'completed', 'done');
+      tracePipelineEnd('r2', 'out', 0.01, 1000, { status: 'COMPLETED', trustScore: 70 });
       traceLLMGeneration(
         { messages: [{ role: 'user', content: 'hi' }], temperature: 0.2 } as any,
         { content: 'hello', model: 'glm-4.5', provider: 'glm', tokensInput: 10, tokensOutput: 5, costUsd: 0.001 } as any,
@@ -96,20 +97,39 @@ describe('langfuse sink', () => {
       );
       await flushAllTraces();
     });
-    // Every enqueued event must be a valid v3 ingestion envelope.
+    // The flush must POST an OTLP/HTTP JSON ExportTraceServiceRequest to the
+    // Langfuse OTEL endpoint (v3 /api/public/ingestion is removed upstream).
     const calls = fetchSpy.mock.calls;
     expect(calls.length).toBeGreaterThan(0);
+    expect(String(calls[0][0])).toContain('/api/public/otel/v1/traces');
+    const headers = (calls[0][1] as any).headers as Record<string, string>;
+    expect(headers['x-langfuse-ingestion-version']).toBe('4');
     const body = JSON.parse((calls[0][1] as any).body as string);
-    for (const ev of body.batch) {
-      expect(['trace-create', 'span-create', 'generation-create', 'event-create']).toContain(ev.type);
-      expect(ev.id).toBeTruthy();
-      expect(ev.timestamp).toBeTruthy();
-      expect(ev.body).toBeTruthy();
+    const spans = body.resourceSpans?.[0]?.scopeSpans?.[0]?.spans ?? [];
+    expect(spans.length).toBeGreaterThanOrEqual(3); // root + step + generation (+ end event)
+    const types = spans.map((s: any) =>
+      (s.attributes ?? []).find((a: any) => a.key === 'langfuse.observation.type')?.value?.stringValue,
+    );
+    expect(types).toContain('span');
+    expect(types).toContain('generation');
+    expect(types).toContain('event');
+    for (const s of spans) {
+      expect(s.traceId).toMatch(/^[0-9a-f]{32}$/);
+      expect(s.spanId).toMatch(/^[0-9a-f]{16}$/);
+      expect(s.name).toBeTruthy();
+      expect(s.startTimeUnixNano).toBeTruthy();
+      expect(s.endTimeUnixNano).toBeTruthy();
+      // Every span in the trace shares the same OTEL traceId.
+      expect(s.traceId).toBe(spans[0].traceId);
     }
-    const types = body.batch.map((e: any) => e.type);
-    expect(types).toContain('trace-create');
-    expect(types).toContain('span-create');
-    expect(types).toContain('generation-create');
+    const gen = spans.find((s: any) => s.name === 'llm.analyst_brief');
+    expect(gen).toBeTruthy();
+    const genAttrs = Object.fromEntries(
+      (gen.attributes ?? []).map((a: any) => [a.key, a.value]),
+    );
+    expect(genAttrs['langfuse.observation.model.name']?.stringValue).toBe('glm-4.5');
+    expect(genAttrs['gen_ai.usage.input_tokens']?.intValue).toBe('10');
+    expect(genAttrs['gen_ai.usage.output_tokens']?.intValue).toBe('5');
     fetchSpy.mockRestore();
   });
 });
