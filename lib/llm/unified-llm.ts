@@ -252,8 +252,13 @@ const TASK_ASSIGNMENT: Record<LLMTask, TaskAssignment> = {
   reader_v3:              { provider: "glm", model: GLM_FAST, timeoutMs: 300_000 },
   strategic_analyst:      { provider: "glm", model: GLM_WRITER, timeoutMs: 600_000 },
   harvard_council:        { provider: "glm", model: GLM_WRITER, timeoutMs: 600_000 },
-  // Contre-analyse — Claude §2: Kimi K3.1 Pro (family ≠ rédacteur GLM).
-  elenchus:               { provider: "kimi", model: KIMI_PRO, timeoutMs: 600_000 },
+  // Contre-analyse — cross-family (≠ rédacteur GLM). Live A/B 2026-11-27 on a
+  // real-shaped elenchus prompt: deepseek-flash 18.5s/$0.0037 produced
+  // equivalent challenges vs kimi-k3.1-pro 97s/$0.0264 and claude-opus-5-5
+  // 68s/$0.149. jsonMode is always on for these callers, so v4-pro self-
+  // substitutes to flash; non-JSON callers get the v4-pro reasoner. kimi
+  // remains in the fallback chain on deepseek outage.
+  elenchus:               { provider: "deepseek", model: DEEPSEEK_PRO, timeoutMs: 180_000 },
 
   // Heavy structured-JSON OUTPUT — GLM-5.2 (128K-class output headroom,
   // reasoning_effort=high on reasoning tasks).
@@ -273,8 +278,8 @@ const TASK_ASSIGNMENT: Record<LLMTask, TaskAssignment> = {
 
   // Primary data synthesis — GLM-5.2 writing tier.
   primary_data_synthesis: { provider: "glm", model: GLM_WRITER, timeoutMs: 600_000 },
-  // Policy stress test — contre-analyse: Kimi K3.1 Pro (family ≠ rédacteur).
-  stress_test: { provider: "kimi", model: KIMI_PRO, timeoutMs: 600_000 },
+  // Policy stress test — contre-analyse cross-family (see elenchus note).
+  stress_test: { provider: "deepseek", model: DEEPSEEK_PRO, timeoutMs: 180_000 },
 
   // Legacy aliases — never read directly (normalizeTask() redirects before lookup),
   // kept so LLMTask stays a superset and TS doesn't complain about missing keys.
@@ -283,7 +288,7 @@ const TASK_ASSIGNMENT: Record<LLMTask, TaskAssignment> = {
   citation:               { provider: "glm", model: GLM_FAST, timeoutMs: 60_000 },
   analysis:               { provider: "glm", model: GLM_FAST, timeoutMs: 120_000 },
   strategic_analysis:     { provider: "glm", model: GLM_WRITER, timeoutMs: 600_000 },
-  critique:               { provider: "kimi", model: KIMI_PRO, timeoutMs: 120_000 },
+  critique:               { provider: "deepseek", model: DEEPSEEK_PRO, timeoutMs: 120_000 },
   rewrite:                { provider: "glm", model: GLM_FAST, timeoutMs: 120_000 },
   reflection:             { provider: "glm", model: GLM_FAST, timeoutMs: 30_000 },
   // V3.2: New tasks for 2026 innovations
@@ -1378,6 +1383,11 @@ async function callOpenAICompatible(
     effectiveMaxTokens = thinkingEnabled || glmAlwaysThinks
       ? Math.max(effectiveMaxTokens * 2, 8000)
       : Math.max(effectiveMaxTokens, 1000);
+    // Always-thinks models reason unboundedly on wide prompts — run 18's EiC
+    // triage (15 topics, maxTokens 1500→8000) burned the whole cap on
+    // reasoning_content and returned len=1 content (repaired to {}). Floor
+    // 12k so small-request callsites on glm-5.3 leave room for the JSON answer.
+    if (glmAlwaysThinks) effectiveMaxTokens = Math.max(effectiveMaxTokens, 12000);
   }
   if (provider === "kimi") {
     effectiveMaxTokens = Math.max(effectiveMaxTokens, 2000);
