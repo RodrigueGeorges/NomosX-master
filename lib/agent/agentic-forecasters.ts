@@ -67,6 +67,19 @@ const FAMILY_OF: Record<string, string> = {
   cohere: 'cohere', mistral: 'mistral', meta: 'meta-llama', qwen: 'qwen', openai: 'openai',
 };
 
+/** Claude §2: the forecast ensemble runs three REAL frontier families —
+ *  GLM-5.2 (rédaction), Kimi K3.1 Pro (contre-analyse), DeepSeek V4 Pro
+ *  (vérification) — pinned per provider so the task's default model never
+ *  silently downgrades a forecaster to the volume tier. */
+const FORECASTER_MODEL: Partial<Record<LLMProvider, string>> = {
+  glm: 'glm-5.2',
+  kimi: 'kimi-k3.1-pro',
+  deepseek: 'deepseek-v4-pro',
+  google: 'gemini-3.8-flash',
+  openai: 'gpt-6-sol',
+  anthropic: 'claude-sonnet-5-5',
+};
+
 export function familyOfProvider(provider: string, model?: string): string {
   const m = String(model ?? '').toLowerCase();
   if (/llama|mixtral/.test(m)) return 'meta-llama';
@@ -213,6 +226,7 @@ export async function runAgenticForecasters(input: {
       try {
         const res = await callLLM({
           provider,
+          model: FORECASTER_MODEL[provider],
           task: 'fact_check',
           temperature: it === 0 ? 0.5 : 0.3,
           maxTokens: 1600,
@@ -355,6 +369,7 @@ export async function runAgenticForecasters(input: {
       try {
         const res = await callLLM({
           provider,
+          model: FORECASTER_MODEL[provider],
           task: 'fact_check',
           temperature: 0.2,
           maxTokens: 500,
@@ -417,6 +432,7 @@ export async function runAgenticForecasters(input: {
       try {
         const res = await callLLM({
           provider,
+          model: FORECASTER_MODEL[provider],
           task: 'fact_check',
           temperature: 0.2,
           maxTokens: 1600,
