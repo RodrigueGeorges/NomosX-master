@@ -1596,7 +1596,14 @@ export async function analystAgentV3(
         analysis: {
           title: question.slice(0, 100),
           throughLine: `Analysis based on ${mechanismCount} mechanisms (${survivingCount} survived stress test)`,
-          verdict: survivingCount > 0 ? 'tempered' : 'causal_only',
+          // The verdict must be a real position sentence, not the conviction
+          // enum — downstream gates (question_substituted, DA, binary judge)
+          // read verdict text and silently skip/fail on <20 chars. Run-12:
+          // REFRAIN emitted verdict="tempered" → substitution check bypassed,
+          // DA reject ×3 fatals, binary judge 0/8.
+          verdict: survivingCount > 0
+            ? `Tempered assessment: ${survivingCount} of ${mechanismCount} proposed mechanisms survived adversarial stress-testing; the causal chain reflects only surviving drivers — a bounded, evidence-conditional position rather than a forecast.`
+            : 'Causal-only assessment: no mechanisms survived stress-testing; the findings are descriptive mechanisms without a committed position on the asked outcome.',
           convictionLevel: survivingCount > 0 ? 'tempered' : 'causal_only',
           anchoringBasis: 'Pass 1 friction mapping + Pass 2 stress test',
           causalChain: synthesizeCausalChain(),

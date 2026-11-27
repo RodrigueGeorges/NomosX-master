@@ -631,13 +631,21 @@ export async function runAndPublishInquiry(
         sharedQuestionSpec = spec;
       }
       const analysis = (p.lineage?.analysis ?? p.stats.analysis) as { verdict?: string; throughLine?: string } | undefined;
-      if (spec?.resolvable !== false && typeof analysis?.verdict === 'string') {
+      // Fallback chain: analysis.verdict can collapse to an enum label
+      // (REFRAIN lightweight synthesis emitted "tempered" — run-12), which
+      // silently skipped the check. The bound thesis statement is the
+      // authoritative position text when verdict is absent or degenerate.
+      const thesisStmt = (p.stats.thesisBinding as { statement?: string } | undefined)?.statement;
+      const verdictText = (typeof analysis?.verdict === 'string' && analysis.verdict.trim().length >= 20)
+        ? analysis.verdict
+        : (typeof thesisStmt === 'string' && thesisStmt.trim().length >= 20 ? thesisStmt : undefined);
+      if (spec?.resolvable !== false && verdictText) {
         try {
           const { checkQuestionSubstitution } = await import('./question-spec');
           const sub = await checkQuestionSubstitution({
             question,
             spec,
-            verdict: analysis!.verdict!,
+            verdict: verdictText,
             throughLine: analysis?.throughLine,
           });
           if (sub) {
