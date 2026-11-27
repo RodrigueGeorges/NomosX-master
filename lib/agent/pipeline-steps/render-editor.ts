@@ -208,6 +208,24 @@ export async function runRenderEditorStep(rc: RenderEditorContext): Promise<stri
         styleProfile,
         centralScenario: stats.centralScenario as import('../editorial-types').CentralScenarioDecision | undefined,
         keyFigures,
+        // Claude §4: the verified forecastQuestion drives title, P-dateline,
+        // computed confidence and the information cutoff.
+        forecast: (() => {
+          const fq = (stats as any).forecastQuestion as string | undefined;
+          if (!fq?.trim()) return undefined;
+          const qf = (stats as any).questionForecast as { probability?: number; iqr?: number; families?: number } | undefined;
+          const tb = (stats as any).thesisBinding as { probability?: number } | undefined;
+          const horizon = (stats as any).questionSpec?.horizon
+            ?? String((analysis as any)?.trajectory?.horizon ?? '');
+          return {
+            question: fq.trim(),
+            probability: typeof qf?.probability === 'number' ? qf.probability : tb?.probability,
+            horizon: horizon || undefined,
+            iqr: qf?.iqr,
+            families: qf?.families,
+            cutoff: new Date().toISOString().slice(0, 10),
+          };
+        })(),
       });
       stats.rendererUsed = "position_first";
       console.log(`${label} EDITOR: position-first template (${(rendered.length / 1024).toFixed(0)}KB)`);
