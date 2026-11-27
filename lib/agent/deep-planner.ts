@@ -50,11 +50,17 @@ export async function deepPlan(
     domain?: string;
     isStrategic?: boolean;
     maxNodes?: number;
+    /** Dispatch-verified forecast question — when present, retrieval must
+     *  gather the evidence that resolves it, not only the descriptive
+     *  mechanism (run-15: forecast subjects died at thesis_insufficient
+     *  because the corpus answered the research question, not the forecast). */
+    forecastQuestion?: string;
   }
 ): Promise<DeepPlannerResult> {
   const maxNodes = options?.maxNodes ?? 7;
   const isStrategic = options?.isStrategic ?? false;
   const domain = options?.domain ?? 'general';
+  const fq = options?.forecastQuestion?.trim() ?? '';
 
   const systemPrompt = `You are a research strategist at a premier think tank (Bruegel/RAND/Brookings level).
 Your task: decompose a research question into ${isStrategic ? '5-7' : '3-5'} sub-questions that form a dependency DAG.
@@ -71,7 +77,8 @@ Return JSON only, no prose.`;
 
   const userPrompt = `Research question: "${rootQuestion}"
 Domain: ${domain}
-Depth: ${isStrategic ? 'strategic (5-7 nodes)' : 'standard (3-5 nodes)'}
+Depth: ${isStrategic ? 'strategic (5-7 nodes)' : 'standard (3-5 nodes)'}${fq ? `
+FORECAST MANDATE: this research must ultimately resolve the forecast question "${fq}". At least one node must target the concrete evidence bearing on it — the named actors, measurable indicators, current status and dated milestones — not only the descriptive mechanism.` : ''}
 
 Return a JSON object:
 {
@@ -162,6 +169,20 @@ Constraints:
     const hasRoot = nodes.some(n => n.parentIds.length === 0);
     if (!hasRoot && nodes.length > 0) {
       nodes[0].parentIds = [];
+    }
+
+    // Deterministic forecast-evidence node — the LLM plan may fold the
+    // forecast into an existing node, but retrieval must GUARANTEE a scout
+    // pass aimed at the forecast's actors/indicators/horizon.
+    if (fq && nodes.length > 0) {
+      nodes.push({
+        id: `n${nodes.length + 1}`,
+        subQuestion: `What is the latest status, scheduled milestones, key actors and measurable indicators bearing on this forecast: "${fq}"?`,
+        parentIds: [],
+        producers: [],
+        resultVariable: 'forecast_evidence',
+        status: 'pending',
+      });
     }
 
     return {

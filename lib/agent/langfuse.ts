@@ -334,9 +334,17 @@ async function flushAll(): Promise<void> {
       if (queue.length > 500) queue.splice(0, queue.length - 500);
     }
   } catch (err) {
-    console.warn('[Langfuse] OTEL ingestion error:', err);
-    queue.unshift(...batch);
-    if (queue.length > 500) queue.splice(0, queue.length - 500);
+    const msg = err instanceof Error ? err.message : String(err);
+    // Execution scopes abort with '<label> scope closed' once their work
+    // ends — a late flush hitting that must DROP the batch, not requeue it
+    // into an endless retry loop (run-15: 17 identical warnings).
+    if (/scope closed/i.test(msg)) {
+      console.debug('[Langfuse] OTEL batch dropped — execution scope closed');
+    } else {
+      console.warn('[Langfuse] OTEL ingestion error:', err);
+      queue.unshift(...batch);
+      if (queue.length > 500) queue.splice(0, queue.length - 500);
+    }
   } finally {
     flushing = false;
   }

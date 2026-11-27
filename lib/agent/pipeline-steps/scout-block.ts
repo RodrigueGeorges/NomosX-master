@@ -165,7 +165,14 @@ export async function runScoutBlock(deps: ScoutBlockDeps): Promise<ScoutBlockRes
   let planResult: { plan: any; costUsd: number; error?: string } | null = null;
   try {
     const { deepPlan, topologicalSort, getAncestorSourceIds } = await import('../deep-planner');
-    planResult = await deepPlan(query, { domain: domain || 'general', isStrategic });
+    planResult = await deepPlan(query, {
+      domain: domain || 'general',
+      isStrategic,
+      // The verified forecast question must shape retrieval — without it the
+      // corpus answers the descriptive question and the thesis judge finds
+      // nothing forecast-bearing (run-15 thesis_insufficient refusals).
+      forecastQuestion: (stats as any).forecastQuestion,
+    });
     if (planResult.error) {
       console.log(`${label} DEEP PLANNER: ${planResult.error}, falling back to flat scout`);
     }
