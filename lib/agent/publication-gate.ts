@@ -102,6 +102,10 @@ export interface PublicationGateInput {
     /** The verified forecast question — checked for display in the shipped
      *  HTML (normalized containment of its leading 120 chars). */
     question?: string;
+    /** Claude §3: sources <18 months old in the final corpus (breaking
+     *  subjects need recent evidence mass; <3 = motif). Undefined when the
+     *  recency quota never ran → sub-check skipped (fail-open). */
+    recentSourceCount?: number;
   };
 }
 
@@ -514,6 +518,9 @@ export function evaluatePublicationGate(input: PublicationGateInput): Publicatio
       else if (horizonMs > nowMs + 5 * 366 * 86400000) motifs.push('horizon_beyond_5y');
     }
     if (wordCount > 3500) motifs.push(`word_cap_exceeded:${wordCount}`);
+    if (typeof fc.recentSourceCount === 'number' && fc.recentSourceCount < 3) {
+      motifs.push(`recent_sources_insufficient:${fc.recentSourceCount}`);
+    }
     if (fc.question) {
       const norm = (s: string) => s.toLowerCase().replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
       const needle = norm(fc.question).slice(0, 120);

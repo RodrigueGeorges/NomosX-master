@@ -600,6 +600,11 @@ export async function runAndPublishInquiry(
           probability: typeof tb?.probability === 'number' ? tb.probability : qFc?.probability,
           horizon: qSpec?.horizon || fq,
           question: fq,
+          // Claude §3 recency quota — recorded by rank-enrichment for
+          // forecast runs; undefined when it never ran (fail-open).
+          recentSourceCount: typeof (p.stats.corpusQuotas as { recent?: { count?: number } } | undefined)?.recent?.count === 'number'
+            ? (p.stats.corpusQuotas as { recent: { count: number } }).recent.count
+            : undefined,
         };
       })(),
       failedEvaluations: ['critic', 'criticPanel', 'devilsAdvocate', 'structuralEditor'].filter(key => {
