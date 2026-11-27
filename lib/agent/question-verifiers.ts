@@ -60,6 +60,17 @@ Grading rules:
 - antiBiasRisk: true when the question is so hyper-specific that the obvious answer is "no" (e.g. "will country X sign treaty Y on exact date Z") — forecasting "no" on trivia is not analysis.
 - verdict=reject with motif in {low_quality, ambiguous, unresolvable, trivial, anti_bias_trivial_no, off_signal} when the topic cannot yield a real forecast question.`;
 
+const VERIFY_ONLY_SYSTEM = `You are an independent verifier at a forecasting desk — you did NOT write the question below and must grade it skeptically. TODAY'S DATE is {{TODAY}}.
+
+Grade the forecast question on:
+- resolvable: true ONLY if a named public source AND a checkable FUTURE resolution date exist (a horizon already in the past is unresolvable; "within N months/years" counts only if it lands in the future);
+- ambiguity: 0 = perfectly defined metric+actor+horizon; 1 = unanswerable mush;
+- onSignal: does the question stay anchored on the SIGNAL provided, not drift to a different event;
+- trivial: true when the honest answer is already obvious (~0% or ~100%) or the question is mere current-affairs recap with no forecast content.
+
+Output strict JSON:
+{"verdict":"pass"|"reject","motif":"<low_quality|ambiguous|unresolvable|trivial|off_signal|stale_horizon|anti_bias_trivial_no|>","resolvable":true|false,"ambiguity":0.0-1.0,"trivial":true|false}`;
+
 const P_ESTIMATE_SYSTEM = `You are a superforecaster giving a quick base-rate estimate. TODAY'S DATE is {{TODAY}}.
 Output strict JSON: {"p": 0.0-1.0, "reason": "<one clause>"}
 p = your honest probability the question resolves YES. Use outside-view base rates, not inside narrative.`;
@@ -230,6 +241,45 @@ export async function verifyDispatchQuestion(input: {
   // Anti-drift: the forecast question must stay anchored on the signal.
   if (!signalAnchored(fq, topicTitle, signalContext)) {
     return { pass: false, checks, motif: 'off_signal_terms', costUsd: totalCost };
+  }
+
+  // ── Stage 1b: INDEPENDENT verification — the generator (glm-4.5-air)
+  // never grades itself. fact_check routes to the verification family
+  // (DeepSeek V4 Pro); one bounded call, fail-open on error (the
+  // deterministic guards above already ran). ──
+  try {
+    const ver = await captureInput(`question:verify-ind:${fq.slice(0, 120)}`, () => callLLM({
+      task: 'fact_check',
+      jsonMode: true,
+      temperature: 0.1,
+      maxTokens: 200,
+      maxCostUsd: 0.008,
+      runId,
+      messages: [
+        { role: 'system', content: VERIFY_ONLY_SYSTEM.replaceAll('{{TODAY}}', today) },
+        { role: 'user', content: `SIGNAL HEADLINE: ${topicTitle ?? '(none)'}\nSIGNAL CONTEXT: ${signalContext ?? '(none)'}\nFORECAST QUESTION TO VERIFY: ${fq}` },
+      ],
+    }));
+    addCost((ver as { costUsd?: number })?.costUsd);
+    const vc = typeof ver === 'string' ? ver : String((ver as { content?: string })?.content ?? '');
+    const vp = parseJson<Record<string, unknown>>(vc);
+    if (vp) {
+      if (vp.verdict === 'reject') {
+        const motif = typeof vp.motif === 'string' && MOTIF_RE.test(vp.motif) ? vp.motif : 'low_quality';
+        return { pass: false, checks, motif: `verifier_${motif}`, costUsd: totalCost };
+      }
+      if (vp.resolvable === false) {
+        return { pass: false, checks, motif: 'verifier_unresolvable', costUsd: totalCost };
+      }
+      if (vp.trivial === true) {
+        return { pass: false, checks, motif: 'verifier_trivial', costUsd: totalCost };
+      }
+      if (typeof vp.ambiguity === 'number' && vp.ambiguity > 0.7) {
+        return { pass: false, checks, motif: 'verifier_ambiguous', costUsd: totalCost };
+      }
+    }
+  } catch (verErr) {
+    console.warn('[QUESTION-VERIFY] independent verifier failed (fail-open):', verErr);
   }
 
   // ── Stage 2: base-rate estimate — trivially-decidable questions (p≈0 or

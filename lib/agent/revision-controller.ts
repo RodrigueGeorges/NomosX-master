@@ -572,6 +572,12 @@ export async function judgeRegenWinner(args: {
     const a = flip ? args.regen : args.original;
     const b = flip ? args.original : args.regen;
     const res = await callLLM({
+      // Claude §2: the barrier's independent judge runs on Claude Sonnet 5.5
+      // — a family that never produced the note. While the Anthropic account
+      // is suspended the provider filter skips it and the cross-family chain
+      // lands on the verification family (DeepSeek V4 Pro) instead.
+      provider: 'anthropic',
+      model: 'claude-sonnet-5-5',
       task: 'fact_check',
       jsonMode: true,
       temperature: 0.1,

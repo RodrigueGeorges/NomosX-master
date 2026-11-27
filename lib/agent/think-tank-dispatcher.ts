@@ -28,7 +28,9 @@ import type { InquiryDepth } from "@/lib/types/inquiry";
 
 const DEFAULT_WEEKLY_MAX = 10;
 const DEFAULT_BREAKING_MAX = 2;
-const DEFAULT_BREAKING_BUDGET_USD = 20;
+// Claude §2: hard cap ≈$5 per 3-subject cycle (was $20 — run-12 spent
+// fractions of it only because everything degraded to glm-4.5-air).
+const DEFAULT_BREAKING_BUDGET_USD = Number(process.env.NOMOSX_CYCLE_BUDGET_USD ?? 5);
 
 /**
  * Select publication format based on the EDITORIAL ANGLE of the signal.

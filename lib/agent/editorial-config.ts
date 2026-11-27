@@ -11,10 +11,14 @@ export function isEditorialV2Enabled(): boolean {
   return true;
 }
 
-/** Strategic pipeline budget — foresight in-core needs headroom. */
+/** Pipeline budget caps — Claude §2 hard limits: ≈$1.50 per forecast note,
+ *  ≈$5 per 3-subject cycle. Strategic prospective notes keep more headroom
+ *  (3 000–3 500 words, scenario work). Env overrides for validation runs. */
 export function getPipelineMaxBudgetUsd(isStrategic: boolean, editorialV2: boolean): number {
-  if (!isStrategic) return editorialV2 ? 5.0 : 3.0;
-  return editorialV2 ? 12.0 : 8.0;
+  if (!isStrategic) {
+    return parseFloat(process.env.NOMOSX_BRIEF_BUDGET_USD ?? '') || 1.5;
+  }
+  return parseFloat(process.env.NOMOSX_STRATEGIC_BUDGET_USD ?? '') || (editorialV2 ? 5.0 : 4.0);
 }
 
 /**
