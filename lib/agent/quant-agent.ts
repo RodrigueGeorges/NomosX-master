@@ -405,9 +405,12 @@ export async function quantAgent(
   }
 
   const fetchers = selectFetchers(query, sources);
+  // Run-12 defect (Claude §1.1): an early return here skipped the macro
+  // floor entirely — the EU-budget subject got 0 series despite
+  // macro-series.ts covering budget/fiscal/spending. Specialized fetchers
+  // are optional; the macro floor ALWAYS runs.
   if (fetchers.length === 0) {
-    console.log('[QUANT] No relevant primary-data fetchers for this query');
-    return { series: [], facts: [], evidenceBlock: '', chartData: [], fetchedProviders: [], durationMs: Date.now() - start };
+    console.log('[QUANT] No specialized primary-data fetchers — macro floor only');
   }
 
   const results = await Promise.allSettled(fetchers.map(f => f()));
