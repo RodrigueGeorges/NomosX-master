@@ -307,3 +307,51 @@ describe('buildAnalystContext — binding survives SARA compression (integration
     expect(result.fullContextBlock ?? '').not.toContain('THESIS BINDING');
   }, 30000);
 });
+
+describe('postReadFactors — evidence-linked factors (étape 3)', () => {
+  const { postReadFactors } = require('@/lib/agent/hypothesis-engine');
+  const READINGS = [
+    { sourceId: 's1', confidence: 'high', claims: ['Ukraine produced 1.2M drones in 2025'], results: ['output tripled year on year'] },
+  ];
+  const FACTOR_RESPONSE = {
+    factors: [
+      { id: 'F1', statement: 'Ukraine sustains industrial-scale jet drone output through 2027', rationale: 'production trend', derivedFrom: ['[SRC-1]'], evidenceNeeded: ['quarterly output'] },
+      { id: 'F2', statement: 'x', derivedFrom: [], evidenceNeeded: [] },                     // too short — dropped
+      { id: 'F3', statement: 'NATO expands eastern flank air defence procurement', derivedFrom: [], evidenceNeeded: [] }, // uncited — dropped
+    ],
+  };
+
+  it('registers cited factors as F-id hypotheses and drops ungrounded ones', async () => {
+    mockedLLM.mockResolvedValueOnce({ content: JSON.stringify(FACTOR_RESPONSE), costUsd: 0.004 } as any);
+    const { factors, costUsd } = await postReadFactors({ query: 'Will drone deterrence hold?', sources: [{ ...SOURCES[0], id: 's1' }], readings: READINGS });
+    expect(factors).toHaveLength(1);
+    expect(factors[0].id).toBe('F1');
+    expect(factors[0].postRead).toBe(true);
+    expect(costUsd).toBeCloseTo(0.004);
+  });
+
+  it('a factor-bound thesis reports origin post_read', async () => {
+    const hypotheses: Hypothesis[] = [
+      ...HYPOTHESES,
+      { id: 'F1', statement: 'Jet drone output is industrial-scale and sustained', rationale: 'from readings', evidenceNeeded: ['output'], postRead: true },
+    ];
+    mockedLLM.mockResolvedValueOnce({
+      content: JSON.stringify({
+        verdicts: [
+          { id: 'F1', statement: hypotheses[3].statement, verdict: 'supported', confidence: 80, supportingEvidence: ['[SRC-1] production scaled', '[SRC-2] strikes documented'], contraryEvidence: [], reasoning: 'two sources' },
+          ...JUDGE_RESPONSE.verdicts.slice(0, 2).map(v => ({ ...v, verdict: 'inconclusive', supportingEvidence: [] })),
+        ],
+      }),
+      costUsd: 0.001,
+    } as any);
+    const judge = await hypothesisJudge(hypotheses, SOURCES);
+    expect(judge.boundThesis?.id).toBe('F1');
+    expect(judge.thesisOrigin).toBe('post_read');
+  });
+
+  it('fails open — derivation outage returns empty factors', async () => {
+    mockedLLM.mockRejectedValueOnce(new Error('provider down'));
+    const { factors } = await postReadFactors({ query: 'Q', sources: SOURCES });
+    expect(factors).toEqual([]);
+  });
+});

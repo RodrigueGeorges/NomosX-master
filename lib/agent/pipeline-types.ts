@@ -419,10 +419,11 @@ export interface PipelineStats {
     supportingSources?: number;
     supportingEvidence?: string[];
     contraryEvidence?: string[];
-    /** 'registered' = a pre-posed hypothesis won; 'corpus_derived' = the
-     *  corpus itself yielded the claim after all verdicts came back
-     *  inconclusive. */
-    origin?: 'registered' | 'corpus_derived';
+    /** 'registered' = a pre-posed hypothesis won; 'post_read' = a factor
+     *  derived from the readings won; 'corpus_derived' = the corpus itself
+     *  yielded the claim after all verdicts came back inconclusive.
+     *  'forecast' = the forecast rebind replaced the thesis (arbiter). */
+    origin?: 'registered' | 'post_read' | 'corpus_derived' | 'forecast';
     /** Set when no supportable thesis exists — triggers thesis_insufficient
      *  early refusal before analyst spend. */
     absent?: string;

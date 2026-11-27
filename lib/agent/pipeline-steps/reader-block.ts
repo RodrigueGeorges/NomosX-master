@@ -492,7 +492,30 @@ export async function runReaderBlock(deps: ReaderBlockDeps): Promise<ReaderBlock
   let hypothesisVerdictBlock = '';
   {
     try {
-      const { hypothesisJudge } = await import('../hypothesis-engine');
+      const { hypothesisJudge, postReadFactors } = await import('../hypothesis-engine');
+      // Post-read factors (étape 3): blind pre-registered hypotheses never
+      // bind (audit: 118/135 inconclusive). Derive evidence-linked factors
+      // from the landed readings and register them alongside — same judge,
+      // same binding contract, origin 'post_read' when a factor wins.
+      let judgedHypotheses = framing.hypotheses;
+      if (process.env.NOMOSX_POST_READ_FACTORS !== '0') {
+        try {
+          const derived = await postReadFactors({
+            query,
+            forecastQuestion: (stats as any).forecastQuestion,
+            sources: topSources,
+            readings,
+          });
+          addCost(derived.costUsd, 'POST-READ FACTORS');
+          if (derived.factors.length > 0) {
+            judgedHypotheses = [...framing.hypotheses, ...derived.factors];
+            (stats as any).postReadFactors = derived.factors.length;
+            console.log(`${label} POST-READ FACTORS: ${derived.factors.length} factors registered alongside ${framing.hypotheses.length} blind hypotheses`);
+          }
+        } catch (fErr) {
+          console.warn(`${label} POST-READ FACTORS failed (non-blocking):`, fErr);
+        }
+      }
       // Bounded fast retry: a judge that THROWS or returns neither a bound
       // thesis nor an explicit absence verdict is transient infrastructure
       // noise — one immediate re-run beats a 20h HELD-retry wait (audit:
@@ -502,7 +525,7 @@ export async function runReaderBlock(deps: ReaderBlockDeps): Promise<ReaderBlock
       let lastJudgeErr: unknown = null;
       for (let attempt = 0; attempt < 2 && !judge; attempt++) {
         try {
-          const j = await hypothesisJudge(framing.hypotheses, topSources, readings, quant.evidenceBlock || undefined, query, (stats as any).forecastQuestion);
+          const j = await hypothesisJudge(judgedHypotheses, topSources, readings, quant.evidenceBlock || undefined, query, (stats as any).forecastQuestion);
           addCost(j.costUsd, 'HYPOTHESIS JUDGE');
           if (j.boundThesis || j.thesisAbsent) {
             judge = j;
