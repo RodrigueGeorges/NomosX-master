@@ -756,6 +756,44 @@ export async function runRankAndEnrichment(deps: RankEnrichmentDeps): Promise<Ra
           ctx.addFinding('RANK', 'warning', `Corpus quotas unmet for policy question after ${rounds} refill round(s): ${quotas.missing.join(', ')}`);
         }
       }
+
+      // Claude §3: BREAKING subjects (a verified forecastQuestion reached the
+      // pipeline) require recent evidence mass — ≥3 sources <18 months old
+      // (actualité, institutions, données). One targeted refill round, then
+      // stats.corpusQuotas.recent records the outcome; the publication gate
+      // turns recent.met===false into a forecast_contract motif.
+      const fqForRecency = (stats as any).forecastQuestion;
+      if (typeof fqForRecency === 'string' && fqForRecency.trim()) {
+        const { isRecentSource } = await import('../corpus-quotas');
+        const RECENT_REQUIRED = 3;
+        const countRecent = () => topSources.filter((s: any) => isRecentSource(s)).length;
+        let recentCount = countRecent();
+        if (recentCount < RECENT_REQUIRED) {
+          console.log(`${label} RECENCY QUOTA: ${recentCount}/${RECENT_REQUIRED} sources <18mo — targeted re-scout`);
+          try {
+            const res = await scout(`${query} latest ${new Date().getUTCFullYear()} data report`, providers, isStrategic ? 10 : 6);
+            const newIds = Array.isArray(res) ? res.map((s: any) => s.id) : (res?.sourceIds || []);
+            const fresh = newIds.filter((id: string) => !allSourceIds.includes(id) && !rejectedSourceIds.has(id));
+            if (fresh.length) {
+              allSourceIds = [...allSourceIds, ...fresh];
+              lateAdditions = true;
+              const reranked = (await rank(query, { ...rankOpts, sourceIds: allSourceIds }))
+                .filter((s: any) => !rejectedSourceIds.has(s.id) && !offTopicProviders.has(s.provider));
+              if (reranked.length > topSources.length) {
+                topSources.length = 0;
+                topSources.push(...reranked);
+              }
+              recentCount = countRecent();
+            }
+          } catch (rqErr) {
+            console.warn(`${label} RECENCY re-scout failed (non-blocking):`, rqErr);
+            recordDegradedStep(stats, 'RECENCY_RESCOUT', rqErr);
+          }
+        }
+        const priorQuotas = (stats.corpusQuotas ?? {}) as Record<string, unknown>;
+        stats.corpusQuotas = { ...priorQuotas, recent: { count: recentCount, required: RECENT_REQUIRED, met: recentCount >= RECENT_REQUIRED } };
+        console.log(`${label} RECENCY QUOTA: ${recentCount}/${RECENT_REQUIRED} sources <18mo — ${recentCount >= RECENT_REQUIRED ? 'MET' : 'UNMET'}`);
+      }
     } catch (qErr) {
       console.warn(`${label} CORPUS QUOTAS evaluation failed (non-blocking):`, qErr);
       recordDegradedStep(stats, 'CORPUS_QUOTAS', qErr);

@@ -114,6 +114,22 @@ export interface SourceFlags {
   exAnte: boolean;
 }
 
+/** Claude §3: a source counts as RECENT when its publication date (or year
+ *  fallback) falls within the last `months` (default 18 — breaking-news
+ *  evidence: actualité, institutions, données). */
+export function isRecentSource(s: CorpusSourceLike, months = 18, now: Date = new Date()): boolean {
+  const raw = s.publishedAt ?? s.date;
+  if (raw) {
+    const d = raw instanceof Date ? raw : new Date(raw);
+    if (!Number.isNaN(d.getTime())) {
+      const cutoff = new Date(now.getTime() - months * 30.44 * 86400000);
+      return d >= cutoff;
+    }
+  }
+  // Year granularity: <18 months ≈ year >= current year - 1.
+  return sourceYear(s, now) >= now.getUTCFullYear() - 1;
+}
+
 export function classifyCorpusSource(s: CorpusSourceLike, now: Date = new Date()): SourceFlags {
   const provider = String(s.provider ?? '').toLowerCase();
   const host = hostOf(s.url);
