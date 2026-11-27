@@ -160,12 +160,16 @@ export async function verifyDispatchQuestion(input: {
   topicTitle?: string;
   signalContext?: string;
   runId?: string;
+  /** EiC-supplied forecast question — evaluated BEFORE generation; the EiC
+   *  selected this topic partly on that question's strength. */
+  candidateForecastQuestion?: string;
 }): Promise<QuestionVerification> {
-  const { question, topicTitle, signalContext, runId } = input;
-  const reject = (motif: string, costUsd?: number, checks?: QuestionVerification['checks']): QuestionVerification => ({
+  const { question, topicTitle, signalContext, runId, candidateForecastQuestion } = input;
+  const reject = (motif: string, costUsd?: number, checks?: QuestionVerification['checks'], fqOut?: string): QuestionVerification => ({
     pass: false,
     checks: checks ?? { quality: 0, ambiguity: 1, resolvable: false, difficulty: 0, antiBiasRisk: false },
     motif, costUsd,
+    forecastQuestion: fqOut || undefined,
   });
   if (!question || question.trim().length < 15) return reject('low_quality');
 
@@ -176,6 +180,109 @@ export async function verifyDispatchQuestion(input: {
   // ── Stage 1: GENERATE forecastQuestion + grade (signal-anchored). ──
   let fq = '';
   let checks: QuestionVerification['checks'] = { quality: 0, ambiguity: 1, resolvable: false, difficulty: 0, antiBiasRisk: false };
+
+  // ── Agentic retry: evaluate() runs the deterministic guards + the
+  // independent verifier + the base-rate band on ONE candidate. A
+  // recoverable rejection buys exactly ONE reformulation carrying the
+  // motif as feedback — the generator adapts instead of the item dying
+  // (run-13/14: every EiC pick died on a first-rejection motif). ──
+  // anti_bias_trivial_no is deliberately absent: an anti-bias flag is a
+  // content judgment, not a form defect — the base-rate band below owns
+  // the p≈0/p≈1 case and one cheap rewrite rarely cures a trivial-no.
+  const RETRYABLE_MOTIFS = new Set([
+    'low_quality', 'ambiguous', 'unresolvable', 'trivial',
+    'anti_bias_trivial', 'stale_horizon', 'off_signal_terms',
+    'verifier_low_quality', 'verifier_ambiguous', 'verifier_unresolvable',
+    'verifier_trivial', 'verifier_anti_bias_trivial_no',
+  ]);
+
+  interface EvalResult {
+    pass: boolean;
+    motif?: string;
+    forecastQuestion?: string;
+    addedCost: number;
+  }
+
+  const evaluate = async (candidate: string, graded: boolean): Promise<EvalResult> => {
+    let added = 0;
+    const fail = (motif: string): EvalResult => ({ pass: false, motif, addedCost: added });
+    if (candidate.length < 25 || candidate.length > 400 || !candidate.includes('?')) return fail('low_quality');
+    if (graded) {
+      // Stage-1 grades describe the FIRST candidate only — a reformulated
+      // question is re-judged by the independent verifier + base-rate below.
+      if (checks.ambiguity > 0.7) return fail('ambiguous');
+      if (!checks.resolvable) return fail('unresolvable');
+      if (checks.antiBiasRisk) return fail('anti_bias_trivial_no');
+      if (checks.difficulty < 20) return fail('trivial');
+      if (checks.difficulty > 85) return fail('unresolvable');
+      if (checks.quality < 50) return fail('low_quality');
+    }
+    // Horizon must parse to a FUTURE date within [today+1mo, today+5y].
+    const horizon = extractHorizonDate(candidate);
+    const now = new Date();
+    const minH = new Date(now); minH.setUTCMonth(minH.getUTCMonth() + 1);
+    const maxH = new Date(now); maxH.setUTCFullYear(maxH.getUTCFullYear() + 5);
+    if (!horizon || horizon < minH || horizon > maxH) return fail('stale_horizon');
+    // Anti-drift: the forecast question must stay anchored on the signal.
+    if (!signalAnchored(candidate, topicTitle, signalContext)) return fail('off_signal_terms');
+
+    // ── Independent verification — the generator never grades itself.
+    try {
+      const ver = await captureInput(`question:verify-ind:${candidate.slice(0, 120)}`, () => callLLM({
+        task: 'fact_check',
+        jsonMode: true,
+        temperature: 0.1,
+        maxTokens: 200,
+        maxCostUsd: 0.008,
+        runId,
+        messages: [
+          { role: 'system', content: VERIFY_ONLY_SYSTEM.replaceAll('{{TODAY}}', today) },
+          { role: 'user', content: `SIGNAL HEADLINE: ${topicTitle ?? '(none)'}
+SIGNAL CONTEXT: ${signalContext ?? '(none)'}
+FORECAST QUESTION TO VERIFY: ${candidate}` },
+        ],
+      }));
+      added += (ver as { costUsd?: number })?.costUsd ?? 0;
+      const vc = typeof ver === 'string' ? ver : String((ver as { content?: string })?.content ?? '');
+      const vp = parseJson<Record<string, unknown>>(vc);
+      if (vp) {
+        if (vp.verdict === 'reject') {
+          const motif = typeof vp.motif === 'string' && MOTIF_RE.test(vp.motif) ? vp.motif : 'low_quality';
+          return fail(`verifier_${motif}`);
+        }
+        if (vp.resolvable === false) return fail('verifier_unresolvable');
+        if (vp.trivial === true) return fail('verifier_trivial');
+        if (typeof vp.ambiguity === 'number' && vp.ambiguity > 0.7) return fail('verifier_ambiguous');
+      }
+    } catch (verErr) {
+      console.warn('[QUESTION-VERIFY] independent verifier failed (fail-open):', verErr);
+    }
+
+    // ── Base-rate band — trivially-decidable questions are not forecasts.
+    const est = await estimateBaseRate(candidate, runId);
+    added += est?.costUsd ?? 0;
+    if (est) {
+      checks.baseRate = est.p;
+      if (est.p < 0.10 || est.p > 0.90) return fail('anti_bias_trivial');
+    }
+    return { pass: true, forecastQuestion: candidate, addedCost: added };
+  };
+
+
+  // ── EiC candidate first: evaluate before paying for generation. The EiC
+  // picked this topic partly on its forecastQuestion — when it survives the
+  // same guards + independent verifier + base-rate band, we skip stage-1
+  // entirely. A rejection is non-fatal: generation still gets its shot. ──
+  const eicCandidate = typeof candidateForecastQuestion === 'string' ? candidateForecastQuestion.trim() : '';
+  if (eicCandidate) {
+    const eicRes = await evaluate(eicCandidate, false);
+    addCost(eicRes.addedCost);
+    if (eicRes.pass) {
+      console.log(`[QUESTION-VERIFY] EiC candidate accepted → "${eicCandidate.slice(0, 90)}"`);
+      return { pass: true, forecastQuestion: eicCandidate, checks, costUsd: totalCost };
+    }
+    console.log(`[QUESTION-VERIFY] EiC candidate rejected (${eicRes.motif}) — generating fresh`);
+  }
   try {
     const raw = await captureInput(`question:verify:${question.slice(0, 120)}`, async () => {
       return callLLM({
@@ -210,85 +317,19 @@ export async function verifyDispatchQuestion(input: {
     const llmVerdict = parsed.verdict === 'pass' ? 'pass' : 'reject';
     const llmMotif = typeof parsed.motif === 'string' && MOTIF_RE.test(parsed.motif) ? parsed.motif : '';
     if (llmVerdict === 'reject') {
-      return { pass: false, checks, motif: llmMotif || 'low_quality', costUsd: totalCost };
+      return { pass: false, checks, motif: llmMotif || 'low_quality', costUsd: totalCost, forecastQuestion: fq || undefined };
     }
   } catch (err) {
     console.warn('[QUESTION-VERIFY] generator failed (non-blocking):', err);
     return reject('verifier_error');
   }
 
-  // ── Deterministic guards on the generated question. ──
-  if (fq.length < 25 || fq.length > 400 || !fq.includes('?')) {
-    return reject('low_quality', totalCost, checks);
-  }
-  if (checks.ambiguity > 0.7) return { pass: false, checks, motif: 'ambiguous', costUsd: totalCost };
-  if (!checks.resolvable) return { pass: false, checks, motif: 'unresolvable', costUsd: totalCost };
-  if (checks.antiBiasRisk) return { pass: false, checks, motif: 'anti_bias_trivial_no', costUsd: totalCost };
-  if (checks.difficulty < 20) return { pass: false, checks, motif: 'trivial', costUsd: totalCost };
-  if (checks.difficulty > 85) return { pass: false, checks, motif: 'unresolvable', costUsd: totalCost };
-  if (checks.quality < 50) return { pass: false, checks, motif: 'low_quality', costUsd: totalCost };
+  let result = await evaluate(fq, true);
+  addCost(result.addedCost);
 
-  // Horizon must parse to a FUTURE date within [today+1mo, today+5y].
-  // Run-12 accepted "by the end of 2024" — already past.
-  const horizon = extractHorizonDate(fq);
-  const now = new Date();
-  const minH = new Date(now); minH.setUTCMonth(minH.getUTCMonth() + 1);
-  const maxH = new Date(now); maxH.setUTCFullYear(maxH.getUTCFullYear() + 5);
-  if (!horizon || horizon < minH || horizon > maxH) {
-    return { pass: false, checks, motif: 'stale_horizon', costUsd: totalCost };
-  }
-
-  // Anti-drift: the forecast question must stay anchored on the signal.
-  if (!signalAnchored(fq, topicTitle, signalContext)) {
-    return { pass: false, checks, motif: 'off_signal_terms', costUsd: totalCost };
-  }
-
-  // ── Stage 1b: INDEPENDENT verification — the generator (glm-4.5-air)
-  // never grades itself. fact_check routes to the verification family
-  // (DeepSeek V4 Pro); one bounded call, fail-open on error (the
-  // deterministic guards above already ran). ──
-  try {
-    const ver = await captureInput(`question:verify-ind:${fq.slice(0, 120)}`, () => callLLM({
-      task: 'fact_check',
-      jsonMode: true,
-      temperature: 0.1,
-      maxTokens: 200,
-      maxCostUsd: 0.008,
-      runId,
-      messages: [
-        { role: 'system', content: VERIFY_ONLY_SYSTEM.replaceAll('{{TODAY}}', today) },
-        { role: 'user', content: `SIGNAL HEADLINE: ${topicTitle ?? '(none)'}\nSIGNAL CONTEXT: ${signalContext ?? '(none)'}\nFORECAST QUESTION TO VERIFY: ${fq}` },
-      ],
-    }));
-    addCost((ver as { costUsd?: number })?.costUsd);
-    const vc = typeof ver === 'string' ? ver : String((ver as { content?: string })?.content ?? '');
-    const vp = parseJson<Record<string, unknown>>(vc);
-    if (vp) {
-      if (vp.verdict === 'reject') {
-        const motif = typeof vp.motif === 'string' && MOTIF_RE.test(vp.motif) ? vp.motif : 'low_quality';
-        return { pass: false, checks, motif: `verifier_${motif}`, costUsd: totalCost };
-      }
-      if (vp.resolvable === false) {
-        return { pass: false, checks, motif: 'verifier_unresolvable', costUsd: totalCost };
-      }
-      if (vp.trivial === true) {
-        return { pass: false, checks, motif: 'verifier_trivial', costUsd: totalCost };
-      }
-      if (typeof vp.ambiguity === 'number' && vp.ambiguity > 0.7) {
-        return { pass: false, checks, motif: 'verifier_ambiguous', costUsd: totalCost };
-      }
-    }
-  } catch (verErr) {
-    console.warn('[QUESTION-VERIFY] independent verifier failed (fail-open):', verErr);
-  }
-
-  // ── Stage 2: base-rate estimate — trivially-decidable questions (p≈0 or
-  // p≈1) are not forecasts. One cheap call; one reformulation retry, then
-  // abandon (motif anti_bias_trivial). ──
-  let est = await estimateBaseRate(fq, runId);
-  addCost(est?.costUsd);
-  if (est && (est.p < 0.10 || est.p > 0.90)) {
-    // One reformulation attempt toward the decision-relevant middle.
+  // One motif-guided reformulation for recoverable rejections — the
+  // generator sees WHY it failed and must fix exactly that.
+  if (!result.pass && fq && RETRYABLE_MOTIFS.has(result.motif ?? '')) {
     try {
       const reform = await callLLM({
         task: 'query_reformulation',
@@ -298,33 +339,35 @@ export async function verifyDispatchQuestion(input: {
         maxCostUsd: 0.01,
         runId,
         messages: [
-          { role: 'system', content: `Reformulate this forecast question so its honest probability is meaningfully uncertain (not ~0% or ~100%). Keep it anchored on the same signal and a FUTURE dated horizon. Output strict JSON: {"forecastQuestion":"..."}` },
-          { role: 'user', content: `SIGNAL: ${topicTitle ?? question}\nCONTEXT: ${signalContext ?? ''}\nTRIVIAL QUESTION (p≈${est.p.toFixed(2)}): ${fq}` },
+          { role: 'system', content: `You are the commissioning editor of a forecasting desk. TODAY'S DATE is ${today}. A forecast question was REJECTED by the verifier with motif "${result.motif}". Produce ONE corrected falsifiable forecast question anchored on the SAME signal with a checkable FUTURE dated horizon. Fix exactly what the motif flags: off_signal_terms → stay on the signal's actors/metric; stale_horizon → pick a future date; verifier_unresolvable/verifier_ambiguous → make it concretely resolvable from public data; anti_bias_trivial → target the decision-relevant middle probability. Output strict JSON: {"forecastQuestion":"..."}` },
+          { role: 'user', content: `SIGNAL HEADLINE: ${topicTitle ?? '(none)'}
+SIGNAL CONTEXT: ${signalContext ?? '(none)'}
+RESEARCH FRAMING: ${question}
+REJECTED QUESTION: ${fq}
+REJECTION MOTIF: ${result.motif}` },
         ],
       });
       addCost((reform as { costUsd?: number })?.costUsd);
       const rc = typeof reform === 'string' ? reform : String((reform as { content?: string })?.content ?? '');
       const rp = parseJson<{ forecastQuestion?: string }>(rc);
       const fq2 = typeof rp?.forecastQuestion === 'string' ? rp.forecastQuestion.trim() : '';
-      if (fq2.length >= 25 && fq2.length <= 400 && fq2.includes('?')) {
-        const h2 = extractHorizonDate(fq2);
-        const okH2 = h2 && h2 >= minH && h2 <= maxH;
-        if (okH2 && signalAnchored(fq2, topicTitle, signalContext)) {
-          const est2 = await estimateBaseRate(fq2, runId);
-          addCost(est2?.costUsd);
-          if (est2 && est2.p >= 0.10 && est2.p <= 0.90) {
-            checks.baseRate = est2.p;
-            return { pass: true, forecastQuestion: fq2, checks, costUsd: totalCost };
-          }
+      if (fq2) {
+        const r2 = await evaluate(fq2, false);
+        addCost(r2.addedCost);
+        if (r2.pass) {
+          console.log(`[QUESTION-VERIFY] reformulated after ${result.motif} → "${fq2.slice(0, 90)}"`);
+          return { pass: true, forecastQuestion: fq2, checks, costUsd: totalCost };
         }
+        // Report the SECOND failure — it describes the final candidate.
+        result = { ...r2, forecastQuestion: fq2 };
       }
-    } catch { /* fall through to abandon */ }
-    checks.baseRate = est.p;
-    return { pass: false, checks, motif: 'anti_bias_trivial', costUsd: totalCost };
+    } catch { /* fall through to the original rejection */ }
   }
-  if (est) checks.baseRate = est.p;
 
-  return { pass: true, forecastQuestion: fq, checks, costUsd: totalCost };
+  if (result.pass) {
+    return { pass: true, forecastQuestion: result.forecastQuestion, checks, costUsd: totalCost };
+  }
+  return reject(result.motif ?? 'low_quality', totalCost, checks, result.forecastQuestion ?? fq);
 }
 
 function clamp01to100(v: unknown): number {
