@@ -582,6 +582,11 @@ export async function runAndPublishInquiry(
       quantSeriesCount: typeof (p.stats.quant as { series?: number } | undefined)?.series === 'number'
         ? (p.stats.quant as { series: number }).series
         : undefined,
+      // Claude §1.5: statistical numbers still unsourced after the final
+      // sanitize pass — published notes must carry 0 (hard gate check).
+      unsourcedNumberCount: typeof (p.stats.numericalGate as { violations?: number } | undefined)?.violations === 'number'
+        ? (p.stats.numericalGate as { violations: number }).violations
+        : undefined,
       failedEvaluations: ['critic', 'criticPanel', 'devilsAdvocate', 'structuralEditor'].filter(key => {
         if (key === 'devilsAdvocate') return !aDa && !optionalDa;
         const evaluation = (p.stats[key] ?? p.lineage[key]) as Record<string, unknown> | undefined;
@@ -642,8 +647,13 @@ export async function runAndPublishInquiry(
       if (spec?.resolvable !== false && verdictText) {
         try {
           const { checkQuestionSubstitution } = await import('./question-spec');
+          // Claude §1.4: the check must compare against the ASKED forecast
+          // question, not the academic "How do…" research framing — run-12
+          // passed the research question while the spec came from the fq.
+          const askedQuestion = (typeof p.stats.forecastQuestion === 'string' && p.stats.forecastQuestion.trim())
+            ? p.stats.forecastQuestion.trim() : question;
           const sub = await checkQuestionSubstitution({
-            question,
+            question: askedQuestion,
             spec,
             verdict: verdictText,
             throughLine: analysis?.throughLine,
