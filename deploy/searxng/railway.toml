@@ -1,0 +1,10 @@
+[build]
+  builder = "DOCKERFILE"
+  dockerfilePath = "Dockerfile"
+
+[deploy]
+  restartPolicyType = "ON_FAILURE"
+  restartPolicyMaxRetries = 5
+  # SearXNG has no /health endpoint; the TCP listener on 8080 is the check.
+  healthcheckPath = "/"
+  healthcheckTimeout = 30
