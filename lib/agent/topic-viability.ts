@@ -92,11 +92,19 @@ export async function probeTopicViability(question: string): Promise<ViabilityPr
     (cr.status === 'fulfilled' ? relevantHits(cr.value, terms) : 0) +
     (tt.status === 'fulfilled' ? relevantHits(tt.value, terms) : 0);
 
-  const errors = [oa, cr, tt].filter(r => r.status === 'rejected')
+  const rejected = [oa, cr, tt].filter(r => r.status === 'rejected');
+  const errors = rejected
     .map(r => (r as PromiseRejectedResult).reason?.message ?? 'error').join('; ');
 
+  // A probe that measured a BROKEN surface cannot establish "near-zero
+  // footprint everywhere": circuit-broken providers contribute 0 hits on
+  // every topic, not on weak ones (run-17: oa=0 cr=0 both tripped → a
+  // gate-accepted subject skipped on a measurement of our own outage).
+  // ≥2 channels down → surface unknown → proceed, per the fail-open contract.
+  const viable = rejected.length >= 2 ? true : relevant >= threshold;
+
   return {
-    viable: relevant >= threshold,
+    viable,
     relevant, raw, terms, threshold,
     durationMs: Date.now() - t0,
     error: errors || undefined,
