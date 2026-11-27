@@ -1368,9 +1368,14 @@ async function callOpenAICompatible(
   // - Kimi: reasoning_effort=low still uses some tokens, enforce min 2000
   // - DeepSeek: thinking disabled for fast tasks but enabled for reasoning, double budget
   // - OpenAI: use requested value as-is
+  // GLM-5.3+ ALWAYS thinks (400: "cannot be disabled; use low, high, or
+  // max") — detected once here: never send `disabled`, and fast tasks get
+  // the same output-token headroom as reasoning tasks (reasoning_content
+  // burns the budget → empty content, same failure mode as deepseek).
+  const glmAlwaysThinks = provider === "glm" && /glm-5\.[3-9]|glm-[6-9]/i.test(effectiveModel);
   let effectiveMaxTokens = request.maxTokens ?? 4000;
   if (provider === "glm") {
-    effectiveMaxTokens = thinkingEnabled
+    effectiveMaxTokens = thinkingEnabled || glmAlwaysThinks
       ? Math.max(effectiveMaxTokens * 2, 8000)
       : Math.max(effectiveMaxTokens, 1000);
   }
@@ -1406,9 +1411,12 @@ async function callOpenAICompatible(
   // classification call timed out at 120s). reasoning_effort is NOT a z.ai
   // parameter — do not send it.
   const glmExtraBody: Record<string, unknown> = {};
-  if (provider === "glm") {
+  if (provider === "glm" && !glmAlwaysThinks) {
     glmExtraBody.thinking = { type: thinkingEnabled ? "enabled" : "disabled" };
   }
+  // glmAlwaysThinks: send nothing — the model's default is thinking-on and
+  // an explicit `enabled` or effort level risks another 400 on a param
+  // shape we can't verify offline.
 
   // Temperature handling per provider:
   // - Kimi K3: fixed at 1.0, must NOT be passed explicitly (API returns error)
