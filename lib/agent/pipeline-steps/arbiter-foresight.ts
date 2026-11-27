@@ -256,6 +256,33 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
           // asked question itself as a trackable prediction.
           (analysis as Record<string, unknown>).questionForecast = stats.questionForecast;
           (analysis as Record<string, unknown>).questionSpec = questionSpec;
+
+          // Claude §1.3: when a verified forecastQuestion exists, the bound
+          // thesis IS the forecast — rebind stats.thesisBinding to the
+          // probability statement BEFORE the pre-render adherence check and
+          // the publication gate. The corpus-derived premises (≥2 documents)
+          // stay attached as the engines; only the claim form changes —
+          // the probability itself comes from the forecasters, not the corpus.
+          const priorBinding = (stats as any).thesisBinding;
+          if (fq && priorBinding && !priorBinding.absent && !priorBinding.unavailable) {
+            const horizon = questionSpec?.horizon || swarmHorizon || 'its horizon';
+            const engines = chainDerivation.uncertainties
+              .filter(u => u.linkId !== QUESTION_LINK_ID)
+              .slice(0, 2)
+              .map(u => String(u.claim).slice(0, 140));
+            const engineText = engines.length ? ` Engines: ${engines.join('; ')}.` : '';
+            const pPct = Math.round(Math.min(0.95, Math.max(0.05, qForecast.probability)) * 100);
+            (stats as any).thesisBinding = {
+              ...priorBinding,
+              statement: `P(${fq}) ≈ ${pPct}% by ${horizon}.${engineText}`,
+              origin: 'forecast',
+              probability: qForecast.probability,
+              forecastIqR: qForecast.iqr,
+              forecastVotes: qForecast.validVotes,
+              forecastFamilies: qForecast.families,
+            };
+            console.log(`${label} THESIS REBIND (forecast): "${(stats as any).thesisBinding.statement.slice(0, 110)}"`);
+          }
         }
         const { assessSwarmHealth } = await import('../swarm-forecaster');
         // Agentic mode: 3 deep forecasters, one vote per link each — the

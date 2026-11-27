@@ -486,7 +486,7 @@ export async function runReaderBlock(deps: ReaderBlockDeps): Promise<ReaderBlock
   {
     try {
       const { hypothesisJudge } = await import('../hypothesis-engine');
-      const judge = await hypothesisJudge(framing.hypotheses, topSources, readings, quant.evidenceBlock || undefined, query);
+      const judge = await hypothesisJudge(framing.hypotheses, topSources, readings, quant.evidenceBlock || undefined, query, (stats as any).forecastQuestion);
       addCost(judge.costUsd, 'HYPOTHESIS JUDGE');
       hypothesisVerdictBlock = judge.verdictBlock;
       stats.hypothesisJudge = {
