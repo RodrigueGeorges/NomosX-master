@@ -396,7 +396,12 @@ export async function runPipelineInit(query: string, opts: PipelineCoreOptions) 
     const existing = activeRuns.get(idempotencyKey)!;
     if (Date.now() < existing.expiresAt) {
       console.warn(`${label} IDEMPOTENCY: duplicate run rejected (key=${idempotencyKey.slice(0, 30)}..., started ${Math.round((Date.now() - existing.startedAt) / 1000)}s ago)`);
-      throw new Error(`Pipeline already running for this query (started ${Math.round((Date.now() - existing.startedAt) / 1000)}s ago)`);
+      // DuplicateRunError → orchestrator maps to skipped_duplicate (terminal).
+      // A plain Error lands as HELD — burning a retry slot on a run that can
+      // never succeed while the original is still in flight (audit finding).
+      const dupErr = new Error(`Pipeline already running for this query (started ${Math.round((Date.now() - existing.startedAt) / 1000)}s ago)`);
+      dupErr.name = 'DuplicateRunError';
+      throw dupErr;
     }
   }
   activeRuns.set(idempotencyKey, { startedAt: Date.now(), expiresAt: Date.now() + IDEMPOTENCY_TTL_MS });

@@ -194,6 +194,10 @@ export async function verifyDispatchQuestion(input: {
     'anti_bias_trivial', 'stale_horizon', 'off_signal_terms',
     'verifier_low_quality', 'verifier_ambiguous', 'verifier_unresolvable',
     'verifier_trivial', 'verifier_anti_bias_trivial_no',
+    // Independent-verifier wrappers — run-16 showed verifier_off_signal /
+    // verifier_stale_horizon rejections dying WITHOUT a reformulation attempt
+    // because the wrapped motifs were missing from this set.
+    'verifier_off_signal', 'verifier_stale_horizon', 'verifier_off_signal_terms',
   ]);
 
   interface EvalResult {
@@ -352,13 +356,15 @@ REJECTION MOTIF: ${result.motif}` },
       const rp = parseJson<{ forecastQuestion?: string }>(rc);
       const fq2 = typeof rp?.forecastQuestion === 'string' ? rp.forecastQuestion.trim() : '';
       if (fq2) {
+        const firstMotif = result.motif;
         const r2 = await evaluate(fq2, false);
         addCost(r2.addedCost);
         if (r2.pass) {
-          console.log(`[QUESTION-VERIFY] reformulated after ${result.motif} → "${fq2.slice(0, 90)}"`);
+          console.log(`[QUESTION-VERIFY] reformulated after ${firstMotif} → "${fq2.slice(0, 90)}"`);
           return { pass: true, forecastQuestion: fq2, checks, costUsd: totalCost };
         }
         // Report the SECOND failure — it describes the final candidate.
+        console.log(`[QUESTION-VERIFY] reformulation after ${firstMotif} still rejected (${r2.motif}) → "${fq2.slice(0, 90)}"`);
         result = { ...r2, forecastQuestion: fq2 };
       }
     } catch { /* fall through to the original rejection */ }
