@@ -142,6 +142,15 @@ export interface ProspectiveNote {
       directiveInjected: boolean;
       costUsd: number;
     };
+    /** Claim-ledger verification outcome (pass-1 mechanism→passage check). */
+    claimLedger?: {
+      checked: number;
+      unsupported: number;
+      partial: number;
+      uncited: number;
+      directiveInjected: boolean;
+      costUsd: number;
+    };
     /** Set when the analyst produced a failure stub instead of a real analysis. */
     failed?: boolean;
     /** Claim→passage contract outcome (deterministic, pre-pruning). */
@@ -1494,6 +1503,41 @@ export async function analystAgentV3(
       }
     }
 
+    // CLAIM-LEDGER VERIFICATION — the pre-draft review checks the direction's
+    // scope; this checks the ledger's grounding: whether each mechanism's
+    // cited passages actually support it, before passes 2/3 write it into
+    // prose. Unsupported/partial/uncited mechanisms become a mandatory
+    // directive in the shared context. Calibration showed "no source
+    // supports this" as the dominant DA kill shot — repairing the register
+    // here costs a directive; repairing it at the tail costs a re-analysis.
+    let claimLedgerCost = 0;
+    let claimLedgerMeta: NonNullable<ProspectiveNote['_meta']['claimLedger']> | undefined;
+    if (process.env.NOMOSX_CLAIM_LEDGER !== '0') {
+      try {
+        const { verifyClaimLedger } = await import('./claim-ledger');
+        const ledger = await verifyClaimLedger({
+          question,
+          mechanisms: validatedMap.map.mechanisms ?? [],
+          sources,
+          readings,
+        });
+        if (ledger) {
+          claimLedgerCost = ledger.costUsd;
+          claimLedgerMeta = {
+            checked: ledger.checked,
+            unsupported: ledger.unsupportedIds.length,
+            partial: ledger.partialIds.length,
+            uncited: ledger.uncitedIds.length,
+            directiveInjected: ledger.directive.length > 0,
+            costUsd: ledger.costUsd,
+          };
+          if (ledger.directive) ctx = `${ctx}\n\n${ledger.directive}`;
+        }
+      } catch (ledgerErr) {
+        console.warn(`[Analyst V3] CLAIM LEDGER failed (non-blocking):`, ledgerErr);
+      }
+    }
+
     // REPAIR RESERVE — the post-analyst tail (critic→gap-fill→DA→verify→
     // render→gate) needs ~REPAIR_TAIL_RESERVE_MS to judge and repair the
     // artifact. A pass that starts inside the reserve produces a richer
@@ -1866,7 +1910,7 @@ export async function analystAgentV3(
     }
 
     const totalTokens = p1.tokens + p2.tokens + p3.tokens;
-    const totalCost = p1.cost + p2.cost + p3.cost + preDraftReviewCost + inlineGateCost + premortemCostTotal;
+    const totalCost = p1.cost + p2.cost + p3.cost + preDraftReviewCost + claimLedgerCost + inlineGateCost + premortemCostTotal;
     const elapsed = Date.now() - startTime;
 
     console.log(`[Analyst V3] Complete in ${elapsed}ms | 3 passes${p2Compact ? ' (P2 compact)' : ''} | ${totalTokens} tokens | $${totalCost.toFixed(4)} | cascade violations: ${chainValidation.cascadeViolations}`);
@@ -1955,6 +1999,7 @@ export async function analystAgentV3(
         producerFamily: p3.family as import('../llm/unified-llm').LLMFamily | undefined,
         pruning: pruningResult,
         preDraftReview: preDraftReviewMeta,
+        claimLedger: claimLedgerMeta,
         claimPassageContract: passageContract.checked > 0 || passageContract.skippedNoReading > 0
           ? { ...passageContract, nli: passageNLI }
           : undefined,
