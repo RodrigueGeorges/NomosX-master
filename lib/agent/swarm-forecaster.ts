@@ -20,7 +20,9 @@
 
 import { callLLM } from '../llm/unified-llm';
 import { parseJson } from './json-utils';
+import { todayIso } from './today';
 import { poolForecasts, type ForecastVote } from './leap-aggregation';
+import { applyPlatt, getFamilyPlatt } from './platt-calibration';
 import type { LLMProvider } from '../llm/unified-llm';
 import { passageContainment } from './claim-passage-contract';
 
@@ -116,6 +118,10 @@ export interface SwarmResult {
    *  card deck. When `independent:false`, no forecasts are produced — a
    *  dominant-domain or weak-source deck cannot promote a probability. */
   evidenceIndependence?: EvidenceIndependence;
+  /** Lot 1 supervisor: set when a link's IQR exceeded 0.20 and one targeted
+   *  second pass ran on the split links. `resolved` lists links whose IQR
+   *  came back under threshold. */
+  supervisor?: { triggered: boolean; links: number[]; costUsd: number; resolved: number[] };
 }
 
 export interface EvidenceIndependence {
@@ -222,20 +228,26 @@ export const SWARM_MAX_IQR = 0.35;
  * A swarm may elect only when every conditioned link has enough independent
  * ballots. Thin or single-family votes are a hold, not an election.
  */
-export function assessSwarmHealth(forecasts: LinkForecast[], neededLinkIds: number[]): SwarmHealth {
+export function assessSwarmHealth(
+  forecasts: LinkForecast[],
+  neededLinkIds: number[],
+  opts?: { minVotesPerLink?: number; minFamilies?: number },
+): SwarmHealth {
+  const minVotes = opts?.minVotesPerLink ?? SWARM_MIN_VOTES_PER_LINK;
+  const minFamilies = opts?.minFamilies ?? SWARM_MIN_FAMILIES;
   const issues: string[] = [];
   for (const id of neededLinkIds) {
     const f = forecasts.find(x => x.linkId === id);
     if (!f) { issues.push(`link ${id}: no forecast`); continue; }
-    if (f.validVotes < SWARM_MIN_VOTES_PER_LINK) issues.push(`link ${id}: ${f.validVotes} valid votes (need ${SWARM_MIN_VOTES_PER_LINK})`);
-    if (f.families < SWARM_MIN_FAMILIES) issues.push(`link ${id}: ${f.families} model family (need ${SWARM_MIN_FAMILIES})`);
+    if (f.validVotes < minVotes) issues.push(`link ${id}: ${f.validVotes} valid votes (need ${minVotes})`);
+    if (f.families < minFamilies) issues.push(`link ${id}: ${f.families} model family (need ${minFamilies})`);
     if (f.iqr > SWARM_MAX_IQR) issues.push(`link ${id}: voters split (IQR ${f.iqr.toFixed(2)} > ${SWARM_MAX_IQR})`);
   }
   // Split-electable: every needed link met the participation floor and every
   // issue is an IQR split — no thin votes, no single-family links.
   const splitElectable = issues.length > 0 && neededLinkIds.every(id => {
     const f = forecasts.find(x => x.linkId === id);
-    return !!f && f.validVotes >= SWARM_MIN_VOTES_PER_LINK && f.families >= SWARM_MIN_FAMILIES;
+    return !!f && f.validVotes >= minVotes && f.families >= minFamilies;
   });
   return { healthy: issues.length === 0, issues, splitElectable };
 }
@@ -422,7 +434,7 @@ Return ONLY JSON: {"votes":[{"linkId":<number>,"probability":<0-1>,"confidence":
             },
             {
               role: 'user',
-              content: `QUESTION: ${input.question}\nHORIZON: ${input.horizon ?? 'see links'}\n\nUNCERTAIN LINKS:\n${tasks}\n\nSHARED EVIDENCE:\n${sharedBlock}\n\n${input.marketContext ? `MARKET REFERENCE (crowd price — information, NOT evidence; do not cite it as a card):\n${input.marketContext}\n\n` : ''}YOUR PRIVATE EVIDENCE SLICE:\n${privateBlock || '(none — rely on shared pool and base rates)'}`,
+              content: `TODAY: ${todayIso()}\nQUESTION: ${input.question}\nHORIZON: ${input.horizon ?? 'see links'}\n\nUNCERTAIN LINKS:\n${tasks}\n\nSHARED EVIDENCE:\n${sharedBlock}\n\n${input.marketContext ? `MARKET REFERENCE (crowd price — information, NOT evidence; do not cite it as a card):\n${input.marketContext}\n\n` : ''}YOUR PRIVATE EVIDENCE SLICE:\n${privateBlock || '(none — rely on shared pool and base rates)'}`,
             },
           ],
         });
@@ -457,44 +469,142 @@ Return ONLY JSON: {"votes":[{"linkId":<number>,"probability":<0-1>,"confidence":
   }
 
   // Aggregate per link: confidence-weighted log-odds pooling + spread stats.
-  const forecasts: LinkForecast[] = [];
-  const familiesUsed = [...new Set(votes.map(v => v.family))];
-  for (const link of input.uncertainties.slice(0, 6)) {
-    const linkVotes = votes.filter(v => v.linkId === link.linkId);
-    if (!linkVotes.length) continue;
-    const fv: ForecastVote[] = linkVotes.map(v => ({
-      claim: `link-${link.linkId}`,
-      probability: v.probability,
-      // confidence {1,1.5,2} → poolForecasts scale [20,95]
-      confidence: v.confidence === 2 ? 95 : v.confidence === 1.5 ? 75 : 50,
-      origin: v.voterId,
-    }));
-    const pooled = poolForecasts(fv);
-    if (!pooled) continue;
-    const probs = linkVotes.map(v => v.probability).sort((a, b) => a - b);
-    const mean = probs.reduce((a, b) => a + b, 0) / probs.length;
-    const variance = probs.reduce((a, b) => a + (b - mean) ** 2, 0) / probs.length;
-    const q1 = probs[Math.floor(probs.length * 0.25)] ?? mean;
-    const q3 = probs[Math.floor(probs.length * 0.75)] ?? mean;
-    forecasts.push({
-      linkId: link.linkId,
-      claim: link.claim,
-      probability: pooled.pooled,
-      variance,
-      iqr: q3 - q1,
-      validVotes: linkVotes.length,
-      families: new Set(linkVotes.map(v => v.family)).size,
-      contested: pooled.contested,
-    });
+  const aggregate = (): LinkForecast[] => {
+    const out: LinkForecast[] = [];
+    for (const link of input.uncertainties.slice(0, 6)) {
+      const linkVotes = votes.filter(v => v.linkId === link.linkId);
+      if (!linkVotes.length) continue;
+      // Lot 1 Platt calibration: each vote is mapped through its model
+      // family's fitted calibration before log-odds pooling. Identity
+      // seeds → no behaviour change until resolved votes accumulate.
+      const fv: ForecastVote[] = linkVotes.map(v => ({
+        claim: `link-${link.linkId}`,
+        probability: applyPlatt(v.probability, getFamilyPlatt(v.family)),
+        // confidence {1,1.5,2} → poolForecasts scale [20,95]
+        confidence: v.confidence === 2 ? 95 : v.confidence === 1.5 ? 75 : 50,
+        origin: v.voterId,
+      }));
+      const pooled = poolForecasts(fv);
+      if (!pooled) continue;
+      const probs = linkVotes.map(v => v.probability).sort((a, b) => a - b);
+      const mean = probs.reduce((a, b) => a + b, 0) / probs.length;
+      const variance = probs.reduce((a, b) => a + (b - mean) ** 2, 0) / probs.length;
+      const q1 = probs[Math.floor(probs.length * 0.25)] ?? mean;
+      const q3 = probs[Math.floor(probs.length * 0.75)] ?? mean;
+      out.push({
+        linkId: link.linkId,
+        claim: link.claim,
+        // Published probabilities never claim certainty (Lot 1 clamp).
+        probability: Math.min(0.95, Math.max(0.05, pooled.pooled)),
+        variance,
+        iqr: q3 - q1,
+        validVotes: linkVotes.length,
+        families: new Set(linkVotes.map(v => v.family)).size,
+        contested: pooled.contested,
+      });
+    }
+    return out;
+  };
+
+  let forecasts = aggregate();
+
+  // ── SUPERVISOR (Lot 1): IQR > 0.20 means the panel genuinely disagrees —
+  // one targeted second pass on the split links only. Voters see the two
+  // camps' mean probabilities and must name the deciding consideration
+  // (base rate, actor incentives, commitment credibility) before re-voting.
+  // Exactly ONE extra pass — no deliberation loop. ──
+  const splitLinks = forecasts.filter(f => f.iqr > 0.20);
+  let supervisor: { triggered: boolean; links: number[]; costUsd: number; resolved: number[] } | undefined;
+  if (splitLinks.length > 0) {
+    const costBeforePass2 = costUsd;
+    const splitIds = new Set(splitLinks.map(f => f.linkId));
+    const splitUncertainties = input.uncertainties.filter(u => splitIds.has(u.linkId));
+    const campStats = splitLinks.map(f => {
+      const vs = votes.filter(v => v.linkId === f.linkId).map(v => v.probability).sort((a, b) => a - b);
+      const median = vs[Math.floor(vs.length / 2)] ?? 0.5;
+      const low = vs.filter(p => p < median).reduce((a, b) => a + b, 0) / Math.max(1, vs.filter(p => p < median).length);
+      const high = vs.filter(p => p >= median).reduce((a, b) => a + b, 0) / Math.max(1, vs.filter(p => p >= median).length);
+      return `link #${f.linkId}: low camp ≈${low.toFixed(2)}, high camp ≈${high.toFixed(2)} (IQR ${f.iqr.toFixed(2)})`;
+    }).join('\n');
+    const tasks2 = splitUncertainties
+      .map(u => `LINK #${u.linkId}${u.dependsOn != null ? ` (ASSUME link #${u.dependsOn} holds)` : ''}: ${u.claim}`)
+      .join('\n');
+
+    const pass2 = await Promise.allSettled(
+      Array.from({ length: Math.min(voterCount, 12) }, async (_, i) => {
+        const provider = voterProviders[(i + 3) % voterProviders.length];
+        const res = await callLLM({
+          provider,
+          task: 'fact_check',
+          temperature: 0.3,
+          maxTokens: 700,
+          jsonMode: true,
+          runId: input.runId,
+          traceName: 'swarm_forecast_supervisor',
+          maxCostUsd: 0.02,
+          messages: [
+            {
+              role: 'system',
+              content: `You are an independent superforecaster doing a TARGETED SECOND PASS. The first ballot round split on the links below — your job is to resolve the disagreement, not repeat it.
+Method (mandatory order):
+1. Name the single most decisive consideration the two camps weight differently (base rate, actor incentives, credibility of commitments, timeline).
+2. Re-check it against the evidence cards.
+3. Emit ONE probability per link strictly between 0.02 and 0.98 and a confidence in {1, 1.5, 2}.
+Return ONLY JSON: {"decisiveFactor":"<one phrase>","votes":[{"linkId":<number>,"probability":<0-1>,"confidence":<1|1.5|2>,"citedCards":["<card-id>",...]}],"reasoning":"<2 sentences>"}`,
+            },
+            {
+              role: 'user',
+              content: `QUESTION: ${input.question}\nHORIZON: ${input.horizon ?? 'see links'}\n\nDISAGREEMENT TO RESOLVE:\n${campStats}\n\nSPLIT LINKS:\n${tasks2}\n\nSHARED EVIDENCE:\n${sharedBlock}\n\n${input.marketContext ? `MARKET REFERENCE (crowd price — information, NOT evidence):\n${input.marketContext}\n\n` : ''}YOUR PRIVATE EVIDENCE SLICE:\n${formatCards(slices[i % slices.length], `V${i}-PRIVATE`) || '(none)'}`,
+            },
+          ],
+        });
+        costUsd += res.costUsd ?? 0;
+        rawVotes++;
+        const parsed = parseJson<{ votes?: Array<{ linkId?: number; probability?: number; confidence?: number; citedCards?: string[] }> }>(res.content);
+        const arr = parsed?.votes;
+        if (!Array.isArray(arr)) return;
+        const shown = new Set([...sharedKeys, ...slices[i % slices.length].map(c => cardKey(c.id))]);
+        for (const v of arr) {
+          const linkId = Number(v.linkId);
+          if (!splitIds.has(linkId)) continue; // second pass only revises split links
+          const cited = Array.isArray(v.citedCards) ? v.citedCards.map(c => String(c).toLowerCase()) : [];
+          const grounded = cited.some(c => [...shown].some(k => c.includes(k)));
+          if (!grounded) { ungroundedVotes++; continue; }
+          const p = Number(v.probability);
+          if (!Number.isFinite(p) || p <= 0 || p >= 1) continue;
+          votes.push({
+            linkId,
+            probability: Math.min(0.98, Math.max(0.02, p)),
+            confidence: [1, 1.5, 2].includes(Number(v.confidence)) ? Number(v.confidence) : 1,
+            voterId: `v${i}-r2`,
+            family: familyOf(res, provider),
+            negated: false,
+          });
+        }
+      })
+    );
+    void pass2;
+    const before = new Map(splitLinks.map(f => [f.linkId, f.iqr]));
+    forecasts = aggregate();
+    const resolved = [...before.entries()]
+      .filter(([id, iqr]) => (forecasts.find(f => f.linkId === id)?.iqr ?? iqr) <= 0.20)
+      .map(([id]) => id);
+    supervisor = {
+      triggered: true,
+      links: [...splitIds],
+      costUsd: Number((costUsd - costBeforePass2).toFixed(6)),
+      resolved,
+    };
   }
 
   return {
     forecasts,
     rawVotes,
     validVotes: votes.length,
-    familiesUsed,
+    familiesUsed: [...new Set(votes.map(v => v.family))],
     costUsd,
     ungroundedVotes,
     evidenceIndependence: independence,
+    supervisor,
   };
 }

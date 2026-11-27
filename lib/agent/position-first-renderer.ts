@@ -55,6 +55,12 @@ function stripCitations(s: string): string {
 
 function replaceCitations(text: string, sourceCount?: number): string {
   let normalized = text
+    // Bracket-comma multi-citations "[SRC-7, SRC-19]" → "[SRC-7][SRC-19]".
+    // MUST run before the bare-SRC pass: without it, "(?!\])" backtracks
+    // "SRC-19]" to "SRC-1" + orphan "9]" — observed live as
+    // "[SRC-7, <sup>1</sup>9]" corrupting the rendered rationale.
+    .replace(/\[SRC-\d+(?:\s*,\s*SRC-\d+)*\]/g, (m) =>
+      (m.match(/SRC-\d+/g) ?? []).map(r => `[${r}]`).join(''))
     .replace(/\(SRC-(\d+)(?:\s*,\s*SRC-(\d+))*\)/g, (match, ...nums) => {
       const refs = match.match(/SRC-(\d+)/g) || [];
       return refs.map(r => `[${r}]`).join('');
@@ -121,6 +127,23 @@ export interface CentralScenarioLabels {
 }
 
 /**
+ * Probability badge honesty gate (run-11 DA killShot): a numeric percentage
+ * is only shown when it comes from a calibrated source — the swarm election
+ * (empiricalProbability, pinned by pinScenariosToCells) or the Delphi
+ * calibrated estimate. Analyst-written "58%" strings are uncalibrated
+ * guesses and collapse to "not established"; qualitative labels pass
+ * through unchanged.
+ */
+function scenarioProbLabel(s: { probability?: unknown; empiricalProbability?: unknown; calibratedProbability?: unknown }): string {
+  for (const v of [s.empiricalProbability, s.calibratedProbability]) {
+    if (typeof v === 'number' && Number.isFinite(v)) return `${Math.round(v * 100)}%`;
+  }
+  const p = String(s.probability ?? '').trim();
+  if (p && !/^\d/.test(p)) return p;
+  return 'not established';
+}
+
+/**
  * Render the single central-scenario block. Shared by the renderer and the
  * revision controller — the gate requires the block to match the persisted
  * decision verbatim, so both paths must emit identical markup.
@@ -156,7 +179,13 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
   const dimensions = dimensionsFromClassification(classification);
   const collision = collisionLabel(dimensions);
   const apaCitations = sources.map((s, i) => formatAPA(s, i + 1));
-  const title = String(analysis.title ?? position.headline ?? question);
+  // Claude §4: a verified forecastQuestion IS the note's title/chapeau —
+  // the reader must see the exact question being answered, not a headline
+  // the pipeline invented around it.
+  const forecast = input.forecast;
+  const title = forecast?.question
+    ? String(forecast.question)
+    : String(analysis.title ?? position.headline ?? question);
   const detectedReason = classification.detectedSubject ?? classification.reasoning ?? question;
 
   // ── Style-adaptive labels ──
@@ -229,7 +258,27 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
   const formatBadgeHtml = `<span class="format-badge" title="${esc(fmt.description)}">${esc(fmt.label)}</span>`;
   // metaLine mixes raw badge HTML with metadata text — escape the text part
   // only; escaping the whole line renders the badge as literal &lt;span&gt; text.
-  const metaLine = `${formatBadgeHtml} ${esc(`${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} · ${sources.length} sources · ${providers.length} providers · Confidence: ${position.confidence}/100`)}`;
+  // Claude §4: confidence is COMPUTED, not self-declared — family agreement
+  // (≥3 forecaster families) and vote dispersion (IQR) decide the label,
+  // Stimson-style. The raw position.confidence score no longer ships.
+  const computedConfidence = forecast?.question
+    ? ((forecast.families ?? 0) >= 3 && (forecast.iqr ?? 1) <= 0.15 ? 'high'
+      : (forecast.families ?? 0) >= 2 && (forecast.iqr ?? 1) <= 0.25 ? 'medium' : 'low')
+    : null;
+  const confidenceDisplay = computedConfidence ?? `${position.confidence}/100`;
+  const metaLine = `${formatBadgeHtml} ${esc(`${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} · ${sources.length} sources · ${providers.length} providers · Confidence: ${confidenceDisplay}`)}`;
+
+  // Forecast dateline (Claude §4): "P = x% by [horizon]" from the forecaster
+  // ensemble — never the analyst's uncalibrated guess — plus the
+  // information cutoff, OFCE-style.
+  const forecastStrip = forecast?.question
+    ? `<div class="pf-forecast" data-no-cite>
+    ${typeof forecast.probability === 'number' && Number.isFinite(forecast.probability)
+      ? `<p class="pf-forecast-p"><strong>P = ${Math.round(forecast.probability * 100)}%</strong>${forecast.horizon ? ` by ${esc(forecast.horizon)}` : ''}</p>`
+      : ''}
+    ${forecast.cutoff ? `<p class="pf-forecast-cutoff">Information as of ${esc(forecast.cutoff)}</p>` : ''}
+  </div>`
+    : '';
 
   // Low-confidence warning banner (if confidence < 65)
   const lowConfidenceWarning = (position.confidence != null && position.confidence < 65)
@@ -250,11 +299,25 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
   // ── Key Judgments (NIC/Belfer exec-summary: bottom line + numbered judgments) ──
   const inBrief = position.inBrief ?? [];
   const topVerdict = String(analysis.verdict || position.verdict || '');
-  const inBriefHtml = inBrief.length > 0
+  // Lot 3 dateline: probability / horizon / market odds next to the verdict.
+  const kf = input.keyFigures;
+  const keyFiguresParts: string[] = [];
+  if (typeof kf?.probability === 'number' && Number.isFinite(kf.probability)) {
+    keyFiguresParts.push(`Probability ${Math.round(kf.probability * 100)}%${kf.scenarioName ? ` — ${esc(kf.scenarioName)}` : ''}`);
+  }
+  if (kf?.horizon) keyFiguresParts.push(`Horizon ${esc(kf.horizon)}`);
+  if (typeof kf?.marketAvgProbability === 'number' && Number.isFinite(kf.marketAvgProbability)) {
+    keyFiguresParts.push(`Market odds ${Math.round(kf.marketAvgProbability * 100)}%${kf.marketCount ? ` (${kf.marketCount} market${kf.marketCount > 1 ? 's' : ''})` : ''}`);
+  }
+  const keyFiguresHtml = keyFiguresParts.length > 0
+    ? `<p class="key-figures" data-no-cite style="font-size:0.9em;color:var(--muted);margin:0.4em 0 0.8em">${keyFiguresParts.join(' · ')}</p>`
+    : '';
+  const inBriefHtml = inBrief.length > 0 || keyFiguresParts.length > 0
     ? `<section class="nx-block in-brief key-judgments">
   <p class="nx-eyebrow">${esc(L.inBrief)}</p>
   ${topVerdict ? `<p class="bottom-line">${replaceCitations(esc(topVerdict), sources.length)}</p>` : ''}
-  <ol class="key-judgments-list">${inBrief.map((b) => `<li>${replaceCitations(esc(b), sources.length)}</li>`).join('')}</ol>
+  ${keyFiguresHtml}
+  ${inBrief.length > 0 ? `<ol class="key-judgments-list">${inBrief.map((b) => `<li>${replaceCitations(esc(b), sources.length)}</li>`).join('')}</ol>` : ''}
 </section>`
     : '';
 
@@ -317,7 +380,9 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
 
         // Delphi foresight metrics (sidebar/footer, not mid-text)
         const metaParts: string[] = [];
-        if (s.confidenceInterval && Array.isArray(s.confidenceInterval)) {
+        if (Array.isArray(s.confidenceInterval)
+          && Number.isFinite(s.confidenceInterval[0]) && Number.isFinite(s.confidenceInterval[1])
+          && s.confidenceInterval[0] < s.confidenceInterval[1]) {
           metaParts.push(`<span>90% CI: [${Math.round(s.confidenceInterval[0] * 100)}%, ${Math.round(s.confidenceInterval[1] * 100)}%]</span>`);
         }
         if (typeof s.baseRate === 'number') {
@@ -365,7 +430,7 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
     <div class="scenario-row${s.isWildcard ? ' scenario-wildcard' : ''}">
       <div class="scenario-head">
         <span class="scenario-name">${esc(s.name)}${position.dominantScenario === s.name ? ' · central' : ''}${s.isWildcard ? ' · wildcard' : ''}</span>
-        <span class="scenario-prob" data-no-cite>${esc(s.probability)}</span>
+        <span class="scenario-prob" data-no-cite>${esc(scenarioProbLabel(s))}</span>
       </div>
       ${s.axisPosition ? `<div class="scenario-axis" data-no-cite><span class="signal-label">Matrix position:</span> ${esc(s.axisPosition)}</div>` : ''}
       ${narrativeHtml || `<div class="scenario-desc">${replaceCitations(esc(s.description), sources.length)}</div>`}
@@ -466,10 +531,13 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
       }).join('\n')
     : '';
 
-  // ── Trajectory as prose ──
+  // ── Trajectory as prose — assumptions get their own labelled block
+  // (Claude §4, PIIE-style "key assumptions": if X, then…) instead of
+  // being buried inside the trajectory paragraph. ──
   const trajectory = analysis.trajectory as any;
+  const trajectoryAssumptions = trajectory?.assumptions ? String(trajectory.assumptions) : '';
   const trajectoryHtml = trajectory
-    ? `${renderParagraphs(String(trajectory.state), sources.length)}${renderParagraphs(String(trajectory.assumptions), sources.length)}`
+    ? renderParagraphs(String(trajectory.state), sources.length)
     : '';
 
   // ── Rejected alternatives ──
@@ -584,18 +652,24 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
       const m = String(p ?? '').match(/(\d+(?:\.\d+)?)/);
       return m ? parseFloat(m[1]) : null;
     };
+    const sortProb = (s: (typeof position.scenarios)[number]): number =>
+      typeof s.empiricalProbability === 'number' && Number.isFinite(s.empiricalProbability)
+        ? s.empiricalProbability
+        : (parseProb(s.probability) ?? 0) / 100;
     const tableRows = [...position.scenarios]
-      .sort((a, b) => (parseProb(b.probability) ?? 0) - (parseProb(a.probability) ?? 0))
+      .sort((a, b) => sortProb(b) - sortProb(a))
       .map((s) => {
-        const prob = parseProb(s.probability);
+        const probCell = scenarioProbLabel(s);
         const ci = Array.isArray(s.confidenceInterval)
+          && Number.isFinite(s.confidenceInterval[0]) && Number.isFinite(s.confidenceInterval[1])
+          && s.confidenceInterval[0] < s.confidenceInterval[1]
           ? `${Math.round(s.confidenceInterval[0] * 100)}–${Math.round(s.confidenceInterval[1] * 100)}%`
           : '—';
         const sens = typeof s.sensitivityScore === 'number'
           ? (s.sensitivityScore < 0.3 ? 'robust' : s.sensitivityScore < 0.6 ? 'moderate' : 'fragile')
           : '—';
         const isCentralRow = s.name === central?.name || position.dominantScenario === s.name;
-        return `<tr${isCentralRow ? ' class="scenario-central-row"' : ''}><td data-no-cite>${esc(s.name)}${isCentralRow ? ' · central' : ''}${s.isWildcard ? ' · wildcard' : ''}</td><td data-no-cite>${prob !== null ? `${prob}%` : esc(String(s.probability))}</td><td data-no-cite>${ci}</td><td data-no-cite>${sens}</td><td data-no-cite>${(s.keyDrivers || []).slice(0, 2).map((d: string) => esc(d)).join('; ') || '—'}</td></tr>`;
+        return `<tr${isCentralRow ? ' class="scenario-central-row"' : ''}><td data-no-cite>${esc(s.name)}${isCentralRow ? ' · central' : ''}${s.isWildcard ? ' · wildcard' : ''}</td><td data-no-cite>${esc(probCell)}</td><td data-no-cite>${ci}</td><td data-no-cite>${sens}</td><td data-no-cite>${(s.keyDrivers || []).slice(0, 2).map((d: string) => esc(d)).join('; ') || '—'}</td></tr>`;
       })
       .join('');
     actIIIParts.push(`<section class="nx-block scenario-table-wrap"><table class="scenario-table"><thead><tr><th data-no-cite>Scenario</th><th data-no-cite>Prob.</th><th data-no-cite>90% CI</th><th data-no-cite>Sensitivity</th><th data-no-cite>Key drivers</th></tr></thead><tbody>${tableRows}</tbody></table></section>`);
@@ -607,10 +681,15 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
   if (trajectoryHtml) {
     actIIIParts.push(`<section class="nx-block trajectory"><p class="nx-eyebrow" data-no-cite>${esc(L.roadAhead)}</p>${trajectoryHtml}</section>`);
   }
+  if (trajectoryAssumptions) {
+    actIIIParts.push(`<section class="nx-block key-assumptions"><p class="nx-eyebrow" data-no-cite>${esc(L.keyAssumptions ?? 'Key assumptions')}</p><p class="assumptions-intro" data-no-cite>If these hold, then our central scenario follows — if one breaks, revisit the probability above.</p>${renderParagraphs(trajectoryAssumptions, sources.length)}</section>`);
+  }
 
   // 4. What We Ruled Out (rejected alternatives)
   if (rejectedHtml) {
-    actIIIParts.push(`<section class="nx-block rejected-alternatives"><p class="nx-eyebrow" data-no-cite>${esc(L.dismissed)}</p>${rejectedHtml}</section>`);
+    // Claude §4 (Eurasia Group-style): name the recurring media narratives
+    // judged improbable — the rejected alternatives ARE the false leads.
+    actIIIParts.push(`<section class="nx-block rejected-alternatives"><p class="nx-eyebrow" data-no-cite>${esc(L.dismissed)}</p><p class="false-leads-intro" data-no-cite>Recurring narratives we judged improbable — the probability above does not price them in.</p>${rejectedHtml}</section>`);
   }
 
   // 5. Signals to Watch (early warning indicators)
@@ -658,6 +737,7 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
   <article class="nomosx-brief">
     <h1 data-no-cite>${esc(title)}</h1>
     <div class="brief-meta" data-no-cite>${metaLine}</div>
+    ${forecastStrip}
 
     ${position.lede ? `<p class="nx-lede" data-no-cite>${esc(position.lede)}</p>` : ''}
 
@@ -679,7 +759,7 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
 
     <section class="nx-block colophon" data-no-cite>
       <p class="nx-eyebrow">How this analysis was produced</p>
-      <p class="colophon-text">This report was generated by the NomosX research pipeline: ${sources.length} sources across ${providers.length} providers, adversarial review, live claim verification, and Delphi-calibrated scenario probabilities. Claims marked "not established" indicate evidence we could not source — we do not fill gaps.</p>
+      <p class="colophon-text">This report was generated by the NomosX research pipeline from ${sources.length} sources across ${providers.length} providers. Scenario probabilities are model estimates, not calibrated forecasts. Evidence coverage is reported in the methodological note. Claims marked "not established" indicate evidence we could not source — we do not fill gaps.</p>
     </section>
 
     <footer class="nx-brief-footer" style="margin-top:3rem;padding-top:1.5rem;border-top:1px solid var(--border);text-align:center;font-size:0.85em;color:var(--muted);">

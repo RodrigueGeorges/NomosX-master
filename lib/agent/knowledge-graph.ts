@@ -18,7 +18,7 @@ import { callLLM } from '../llm/unified-llm';
 import { captureInputFifo } from './frozen-inputs';
 import { parseJson } from './json-utils';
 import { AgentRole, assertPermission } from '../governance/index';
-import { embedText, embedBatch, cosineSimilarity } from './semantic-engine';
+import { embedText, embedBatch, cosineSimilarity, isZeroEmbedding } from './semantic-engine';
 import { recordTemporalFact } from './temporal-memory';
 import { multiHopRetrieve, isMultiHopQuery } from './knowledge-graph-pagerank';
 import { beamSearch, rankPaths, extractReasoningChain, DEFAULT_PATH_CONFIG, type KGPath, type KGEdge } from './pathmind-kg';
@@ -75,6 +75,9 @@ export interface ConceptExtractionResult {
   concepts: Concept[];
   relations: ConceptRelation[];
   costUsd: number;
+  /** Embeddings refused because the backend returned the zero-vector failure
+   *  sentinel (closed scope / dead provider) — recorded for audit. */
+  refusedEmbeddings?: number;
 }
 
 export interface KnowledgeQueryResult {
@@ -170,10 +173,17 @@ Return JSON:
   // ── STEP 3: Deduplicate against existing concepts ──
   const now = new Date();
   const concepts: Concept[] = [];
+  let refusedEmbeddings = 0;
 
   for (let i = 0; i < (extracted.concepts || []).length; i++) {
     const raw = extracted.concepts[i];
-    const embedding = embeddings[i] || undefined;
+    // Refuse the failure sentinel: embedBatch fills failed batches with zero
+    // vectors (closed scope, dead backends) — persisting them wrote 279 null
+    // vectors into ConceptNode (run-11). A zero vector is truthy, so the old
+    // `embedding || []` guard never caught it.
+    const rawEmbedding = embeddings[i] || undefined;
+    const embedding = rawEmbedding && !isZeroEmbedding(rawEmbedding) ? rawEmbedding : undefined;
+    if (rawEmbedding && !embedding) refusedEmbeddings++;
 
     // Check for existing similar concept
     let existingConcept: any = null;
@@ -291,9 +301,9 @@ Return JSON:
     }
   }
 
-  console.log(`[KNOWLEDGE] ✅ Extracted ${concepts.length} concepts, ${relations.length} relations, cost=$${costUsd.toFixed(4)}`);
+  console.log(`[KNOWLEDGE] ✅ Extracted ${concepts.length} concepts, ${relations.length} relations, refusedEmbeddings=${refusedEmbeddings}, cost=$${costUsd.toFixed(4)}`);
 
-  return { concepts, relations, costUsd };
+  return { concepts, relations, costUsd, refusedEmbeddings };
 }
 
 // ============================================================================

@@ -26,13 +26,19 @@ export async function GET(req: Request) {
     const limit = Math.min(MAX_LIMIT, Math.max(1, parseInt(url.searchParams.get("limit") ?? String(DEFAULT_LIMIT), 10) || DEFAULT_LIMIT));
     const skip = (page - 1) * limit;
 
+    // Claude §4: the PUBLIC registry lists only predictions that shipped in a
+    // PUBLISHED note (brief.publishedAt set). Predictions from held/failed
+    // runs stay in the DB for internal calibration — they never appear here.
+    const publishedOnly = { brief: { is: { publishedAt: { not: null } } } } as const;
+
     const [byStatus, recentResolved, openSoonest, totalResolved, totalOpen] = await Promise.all([
       prisma.prediction.groupBy({
         by: ["status"],
+        where: publishedOnly,
         _count: { _all: true },
       }),
       prisma.prediction.findMany({
-        where: { status: { in: ["CONFIRMED", "REFUTED"] } },
+        where: { status: { in: ["CONFIRMED", "REFUTED"] }, ...publishedOnly },
         orderBy: { resolvedAt: "desc" },
         skip,
         take: limit,
@@ -42,7 +48,7 @@ export async function GET(req: Request) {
         },
       }),
       prisma.prediction.findMany({
-        where: { status: "OPEN" },
+        where: { status: "OPEN", ...publishedOnly },
         // dueAt is the authoritative deadline (parseHorizonDue); horizon is
         // free text — lexicographic 'asc' ordered '10d' before '2y' wrongly.
         orderBy: [{ dueAt: "asc" }, { createdAt: "asc" }],
@@ -53,8 +59,8 @@ export async function GET(req: Request) {
           resolutionCriteria: true, createdAt: true, briefId: true,
         },
       }),
-      prisma.prediction.count({ where: { status: { in: ["CONFIRMED", "REFUTED"] } } }),
-      prisma.prediction.count({ where: { status: "OPEN" } }),
+      prisma.prediction.count({ where: { status: { in: ["CONFIRMED", "REFUTED"] }, ...publishedOnly } }),
+      prisma.prediction.count({ where: { status: "OPEN", ...publishedOnly } }),
     ]);
 
     const counts: Record<string, number> = {};
@@ -73,7 +79,7 @@ export async function GET(req: Request) {
     // and mixing them would let a fixed table inflate the track record.
     // Reference: a naive always-0.5 forecast scores exactly 0.25.
     const quantified = await prisma.prediction.findMany({
-      where: { status: { in: ["CONFIRMED", "REFUTED"] }, probability: { not: null } },
+      where: { status: { in: ["CONFIRMED", "REFUTED"] }, probability: { not: null }, ...publishedOnly },
       // Bounded: this public endpoint previously loaded EVERY resolved
       // prediction ever into memory — unbounded growth on a 5-min revalidate.
       orderBy: { resolvedAt: "desc" },

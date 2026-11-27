@@ -5,7 +5,7 @@
 
 import {  prisma  } from '../db';
 import { randomUUID, createHash } from 'node:crypto';
-import { assertExecutionActive, withExecutionDeadline } from '../worker/execution-scope';
+import { assertExecutionActive, withExecutionDeadline, withExecutionDetached } from '../worker/execution-scope';
 import { hasRunHeadroom, hasRunHeadroomWithReserve, remainingRunMs } from './pipeline-steps/time-budget';
 import { recordDegradedStep } from './degraded-steps';
 import { BRAND_BRIEF_FOOTER, BRAND_MANIFESTO } from '@/lib/brand/public-copy';
@@ -124,6 +124,10 @@ export interface PipelineCoreOptions {
    * distilled for the evidence it lacked — scouted as a bounded mission so
    * the retry repairs the corpus gap. */
   priorEvidenceQueries?: string[];
+  /** P0-A: verified falsifiable forecast question from dispatch — the
+   * questionSpec (resolution/metric/source/horizon) is extracted FROM it,
+   * never invented downstream from the research question. */
+  forecastQuestion?: string;
   /** Regeneration loop: readings extracted by the prior attempt — the reader
    * reuses them for sources it already extracted and only reads NEW sources
    * (e.g. gap-fill additions). Skipping a full re-read saves ~5-8min and the
@@ -342,6 +346,10 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     phaseMarks[name] = Date.now() - pipelineStart;
   };
   (stats as any).phaseTimings = phaseMarks;
+  // P0-A: the dispatch-verified forecast question is part of the run's
+  // contract — recorded unconditionally so the question_substituted check
+  // and post-run stats see it even when the swarm/arbiter block is skipped.
+  if (opts.forecastQuestion?.trim()) (stats as any).forecastQuestion = opts.forecastQuestion.trim();
 
   // -- STEP 1: SCOUT — extracted to pipeline-steps/scout-block.ts --
   // Budget lane 'scout': broad discovery fan-out gets its own sub-cap per
@@ -576,15 +584,23 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   const preReaderMinSources = Number(process.env.PRE_READER_MIN_SOURCES ?? (isStrategic ? 15 : 8));
   const coreEvidenceShort = typeof screenedCoreCount === 'number' && screenedCoreCount < preReaderMinCore;
   const corpusTooSmall = topSources.length < preReaderMinSources;
-  if (coreEvidenceShort || corpusTooSmall) {
+  // Lot 2 corpus quotas: a policy question whose mandatory evidence mass
+  // (regulatory texts, recent implementation, ex-ante modelling, contrary
+  // sources) could not be filled in two rounds stops BEFORE reader spend —
+  // motif corpus_quota_unmet:<missing>.
+  const corpusQuotas = (stats as any).corpusQuotas as { met?: boolean; missing?: string[] } | undefined;
+  const quotasUnmet = corpusQuotas?.met === false;
+  if (coreEvidenceShort || corpusTooSmall || quotasUnmet) {
     const deferredQueries = (((stats as any).deferredGapRequests?.queries ?? []) as string[]).slice(0, 12);
-    const reason = `corpus_core_evidence_pre_reader: ${screenedCoreCount ?? 'unscreened'} core sources (need ${preReaderMinCore}), ${topSources.length} ranked sources (need ${preReaderMinSources})`;
+    const reason = quotasUnmet
+      ? `corpus_quota_unmet:${(corpusQuotas?.missing ?? []).join('+') || 'unknown'} — ${topSources.length} ranked sources could not fill mandatory policy-corpus quotas before reader spend`
+      : `corpus_core_evidence_pre_reader: ${screenedCoreCount ?? 'unscreened'} core sources (need ${preReaderMinCore}), ${topSources.length} ranked sources (need ${preReaderMinSources})`;
     console.warn(`${label} REFUSAL: ${reason} — refusing before reader spend`);
     stats.structuredRefusal = {
       reason,
       sourceCount: topSources.length,
       required: preReaderMinSources,
-      missing: ['core_evidence', 'reader_extractions'],
+      missing: quotasUnmet ? ['corpus_quota', ...(corpusQuotas?.missing ?? [])] : ['core_evidence', 'reader_extractions'],
       retryQueries: deferredQueries,
       // Extended fields for diagnostics — the declared type stays minimal.
       ...({ coreSourceCount: screenedCoreCount ?? null, requiredCore: preReaderMinCore, gapQueries: deferredQueries } as any),
@@ -774,6 +790,16 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   const coverageBlock = buildRequiredCoverageBlock(planNodesForAudit, evidenceNotesFor(branchCoverage));
   if (coverageBlock) {
     fullContextBlock = (fullContextBlock || '') + coverageBlock;
+  }
+  // P0-B: the published thesis IS the forecast. When a dispatch-verified
+  // forecastQuestion reached the pipeline, the verdict must commit to
+  // "P(resolution)=x by horizon because [engines]" — a descriptive backdrop
+  // that never takes a position is held downstream as question_substituted.
+  if (opts.forecastQuestion?.trim()) {
+    fullContextBlock = (fullContextBlock || '') +
+      `\n\nFORECAST MANDATE (mandatory thesis form):\n` +
+      `The question this note MUST answer: "${opts.forecastQuestion.trim()}"\n` +
+      `Your verdict must take an explicit position on it — state a probability or calibrated likelihood for the resolution BY its horizon, and name the causal engines (with their evidence) that drive it. A descriptive backdrop that never commits to "will X happen, and how likely" is a substituted thesis and will be held.`;
   }
   const positioningBrief = analystCtx.positioningBrief;
   const savedCanaResult = analystCtx.savedCanaResult;
@@ -1232,6 +1258,9 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
         typeof ghostAnalysis?.trajectory === 'object' && ghostAnalysis.trajectory
           ? String((ghostAnalysis.trajectory as { horizon?: string }).horizon ?? '') : undefined,
       );
+      if (ghostChain?.rejectedAxes?.length) {
+        gStats.chainRejectedAxes = ghostChain.rejectedAxes;
+      }
       if (ghostChain && topSources.length >= 10) {
         const contestedExtras = ((gStats.critic as any)?.contestedFindingsDetail ?? [])
           .map((cf: any, i: number) => ({
@@ -1258,6 +1287,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
           })),
           validVotes: swarm.validVotes, familiesUsed: swarm.familiesUsed,
           costUsd: swarm.costUsd, skipped: swarm.skipped,
+          supervisor: swarm.supervisor,
         };
         const health = assessSwarmHealth(swarm.forecasts, ghostChain.uncertainties.map(u => u.linkId));
         gStats.swarmHealth = { ...health, ghost: true };
@@ -1524,6 +1554,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
         readings,
         pipelineRunId: pipelineRun.id, addCost,
         degraded: arbiterDegraded,
+        forecastQuestion: opts.forecastQuestion,
       });
       institutePosition = arbiterOut.institutePosition;
       analysis = arbiterOut.analysis as typeof analysis;
@@ -2044,6 +2075,9 @@ export interface StrategicPipelineOptions {
   /** HELD-retry: targeted retrieval queries distilled from the prior attempt's
    * missing evidence — scouted as a bounded mission. */
   priorEvidenceQueries?: string[];
+  /** P0-A: verified falsifiable forecast question from dispatch — drives
+   * questionSpec extraction (arbiter-foresight) and the swarm question ballot. */
+  forecastQuestion?: string;
   /** Regeneration loop: readings extracted by the prior attempt — the reader
    * reuses them; only new sources are fetched. */
   priorReadings?: unknown[];
@@ -2125,6 +2159,7 @@ export async function runStrategicPipeline(
     parametricInput: options.parametricInput,
     priorFailureFeedback: options.priorFailureFeedback,
     priorEvidenceQueries: options.priorEvidenceQueries,
+    forecastQuestion: options.forecastQuestion,
     priorReadings: options.priorReadings,
     skipGapFillRetrieval: options.skipGapFillRetrieval,
     primerCoverageCutoff: options.primerCoverageCutoff,
@@ -2268,6 +2303,7 @@ export async function runPipeline(
         useWitness: options.useWitness,
         priorFailureFeedback: options.priorFailureFeedback,
         priorEvidenceQueries: options.priorEvidenceQueries,
+    forecastQuestion: options.forecastQuestion,
         priorReadings: options.priorReadings,
         skipGapFillRetrieval: options.skipGapFillRetrieval,
         primerCoverageCutoff: options.primerCoverageCutoff,
@@ -2300,13 +2336,15 @@ export async function runPipeline(
           trustScore: s?.trustScore ?? undefined,
           qualityScore: (s as Record<string, unknown> | undefined)?.qualityScore as number | undefined,
         });
-        void flushAllTraces();
+        // Detached: the trace/score flush must outlive the pipeline scope —
+        // run-12 logged 'runAndPublishInquiry scope closed' on every flush.
+        void withExecutionDetached(() => flushAllTraces());
         return result;
       } catch (innerErr) {
         tracePipelineEnd(executionId, trimmedQuery.slice(0, 500), 0, Date.now() - t0, {
           status: 'FAILED',
         });
-        void flushAllTraces();
+        void withExecutionDetached(() => flushAllTraces());
         throw innerErr;
       }
       },

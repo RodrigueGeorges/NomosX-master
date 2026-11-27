@@ -12,6 +12,7 @@
 
 import { callLLM } from '../llm/unified-llm';
 import { parseJson } from './json-utils';
+import { todayIso, extractDates } from './today';
 
 export interface SentinelDraft {
   /** Vote id — kept clear of real chain link ids. */
@@ -30,6 +31,7 @@ const WINDOWS = [30, 60, 90] as const;
 export function validateSentinel(
   d: { statement?: unknown; dueInDays?: unknown; resolutionCriteria?: unknown; resolutionSource?: unknown; linkId?: unknown },
   allowedLinkIds: number[],
+  now: Date = new Date(),
 ): string[] {
   const issues: string[] = [];
   const statement = String(d.statement ?? '').trim();
@@ -43,8 +45,18 @@ export function validateSentinel(
   if (source.length < 4) issues.push('no resolution source');
   if (!allowedLinkIds.includes(Number(d.linkId))) issues.push('unknown linkId');
   // A year beyond the window means the statement is not about the window.
-  const latestYear = new Date(Date.now() + 90 * 86_400_000).getFullYear();
+  const latestYear = new Date(now.getTime() + 90 * 86_400_000).getFullYear();
   if ([...statement.matchAll(/\b(20\d{2})\b/g)].some(m => Number(m[1]) > latestYear)) issues.push('statement dated beyond the sentinel window');
+  // Lot 0 date anchoring: a sentinel observes the FUTURE. A statement or
+  // criterion dated in the past can never resolve, and a date beyond the
+  // dueAt contradicts the window (observed live: "By 23 February 2026"
+  // written while the model believed it was late 2025).
+  const today = new Date(`${todayIso(now)}T00:00:00Z`);
+  const dueAt = new Date(now.getTime() + (WINDOWS.includes(days as (typeof WINDOWS)[number]) ? days : 30) * 86_400_000);
+  for (const dt of [...extractDates(statement), ...extractDates(criteria)]) {
+    if (dt.getTime() < today.getTime()) issues.push(`date ${dt.toISOString().slice(0, 10)} is in the past`);
+    else if (dt.getTime() > dueAt.getTime() + 86_400_000) issues.push(`date ${dt.toISOString().slice(0, 10)} contradicts dueAt window`);
+  }
   return issues;
 }
 
@@ -54,7 +66,7 @@ export async function writeSentinels(input: {
   runId?: string;
   now?: Date;
 }): Promise<{ sentinels: SentinelDraft[]; rejected: number; costUsd: number }> {
-  const now = input.now ?? new Date();
+  const now = input.now ?? new Date(`${todayIso()}T00:00:00Z`);
   const allowed = input.uncertainties.map(u => u.linkId);
   try {
     const res = await callLLM({
@@ -77,7 +89,7 @@ Return ONLY JSON: {"sentinels":[{"linkId":<number>,"statement":"...","dueInDays"
         },
         {
           role: 'user',
-          content: `TODAY: ${now.toISOString().slice(0, 10)}\nQUESTION: ${input.question}\n\nUNCERTAIN LINKS:\n${input.uncertainties.map(u => `LINK #${u.linkId}: ${u.claim}`).join('\n')}`,
+          content: `TODAY: ${todayIso(now)}\nQUESTION: ${input.question}\n\nUNCERTAIN LINKS:\n${input.uncertainties.map(u => `LINK #${u.linkId}: ${u.claim}`).join('\n')}`,
         },
       ],
     });
@@ -86,7 +98,7 @@ Return ONLY JSON: {"sentinels":[{"linkId":<number>,"statement":"...","dueInDays"
     const sentinels: SentinelDraft[] = [];
     let rejected = 0;
     for (const d of drafts) {
-      if (validateSentinel(d, allowed).length > 0) { rejected++; continue; }
+      if (validateSentinel(d, allowed, now).length > 0) { rejected++; continue; }
       const days = Number(d.dueInDays);
       sentinels.push({
         voteId: SENTINEL_VOTE_ID_BASE + sentinels.length + 1,

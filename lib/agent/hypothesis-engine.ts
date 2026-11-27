@@ -178,6 +178,7 @@ export async function hypothesisJudge(
   readings?: any[],
   quantEvidence?: string,
   query?: string,
+  forecastQuestion?: string,
 ): Promise<JudgeOutput> {
   assertExecutionActive();
   let costUsd = 0;
@@ -284,7 +285,10 @@ Return JSON:
       // Errors degrade open (unknown ≠ empty); an explicit "nothing
       // defensible" marks the corpus thesis_absent for early refusal.
       try {
-        const derived = await deriveThesisFromCorpus(sources, readings, query);
+        // Claude §1.3: with a verified forecastQuestion the corpus-derived
+        // thesis must answer THAT question — the research question ("How
+        // do…") stays the framing context but never the bound claim target.
+        const derived = await deriveThesisFromCorpus(sources, readings, forecastQuestion?.trim() || query);
         costUsd += derived?.costUsd ?? 0;
         if (derived?.evaluationComplete && derived.defensible === true && derived.claim && supportingDocuments(derived.supportingEvidence, sources) >= 2) {
           boundThesis = {
@@ -319,6 +323,9 @@ Return JSON:
       ),
       '',
       'RULES: Structure your analysis around these verdicts. Lead with what is SUPPORTED.',
+      ...(forecastQuestion?.trim()
+        ? [`FORECAST MANDATE: the note must commit to a probability for "${forecastQuestion.trim()}" by its horizon — a purely descriptive verdict is a substituted thesis.`]
+        : []),
       'Explicitly acknowledge INCONCLUSIVE hypotheses as open questions — do not paper over them.',
       'Your stated confidence must not exceed the judged confidence for each claim.',
       // The mandatory THESIS BINDING is NOT emitted here — it is re-injected

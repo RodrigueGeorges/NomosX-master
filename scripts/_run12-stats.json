@@ -1,0 +1,1353 @@
+{
+  "generatedAt": "2026-11-27T07:59:05.818Z",
+  "runs": [
+    {
+      "id": "3714e046-8daa-42f8-9266-9fd5f1b3248b",
+      "createdAt": "2026-11-26T22:31:10.454Z",
+      "status": "FAILED",
+      "durationMs": 489889,
+      "stats": {
+        "forecastQuestion": "Will Vox, Spain's far-right party, become the largest party in Spain's parliament by the next general election?",
+        "totalCostUsd": 0.0017215
+      }
+    },
+    {
+      "id": "686770a6-1798-49e1-83cb-acfdfcdc1470",
+      "createdAt": "2026-11-26T22:10:50.974Z",
+      "status": "FAILED",
+      "durationMs": 1186165,
+      "stats": {
+        "forecastQuestion": "Will Egypt implement new industrial safety regulations within 12 months of the deadly tanker explosion that killed 31 people?",
+        "totalCostUsd": 0.001879
+      }
+    },
+    {
+      "id": "11d3ca07-658a-4a36-a0ea-a553cce602eb",
+      "createdAt": "2026-11-26T21:01:33.513Z",
+      "status": "COMPLETED",
+      "durationMs": 3984765,
+      "question": "How do budgetary decisions reflect competing visions of European integration and sovereignty, and what are their implications for EU strategic autonomy?",
+      "trustScore": 40,
+      "qualityScore": 59,
+      "stats": {
+        "forecastQuestion": "Will the EU adopt a budget with at least a 10% increase in funding for strategic autonomy initiatives compared to the previous budget by the end of 2024?",
+        "questionSpec": {
+          "metric": "Percentage increase in funding for strategic autonomy initiatives",
+          "costUsd": 0.0001677,
+          "horizon": "December 31, 2024",
+          "threshold": "10% increase",
+          "dataSource": "Official EU budget documents and European Commission publications",
+          "resolution": "The EU adopts a budget with at least a 10% increase in funding for strategic autonomy initiatives compared to the previous budget by December 31, 2024",
+          "resolvable": true
+        },
+        "questionSubstitution": {
+          "reason": "The note takes a clear position on how budgetary decisions reflect competing visions of integration and sovereignty, and their implications for EU strategic autonomy.",
+          "costUsd": 0.0001371,
+          "substituted": false
+        },
+        "quant": {
+          "facts": 0,
+          "series": 0,
+          "providers": [],
+          "durationMs": 4
+        },
+        "centralScenario": {
+          "name": "The Maginot Line",
+          "horizon": "We look to 2030 because the current Multiannual Financial Framework cycle ends in 2027, and the next seven-year budget negotiation — beginning in 2025 — will determine whether the EU develops permanent fiscal capacity for strategic autonomy or fragments into variable-geometry arrangements. Three cycles converge: the MFF negotiation, the demographic aging expenditure cliff, and the geopolitical pressure window created by the Russia-Ukraine war's trajectory.",
+          "rationale": "We select 'The Maginot Line' as our central forecast because the evidence points to a Europe that will spend on strategic autonomy but will not centralize the spending. The causal chain is clear: EU economic policy competences are narrowly limited in primary law, and the EU budget is small relative to member-state budgets, with implementation remaining primarily national [SRC-5]. Individual member states seek to opt out of collective financial commitments while others threaten vetoes, creating a mutual hostage dynamic [SRC-11]. Differentiated integration has been a stable feature of the EU since its founding, with crises deepening internal differentiation rather than promoting unity [SRC-19]. The EU faces limited military spending capabilities as an institutional constraint, with diverse policy interests causing disunity in common security and foreign policies [SRC-18]. Estonia's unsustainable one-third military budget donation reveals that EU strategic autonomy currently relies on national sacrifices that cannot be sustained through EU budgetary mechanisms [SRC-17]. The 1954 EDC failure establishes that security-driven integration leaps face higher ratification barriers than economic ones [SRC-16], and the NextGenerationEU pattern — a crisis-driven fiscal leap that was temporary rather than permanent — establishes a pattern of partial advances followed by sovereignty countermovements [SRC-24][SRC-5]. The counter-argument (crisis-driven integration thesis) has force but overweights the NextGenerationEU precedent, which was explicitly temporary and faced no ratification barrier equivalent to a treaty revision for permanent defense fiscal capacity. We assess the probability of The Maginot Line at 35%, with The Hollow Core at 20% as the secondary risk if the intergovernmental approach demonstrably fails. Fortress Europa (15%) and The Gilded Cage (15%) require political coalitions that the evidence does not support. The remaining 15% accounts for transition dynamics and hybrid outcomes.",
+          "confidence": "medium",
+          "selectedBy": "editorial",
+          "description": "By 2030, Europe has settled into a pattern that looks like strategic autonomy but produces no strategic effect. Member states have raised defense spending to an average of 2.5% of GDP — collectively exceeding €400bn — but the spending flows through 27 national budgets, 27 procurement agencies, and 27 industrial strategies. France sells Rafales to Poland while Germany competes with a Franco-German fighter jet program that Poland has not joined. The European Defense Fund disburses €8bn annually for collaborative R&D, but national procurement decisions remain sovereign, producing duplicative capabilities and interoperability gaps. Frontline states — Estonia, Finland, Poland — bear disproportionate burden and have formed a bilateral defense procurement cluster outside EU structures. The EU budget includes a modest defense line, but the real money stays national. Europe spends like a power. It acts like a collection of powers.",
+          "implications": [
+            "Defense procurement will remain fragmented across 27 national budgets, producing duplicative capabilities and interoperability gaps — decision-makers should plan for a European defense industrial base that is funded nationally but requires coordination through intergovernmental formats (PESCO, EDF, bilateral clusters) rather than through the EU budget.",
+            "Frontline states (Estonia, Finland, Poland, Latvia, Lithuania) will bear disproportionate defense burdens relative to their fiscal capacity — the EU should develop burden-sharing mechanisms outside the budget (common procurement, rotational deployment, cost-sharing formulas) to prevent unsustainable national sacrifices from undermining political cohesion [SRC-17].",
+            "The EU budget will remain a distributional instrument (CAP, Cohesion) rather than a strategic one — decision-makers should not expect the next MFF to produce a meaningful defense line, and should instead pursue defense industrial policy through the European Investment Bank and intergovernmental instruments that bypass the budget's zero-sum politics.",
+            "Variable-geometry arrangements will become the primary vehicle for European strategic autonomy — decision-makers should invest in the political and institutional infrastructure of coalition-of-the-willing formats, accepting that not all 27 member states will participate and designing instruments that work with 10-15 states rather than requiring unanimity."
+          ],
+          "revisionTriggers": [
+            "A formal Commission proposal for permanent common debt issuance for defense purposes, with a legal basis distinct from NextGenerationEU and a credible political coalition (Franco-German endorsement) behind it — this would shift the probability of Fortress Europa from 15% to 35% and reduce The Maginot Line proportionally.",
+            "A Russian military escalation against a NATO member state triggering Article 5, combined with a US announcement of partial withdrawal from European defense — this dual shock would create the political conditions for treaty revision and would shift the central forecast toward Fortress Europa within 12-18 months.",
+            "Simultaneous Eurosceptic government formation in two or more major member states (France, Germany, Italy) within a 24-month period, combined with an MFF negotiation failure — this would shift the probability of The Hollow Core from 20% to 40% and would indicate that the intergovernmental track is failing rather than consolidating.",
+            "A demonstrated failure of the intergovernmental defense track — a procurement fiasco, interoperability failure in a live operation, or a frontline state's withdrawal from a PESCO project citing unsustainable burden — that would indicate The Maginot Line is not stable and is transitioning toward The Hollow Core.",
+            "A successful expansion of the European Investment Bank's defense lending mandate to €20bn+ annually without treaty change — this would validate the 'backdoor fiscal capacity' snow leopard and would indicate that strategic autonomy can advance through institutional creativity rather than budgetary centralization, reinforcing The Maginot Line as the central scenario."
+          ],
+          "simulationLeader": "The Maginot Line",
+          "simulationDisagrees": false
+        },
+        "requiredElements": {
+          "missing": [
+            "quantitative core (real series with numbers)",
+            "actor map (incentives, binding vs non-binding commitments)"
+          ],
+          "present": [
+            "base rate with named reference class",
+            "two tipping points from disagreements",
+            "what would change our mind (dated indicators)",
+            "consequences for a decision-maker"
+          ],
+          "advisory": [
+            "pre-mortem of the central scenario (covered by the adversarial pass downstream)"
+          ]
+        },
+        "factChecker": {
+          "citance": {
+            "nei": 2,
+            "total": 25,
+            "supported": 23,
+            "supportRate": 0.92,
+            "contradicted": 0,
+            "evaluationComplete": true
+          },
+          "verified": 41,
+          "fatalIssues": 0,
+          "majorIssues": 5,
+          "totalClaims": 21,
+          "integrityScore": 92,
+          "artifactVersion": 5,
+          "evaluatedClaims": 46,
+          "evaluatedArtifact": "html"
+        },
+        "devilsAdvocate": {
+          "costUsd": 0.0372108,
+          "verdict": "revise",
+          "killShot": "The analysis self-certifies 'High' evidence confidence and 'comprehensive' citation coverage while its own computed exhibit shows only 37% full-text coverage, a median source year of 2014 (predating the core subject matter), and 32% of sources uncited. This internal contradiction between self-assessment and computed metrics undermines the credibility of every claim in the analysis — if the methodo",
+          "topChallenges": [
+            {
+              "text": "The analysis self-certifies 'High' evidence confidence while simultaneously acknowledging that only 37% of sources were read in full text (14/38), that 29% were read from abstracts only, and that the median source year is 2014 — meaning the majority of the evidence base predates the Ukraine war, the",
+              "type": "false_consensus"
+            },
+            {
+              "text": "The colophon claims 'Delphi-calibrated scenario probabilities' but no Delphi methodology is described anywhere in the analysis. No panel composition, no iteration rounds, no convergence criteria, no inter-rater reliability statistics are presented. The scenario probabilities appear in the HTML as st",
+              "type": "non_evidence"
+            },
+            {
+              "text": "The adversarial review section is truncated mid-sentence ('or' with no completion), suggesting either a rendering failure or incomplete content. More substantively, the vulnerability assessment lists only three scenarios (US withdrawal from NATO, Ukrainian collapse, parallel fiscal architecture) but",
+              "type": "unknown_unknowns"
+            }
+          ],
+          "artifactVersion": 5,
+          "fatalChallenges": 0,
+          "majorChallenges": 10,
+          "overallStrength": 16,
+          "evaluatedArtifact": "html",
+          "evaluationComplete": true,
+          "vulnerabilityTexts": [
+            "A new geopolitical crisis (Taiwan escalation, Russia-NATO incident, Middle East widening) forces the EU to create a new large-scale joint debt instrument for defense or energy, making the NGEU 'one-ti",
+            "The reformed Stability and Growth Pact's country-specific medium-term fiscal plans prove to be the binding constraint on national defense and industrial spending, making the analysis's focus on the MF",
+            "A Franco-German-Polish defense-industrial coalition (or the failure to form one) around the European Defence Fund and EDIS determines EU strategic autonomy outcomes independently of the regular budget"
+          ],
+          "publishabilityScore": 16,
+          "futureVulnerabilities": 3
+        },
+        "publicationGate": {
+          "checks": [
+            {
+              "check": "source_depth",
+              "passed": true,
+              "details": "38/8 sources minimum"
+            },
+            {
+              "check": "trust_score",
+              "passed": false,
+              "details": "40/100 trust score"
+            },
+            {
+              "check": "quality_score",
+              "passed": false,
+              "details": "59/100 quality score"
+            },
+            {
+              "check": "citation_coverage",
+              "passed": true,
+              "details": "93% citation coverage"
+            },
+            {
+              "check": "word_count",
+              "passed": true,
+              "details": "13515/1200 words minimum (adaptive: 38 sources)"
+            },
+            {
+              "check": "claim_citation_density",
+              "passed": true,
+              "details": "10/125 claim-like sentences uncited"
+            },
+            {
+              "check": "fatal_challenges",
+              "passed": true,
+              "details": "0 fatal challenge(s)"
+            },
+            {
+              "check": "devils_advocate",
+              "passed": false,
+              "details": "16/100 adversarial publishability score"
+            },
+            {
+              "check": "corpus_core_evidence",
+              "passed": true,
+              "details": "14 core sources (≥8 required)"
+            },
+            {
+              "check": "minicheck_support",
+              "passed": true,
+              "details": "12 published claims checked — 0% not_supported (max 40%)"
+            },
+            {
+              "check": "novlangue_density",
+              "passed": true,
+              "details": "9 novlangue pattern(s) detected (0.2/1000 words): \"innovation\" → change (value-neutral); \"reform\" → policy change (often deregulation); \"reform\" → policy change (often deregulation)..."
+            },
+            {
+              "check": "central_scenario",
+              "passed": true,
+              "details": "Central scenario complete and consistent with final HTML"
+            },
+            {
+              "check": "evaluation_freshness",
+              "passed": true,
+              "details": "All verdict evaluations match the current artifact version"
+            },
+            {
+              "check": "thesis_adherence",
+              "passed": true,
+              "details": "Verdict within the bound thesis"
+            },
+            {
+              "check": "quant_series",
+              "passed": false,
+              "details": "no real data series fetched — numeric claims would rest on abstracts alone"
+            }
+          ],
+          "reasons": [
+            "trust_score: 40/100 trust score",
+            "quality_score: 59/100 quality score",
+            "devils_advocate: 16/100 adversarial publishability score",
+            "quant_series: no real data series fetched — numeric claims would rest on abstracts alone"
+          ],
+          "decision": "hold",
+          "readinessOk": false,
+          "binaryChecks": [
+            {
+              "id": "claims_entailed",
+              "detail": "claim→passage entailment 100% (need 100%)",
+              "passed": true
+            },
+            {
+              "id": "numbers_in_ledger",
+              "detail": "numbers traced to evidence cards 89% (need 100%)",
+              "passed": false
+            },
+            {
+              "id": "scenarios_from_chain",
+              "detail": "central scenario selectedBy='editorial' — swarm elector not yet active (OT-5)",
+              "passed": false
+            },
+            {
+              "id": "swarm_healthy",
+              "detail": "no data — swarm voter not yet active (OT-4)",
+              "passed": false
+            },
+            {
+              "id": "objections_answered",
+              "detail": "0 sourced objection(s) unanswered",
+              "passed": true
+            },
+            {
+              "id": "predictions_registered",
+              "detail": "3 resolvable predictions registered (need ≥3)",
+              "passed": true
+            }
+          ],
+          "degradedSteps": []
+        },
+        "binaryCriteriaJudge": {
+          "mode": "shadow",
+          "total": 8,
+          "costUsd": 0,
+          "enforce": false,
+          "criteria": [
+            {
+              "id": "falsifiable_thesis",
+              "label": "Thesis is a falsifiable, dated claim (not a topic)",
+              "passed": true,
+              "reason": "The thesis claims that the EU will adopt a budget with increased strategic autonomy funding by end-2024, but the increase will fall below 10% in real terms, which is a specific, dated, and falsifiable prediction."
+            },
+            {
+              "id": "scenario_probability",
+              "label": "Central scenario carries a probability and an interval",
+              "passed": true,
+              "reason": "The central scenario is assigned a 68% confidence level, providing both a probability and an implicit interval."
+            },
+            {
+              "id": "required_elements",
+              "label": "The mandatory analytical elements are present (base rate, quantitative core, actor map, tipping points, watch indicators, decision consequences)",
+              "passed": false,
+              "reason": "The note lacks a quantitative core with real series and numbers, and an actor map detailing incentives and binding vs. non-binding commitments."
+            },
+            {
+              "id": "ranked_sources",
+              "label": "Each substantive section rests on at least one high-authority source",
+              "passed": true,
+              "reason": "Each substantive section is supported by at least one high-authority source, as evidenced by the detailed citations."
+            },
+            {
+              "id": "counter_evidence",
+              "label": "Contrary sources are discussed, not merely cited",
+              "passed": false,
+              "reason": "Contrary sources are cited but not discussed in depth, failing to engage critically with opposing viewpoints."
+            },
+            {
+              "id": "conclusions_bounded",
+              "label": "Conclusions do not exceed the evidence; projections are labeled",
+              "passed": true,
+              "reason": "Conclusions are carefully bounded by the evidence, and projections are labeled with confidence levels."
+            },
+            {
+              "id": "decision_ready",
+              "label": "A decision-maker knows what to do or watch",
+              "passed": true,
+              "reason": "The note provides clear implications for decision-makers, including what to do and watch, such as the shift toward variable-geometry coalitions."
+            },
+            {
+              "id": "format_style",
+              "label": "Fixed format and style rules respected",
+              "passed": false,
+              "reason": "The note does not adhere to fixed format and style rules, with inconsistent section headers and truncated content."
+            }
+          ],
+          "allPassed": false,
+          "judgeFamily": "freepool",
+          "passedCount": 5,
+          "judgeProvider": "freepool"
+        },
+        "evaluationFreshness": {
+          "stale": [],
+          "verdictStale": [],
+          "htmlArtifactVersion": 5,
+          "analysisArtifactVersion": 3
+        },
+        "barrierAudit": {
+          "regen": null,
+          "qualityBar": 72,
+          "recordedAt": "2026-11-26T22:08:18.526Z",
+          "trustScore": 40,
+          "failedChecks": [
+            "trust_score",
+            "quality_score",
+            "devils_advocate",
+            "quant_series"
+          ],
+          "gateDecision": "hold",
+          "qualityScore": 59,
+          "thesisAdhered": true,
+          "devilsAdvocateFatal": 0,
+          "questionSubstituted": false,
+          "predictionResolution": "pending",
+          "devilsAdvocateVerdict": "revise"
+        },
+        "thesisBinding": {
+          "id": "T1",
+          "origin": "corpus_derived",
+          "repair": {
+            "mode": "verdict_narrowing",
+            "attempted": true
+          },
+          "adhered": true,
+          "verdict": "supported",
+          "statement": "EU budgetary decisions reflect competing visions of integration by pitting member states seeking to preserve national fiscal sovereignty and protect traditional spending priorities against those advocating greater supranational fiscal capacity for collective strategic goals, with the EU's constitutionally constrained budget limiting the scope for strategic autonomy.",
+          "confidence": 78,
+          "checkedVerdict": "EU budgetary decisions reflect competing visions of integration by pitting member states seeking to preserve national fiscal sovereignty and protect traditional spending priorities against those advocating greater supranational fiscal capacity for collective strategic goals, with the EU's constitutionally constrained budget limiting the scope for strategic autonomy [SRC-5].",
+          "adherenceReason": "The verdict restates the bound thesis verbatim with a source citation and adds no broader claims, causal attributions, forecasts, or unsupported assertions.",
+          "contraryEvidence": [
+            "[SRC-9] Finds EU funds do not directly influence citizens' support for the EU, suggesting budgetary spending alone does not resolve competing integration visions at the public level",
+            "[SRC-3] Shows Commission officials' support for supranational authority is only weakly related to national civil service experience, complicating the notion that national-versus-supranational identity cleanly maps onto budgetary positions"
+          ],
+          "verdictNarrowing": {
+            "costUsd": 0.0002568,
+            "attempted": true
+          },
+          "supportingSources": 5,
+          "evaluationComplete": true,
+          "supportingEvidence": [
+            "[SRC-11] Shows live budgetary negotiations where 'frugal' states demand budget cuts and defense/competitiveness shifts while 17 states oppose cuts to traditional funding, and Slovakia/Hungary/Czechia seek opt-outs from Ukraine loans—directly illustrating competing sovereignty visions within budget decisions",
+            "[SRC-5] Demonstrates that EU economic policy competences are narrowly limited in primary law, the EU budget is small relative to member states, and implementation remains primarily national—establishing the constitutional constraint on strategic autonomy",
+            "[SRC-13] Shows Maastricht convergence criteria designed to shield existing Eurozone members' interests rather than facilitate accession, illustrating how fiscal rules encode competing national interests",
+            "[SRC-24] Describes the Next Generation EU agreement as a 'Hamilton moment' representing far-reaching change in integration, showing how crisis-driven budgetary decisions mark shifts in the integration-sovereignty balance",
+            "[SRC-18] Identifies limited EU military spending capabilities as an institutional constraint and diverse member-state policy interests causing disunity in common security policy—linking budgetary limits to strategic autonomy deficits"
+          ]
+        },
+        "totalCostUsd": 0.3291004000000003
+      }
+    },
+    {
+      "id": "55b4d992-d874-4f74-9a56-5a239028a006",
+      "createdAt": "2026-11-26T19:59:06.661Z",
+      "status": "COMPLETED",
+      "durationMs": 3696406,
+      "question": "How do drone attacks by state actors in the Persian Gulf affect international security frameworks and diplomatic relations?",
+      "trustScore": 40,
+      "qualityScore": 55,
+      "stats": {
+        "forecastQuestion": "Will the International Court of Justice (ICJ) issue a ruling on the legality of Iran's drone attack in Kuwait within 18 months?",
+        "questionSpec": {
+          "metric": "Number of ICJ rulings on Iran's drone attack in Kuwait",
+          "costUsd": 0.000152,
+          "horizon": "Within 18 months",
+          "threshold": "At least one ruling",
+          "dataSource": "International Court of official records",
+          "resolution": "The International Court of Justice issues a ruling on the legality of Iran's drone attack in Kuwait",
+          "resolvable": true
+        },
+        "quant": {
+          "facts": 6,
+          "series": 3,
+          "providers": [
+            "worldbank-data",
+            "dbnomics",
+            "fred"
+          ],
+          "durationMs": 1088
+        },
+        "swarmForecasts": {
+          "mode": "agentic",
+          "costUsd": 0.0204671,
+          "forecasts": [
+            {
+              "iqr": 0,
+              "linkId": 6,
+              "families": 1,
+              "variance": 0,
+              "contested": false,
+              "validVotes": 1,
+              "probability": 0.95
+            },
+            {
+              "iqr": 0,
+              "linkId": 7,
+              "families": 1,
+              "variance": 0,
+              "contested": false,
+              "validVotes": 1,
+              "probability": 0.95
+            },
+            {
+              "iqr": 0,
+              "linkId": 8000,
+              "families": 1,
+              "variance": 0,
+              "contested": false,
+              "validVotes": 1,
+              "probability": 0.4
+            },
+            {
+              "iqr": 0,
+              "linkId": 8001,
+              "families": 1,
+              "variance": 0,
+              "contested": false,
+              "validVotes": 1,
+              "probability": 0.6
+            }
+          ],
+          "validVotes": 7,
+          "forecasters": [
+            {
+              "family": "kimi",
+              "finalP": 0.02,
+              "costUsd": 0.009489299999999999,
+              "provider": "kimi",
+              "iterations": 10
+            },
+            {
+              "family": "glm",
+              "finalP": 0.08,
+              "costUsd": 0.0109778,
+              "provider": "glm",
+              "iterations": 10
+            },
+            {
+              "family": "freepool",
+              "finalP": 0.04,
+              "costUsd": 0,
+              "provider": "freepool",
+              "iterations": 10
+            }
+          ],
+          "familiesUsed": [
+            "kimi",
+            "glm",
+            "freepool"
+          ],
+          "questionForecast": {
+            "iqr": 0.06,
+            "families": 3,
+            "contested": false,
+            "validVotes": 3,
+            "probability": 0.05
+          }
+        },
+        "swarmElection": {
+          "issues": [
+            "link 6: 1 valid votes (need 2)",
+            "link 6: 1 model family (need 2)",
+            "link 7: 1 valid votes (need 2)",
+            "link 7: 1 model family (need 2)"
+          ],
+          "skipped": "swarm_unhealthy"
+        },
+        "swarmHealth": {
+          "issues": [
+            "link 6: 1 valid votes (need 2)",
+            "link 6: 1 model family (need 2)",
+            "link 7: 1 valid votes (need 2)",
+            "link 7: 1 model family (need 2)"
+          ],
+          "healthy": false,
+          "splitElectable": false
+        },
+        "centralScenario": {
+          "name": "The Fog Machine",
+          "horizon": "We look to 2028 because three cycles converge: Iran's proxy network has reached operational maturity across four theaters [SRC-13], commercially-derived drone technology has crossed the cost threshold for mass state deployment [SRC-1], and the post-2024 Gulf diplomatic realignment following the Abraham Accords and Saudi-Iran détente has created a fluid alignment structure that will either formalize or fracture within this window.",
+          "rationale": "We designate The Fog Machine as our central forecast because the causal chain runs in one direction: Iran's institutionalized proxy architecture makes attribution structurally impossible regardless of political will [SRC-13] [SRC-16], the absence of attribution prevents institutional adjudication [SRC-4] [SRC-10], and without adjudication the diplomatic infrastructure for inclusive security erodes under cumulative strike pressure [SRC-2] [SRC-15]. The Copenhagen School counter-argument — that existing frameworks absorb the disruption through political negotiation — carries weight but underestimates the structural difference between drone warfare and previous asymmetric threats: the cost of deployment is near-zero, the attribution difficulty is structural rather than political, and the proxy architecture is distributed across four sovereign states [SRC-13]. The Tanker War analogue suggests that institutional response to asymmetric maritime threats required 546 attacks and seven years [SRC-2]; drone strikes have already exceeded the frequency threshold and face a harder attribution problem. We observe that no state has formally referred a drone incident to the ICJ [SRC-10], that the Saudi-led coalition in Yemen demonstrated the structural inadequacy of ad hoc arrangements [SRC-15], and that foreign contractor casualties are mechanically expanding the conflict surface without triggering collective institutional response [SRC-10]. These observations, combined with the Fermi decomposition output of 0.51 (adjusted to 0.40 after expert calibration and the Copenhagen School residual), support The Fog Machine as the central trajectory. The alternative — Shadow Bazaar — requires the Saudi-Iran détente to survive without an attribution mechanism, which we assess as possible but fragile: the détente was negotiated under Chinese mediation for economic reasons [SRC-2], and sustained drone strikes on economic assets will test the calculation that ambiguity is preferable to confrontation.",
+          "confidence": "medium",
+          "selectedBy": "editorial",
+          "description": "By 2028, the Gulf has entered its fourth year of permanent low-intensity drone warfare. No one can prove who struck whom. No one has incentive to stop. The Saudi-Iran détente collapsed in 2026 after a drone struck Aramco's Ras Tanura terminal and neither side could — or would — attribute it. The Gulf split into hostile camps with no shared dialogue and no common facts. Drones cross borders daily, striking oil infrastructure, military bases, and civilian areas. Each strike generates a denial, a counter-accusation, and silence. The ambiguity is not a failure of the system. It is the system. Iran's axis of resistance operates through proxies whose chains of command are deliberately fragmented [SRC-13]. Gulf states respond with their own unattributed strikes through private military contractors. External powers have embedded their own drone assets so deeply that withdrawal is unthinkable [SRC-2]. The fog is not lifting. It is thickening, and it has become each bloc's primary weapon — a permanent state of plausible deniability that makes deterrence impossible and diplomacy pointless.",
+          "implications": [
+            "Gulf states will face mounting pressure to develop independent counter-drone capabilities, as ad hoc coalition structures and US security guarantees prove inadequate against distributed proxy drone campaigns — defense budgets will shift from conventional platforms to electronic warfare and air defense at rates that strain fiscal capacity.",
+            "NATO member states will face recurring diplomatic crises as their nationals are killed in drone strikes on Gulf infrastructure, forcing them to choose between escalation (risking entanglement in a Gulf conflict) and absorption (eroding domestic political support for Gulf deployments) — the Kuwait precedent [SRC-10] will repeat with increasing frequency.",
+            "The international legal framework will face a legitimacy crisis as the gap between the frequency of sovereign violations and the absence of institutional adjudication widens — states will increasingly bypass international institutions in favor of bilateral or unilateral responses, eroding the normative authority of the UN Charter's Article 51 framework [SRC-4].",
+            "Energy markets will price in a permanent drone-warfare risk premium, as strikes on Gulf oil and gas infrastructure become a structural rather than episodic risk — the 2019 Abqaiq strike demonstrated that a single drone attack can disrupt 5% of global oil supply, and the Fog Machine scenario implies such disruptions become recurring rather than exceptional."
+          ],
+          "revisionTriggers": [
+            "A state formally refers a drone incident to the ICJ or UN Security Council with forensic attribution evidence, and the institution issues a binding ruling within 18 months — this would shift probability from Fog Machine toward Glass House or Arithmetic of Grievance.",
+            "The Saudi-Iran détente survives three or more years without collapse despite sustained drone strikes, and an inclusive security dialogue produces a formal framework with attribution provisions — this would shift probability toward Shadow Bazaar or Glass House.",
+            "A technical breakthrough in drone forensics makes attribution reliable, cheap, and commercially available to non-state actors (media, NGOs, academic researchers), creating an attribution capacity outside state control — this would shift probability toward Glass House by making denial structurally impossible.",
+            "A NATO member state develops and implements a collective response framework for casualties inflicted on its nationals by third-party drone strikes, establishing a precedent for multilateral institutional response — this would shift probability away from Fog Machine by reducing the conflict surface expansion that drives bloc formation."
+          ],
+          "simulationLeader": "Arithmetic of Grievance",
+          "simulationDisagrees": true
+        },
+        "requiredElements": {
+          "missing": [
+            "two tipping points from disagreements",
+            "what would change our mind (dated indicators)",
+            "consequences for a decision-maker"
+          ],
+          "present": [
+            "base rate with named reference class",
+            "quantitative core (real series with numbers)",
+            "actor map (incentives, binding vs non-binding commitments)"
+          ],
+          "advisory": [
+            "pre-mortem of the central scenario (covered by the adversarial pass downstream)"
+          ]
+        },
+        "factChecker": {
+          "verified": 0,
+          "fatalIssues": 1,
+          "majorIssues": 0,
+          "totalClaims": 1,
+          "integrityScore": 0,
+          "artifactVersion": 6,
+          "evaluatedClaims": 1,
+          "evaluatedArtifact": "html"
+        },
+        "devilsAdvocate": {
+          "costUsd": 0.0271312,
+          "verdict": "reject",
+          "killShot": "The analysis contains two key findings — the '80% maritime transit plummet' and the '4,000% attack frequency increase' — that are presented as evidence-based findings with no source citations whatsoever. These are not minor qualifications or interpretive leaps; they are specific quantitative claims presented as established facts in the KEY FINDINGS and EVIDENCE ASSESSMENT sections. No source in th",
+          "topChallenges": [
+            {
+              "text": "The 4,000% figure has no source citation. SRC-1 mentions that attacks 'quadrupled between 2024 and 2025' in Colombia and 'more than doubled in early 2026' — these are specific, bounded, local statistics. The 4,000% global figure (2020-2024) is a different claim entirely, with no source. Furthermore,",
+              "type": "non_evidence"
+            },
+            {
+              "text": "The analysis treats Iran as the sole state actor deploying drones in the Gulf, completely omitting Israel's drone warfare program — one of the most active in the region. Israel has conducted sustained drone operations against Iranian assets in Syria, Lebanon, and Iraq, and its Loitering Munitions pr",
+              "type": "missing_stakeholder"
+            },
+            {
+              "text": "The falsification condition is literally 'Additional evidence needed.' This is not a falsification condition — it is an admission that the analyst has not defined what would prove the projection wrong. A projection without a defined falsifier is not a projection; it is a guess. For senior policymake",
+              "type": "implementation_gap"
+            }
+          ],
+          "artifactVersion": 2,
+          "fatalChallenges": 3,
+          "majorChallenges": 8,
+          "overallStrength": 0,
+          "evaluatedArtifact": "analysis",
+          "evaluationComplete": true,
+          "vulnerabilityTexts": [
+            "PRE-MORTEM (2027): The analysis assumed Iran's proxy network was a stable, expanding platform for asymmetric drone warfare. By 2027, the network had fragmented: Hezbollah was operationally degraded, H",
+            "PRE-MORTEM (2027): The analysis assumed US-centric security architecture as the frame for understanding Gulf security. By 2027, China had established a permanent security presence in the Gulf — a nava",
+            "PRE-MORTEM (2027): The analysis assumed drone proliferation would continue lowering the cost of asymmetric strikes. By 2027, counter-drone technology had matured faster than expected: electronic warfa"
+          ],
+          "publishabilityScore": 0,
+          "futureVulnerabilities": 3
+        },
+        "publicationGate": {
+          "checks": [
+            {
+              "check": "source_depth",
+              "passed": true,
+              "details": "37/8 sources minimum"
+            },
+            {
+              "check": "trust_score",
+              "passed": false,
+              "details": "40/100 trust score"
+            },
+            {
+              "check": "quality_score",
+              "passed": false,
+              "details": "55/100 quality score"
+            },
+            {
+              "check": "citation_coverage",
+              "passed": true,
+              "details": "91% citation coverage"
+            },
+            {
+              "check": "word_count",
+              "passed": true,
+              "details": "10385/500 words minimum (adaptive: 37 sources)"
+            },
+            {
+              "check": "claim_citation_density",
+              "passed": true,
+              "details": "5/55 claim-like sentences uncited"
+            },
+            {
+              "check": "fatal_challenges",
+              "passed": false,
+              "details": "3 fatal challenge(s)"
+            },
+            {
+              "check": "devils_advocate",
+              "passed": false,
+              "details": "0/100 adversarial publishability score"
+            },
+            {
+              "check": "corpus_core_evidence",
+              "passed": true,
+              "details": "10 core sources (≥8 required)"
+            },
+            {
+              "check": "minicheck_support",
+              "passed": true,
+              "details": "12 published claims checked — 0% not_supported (max 40%)"
+            },
+            {
+              "check": "novlangue_density",
+              "passed": true,
+              "details": "4 novlangue pattern(s) detected (0.2/1000 words): \"national security\" → state secrecy / surveillance; \"national security\" → state secrecy / surveillance; \"disruption\" → market change / displacement..."
+            },
+            {
+              "check": "central_scenario",
+              "passed": true,
+              "details": "Central scenario complete and consistent with final HTML"
+            },
+            {
+              "check": "evaluation_freshness",
+              "passed": true,
+              "details": "All verdict evaluations match the current artifact version"
+            },
+            {
+              "check": "thesis_adherence",
+              "passed": false,
+              "details": "Adherence evaluation incomplete — verdict not certified against the bound thesis"
+            },
+            {
+              "check": "quant_series",
+              "passed": true,
+              "details": "3 real primary-data series fetched (quant core)"
+            }
+          ],
+          "reasons": [
+            "trust_score: 40/100 trust score",
+            "quality_score: 55/100 quality score",
+            "fatal_challenges: 3 fatal challenge(s)",
+            "devils_advocate: 0/100 adversarial publishability score",
+            "thesis_adherence: Adherence evaluation incomplete — verdict not certified against the bound thesis"
+          ],
+          "decision": "hold",
+          "readinessOk": false,
+          "binaryChecks": [
+            {
+              "id": "claims_entailed",
+              "detail": "claim→passage entailment 88% (need 100%)",
+              "passed": false
+            },
+            {
+              "id": "numbers_in_ledger",
+              "detail": "numbers traced to evidence cards 0% (need 100%)",
+              "passed": false
+            },
+            {
+              "id": "scenarios_from_chain",
+              "detail": "central scenario selectedBy='editorial' — swarm elector not yet active (OT-5)",
+              "passed": false
+            },
+            {
+              "id": "swarm_healthy",
+              "detail": "min 1 valid votes per link / min 1 families per link / healthy=false (need ≥8, ≥2, healthy-or-contested)",
+              "passed": false
+            },
+            {
+              "id": "objections_answered",
+              "detail": "3 sourced objection(s) unanswered",
+              "passed": false
+            },
+            {
+              "id": "predictions_registered",
+              "detail": "4 resolvable predictions registered (need ≥3)",
+              "passed": true
+            }
+          ],
+          "degradedSteps": []
+        },
+        "binaryCriteriaJudge": {
+          "mode": "shadow",
+          "total": 8,
+          "costUsd": 0.000984,
+          "enforce": false,
+          "criteria": [
+            {
+              "id": "falsifiable_thesis",
+              "label": "Thesis is a falsifiable, dated claim (not a topic)",
+              "passed": false,
+              "reason": "The thesis is a topic description rather than a falsifiable, dated claim"
+            },
+            {
+              "id": "scenario_probability",
+              "label": "Central scenario carries a probability and an interval",
+              "passed": false,
+              "reason": "While probabilities are mentioned, the central scenario lacks a clear probability interval"
+            },
+            {
+              "id": "required_elements",
+              "label": "The mandatory analytical elements are present (base rate, quantitative core, actor map, tipping points, watch indicators, decision consequences)",
+              "passed": false,
+              "reason": "Missing tipping points and what would change our mind indicators despite being required"
+            },
+            {
+              "id": "ranked_sources",
+              "label": "Each substantive section rests on at least one high-authority source",
+              "passed": false,
+              "reason": "Sources are present but not clearly ranked by authority as required"
+            },
+            {
+              "id": "counter_evidence",
+              "label": "Contrary sources are discussed, not merely cited",
+              "passed": false,
+              "reason": "Contrary sources are merely cited rather than discussed in substantive sections"
+            },
+            {
+              "id": "conclusions_bounded",
+              "label": "Conclusions do not exceed the evidence; projections are labeled",
+              "passed": false,
+              "reason": "Conclusions exceed the evidence by making definitive projections without proper labeling"
+            },
+            {
+              "id": "decision_ready",
+              "label": "A decision-maker knows what to do or watch",
+              "passed": false,
+              "reason": "No clear guidance for decision-makers on what to do or watch"
+            },
+            {
+              "id": "format_style",
+              "label": "Fixed format and style rules respected",
+              "passed": false,
+              "reason": "The format lacks consistent structure and violates fixed style rules"
+            }
+          ],
+          "allPassed": false,
+          "judgeFamily": "glm",
+          "passedCount": 0,
+          "judgeProvider": "glm"
+        },
+        "evaluationFreshness": {
+          "stale": [],
+          "verdictStale": [],
+          "htmlArtifactVersion": 6,
+          "analysisArtifactVersion": 2
+        },
+        "barrierAudit": {
+          "regen": null,
+          "qualityBar": 72,
+          "recordedAt": "2026-11-26T21:00:58.437Z",
+          "trustScore": 40,
+          "failedChecks": [
+            "trust_score",
+            "quality_score",
+            "fatal_challenges",
+            "devils_advocate",
+            "thesis_adherence"
+          ],
+          "gateDecision": "hold",
+          "qualityScore": 55,
+          "thesisAdhered": null,
+          "devilsAdvocateFatal": 3,
+          "questionSubstituted": false,
+          "predictionResolution": "pending",
+          "devilsAdvocateVerdict": "reject"
+        },
+        "thesisBinding": {
+          "id": "T1",
+          "origin": "corpus_derived",
+          "verdict": "supported",
+          "statement": "State-actor drone and missile attacks in the Persian Gulf region have imposed reciprocal, asymmetric damage across multiple Gulf states and global economic infrastructure, straining the sustainability of existing containment frameworks and diplomatic relations.",
+          "confidence": 72,
+          "contraryEvidence": [
+            "[SRC-9] The source is a podcast episode summary lacking peer review or detailed methodology for data verification, limiting the reliability of its specific casualty and operational figures.",
+            "[SRC-10] Notes there is no independent verification of the attack's origin, and Iran denied attacking Kuwaiti airspace, introducing ambiguity about attribution.",
+            "[SRC-2] The article presents expert opinions and policy recommendations rather than empirical research on the effectiveness of proposed strategies."
+          ],
+          "supportingSources": 4,
+          "supportingEvidence": [
+            "[SRC-2] Documents that Iran has demonstrated the capability to impose reciprocal, asymmetric damage on US Gulf allies and the global economy, and assesses that the status quo of blockading and containing Iran is not ultimately sustainable.",
+            "[SRC-9] Reports that Iranian strikes hit targets across at least nine countries (Bahrain, Iraq, Jordan, Kuwait, Oman, Qatar, Saudi Arabia, the UAE, and Cyprus), targeted 27 US bases, and caused the closure of the Strait of Hormuz, plummeting maritime transit.",
+            "[SRC-10] Corroborates cross-border impact by documenting an Iranian drone strike in Kuwait that killed two Italian nationals and injured Kuwaiti and Pakistani nationals, with Iran denying the attack.",
+            "[SRC-13] Provides context for Iran's strategy of using asymmetric and proxy warfare to compensate for conventional military disadvantages against rivals including the USA and Saudi Arabia."
+          ]
+        },
+        "totalCostUsd": 0.2779646000000005
+      }
+    },
+    {
+      "id": "c560057b-f6c3-44ed-8fae-ef3d048b1239",
+      "createdAt": "2026-11-26T03:08:27.127Z",
+      "status": "COMPLETED",
+      "durationMs": 2341728,
+      "question": "What evidence exists on the empirical validation of structured consensus methods in guideline development?",
+      "trustScore": 65,
+      "qualityScore": 66,
+      "stats": {
+        "quant": {
+          "facts": 0,
+          "series": 0,
+          "providers": [],
+          "durationMs": 6
+        },
+        "centralScenario": {
+          "name": "Procedural Citadel",
+          "horizon": "We look to end-2027 because the ACCORD reporting guideline is completing its EQUATOR adoption cycle within this window, and whatever institutional path the field takes — standardization, validation, or drift — will be locked in by then. The five-year horizon captures one full guideline-development generation.",
+          "rationale": "We select 'Procedural Citadel' as our central forecast because the evidence base shows institutional investment flowing toward reporting standardization rather than outcome validation [SRC-7, SRC-19], and the historical base rate for validation emergence within 5 years of reporting-standard adoption is 0.25. The ACCORD reporting guideline is completing its EQUATOR adoption cycle, and no comparative trial of consensus methods on guideline-quality or patient-outcome endpoints exists in the corpus or in trial registries. The field's measurement culture is agreement-centric: every study we examined measures consensus percentages, rounds to convergence, or items retained — none measures whether the agreement was right [SRC-10, SRC-20, SRC-7]. The S3/AGREE II experience demonstrates that even when structured consensus is bundled with systematic evidence search, the resulting quality scores cannot be attributed to the consensus step because the steps are confounded [SRC-6]. We observe that the field is solving the problem it can measure (reporting transparency) rather than the problem that matters (effectiveness). The predetermined elements — persistent conflicts of interest [SRC-12], practitioners with preliminary understanding [SRC-19], four methods coexisting without comparison [SRC-7] — all point toward procedural consolidation without empirical foundation. We distinguish observation from inference: the observation is that no validation study exists and investment flows toward reporting; the inference is that this pattern will persist through 2027 because the structural incentives that produce it are unchanged.",
+          "confidence": "high",
+          "selectedBy": "editorial",
+          "description": "By 2027, the field has built its citadel. ACCORD reporting standards, adopted by major journals and accreditation bodies, specify panel size, round structure, Likert scale granularity, and conflict-of-interest disclosure with checklist precision. Guideline developers comply. The compliance machinery runs smoothly — every published guideline carries its ACCORD badge, every panel reports its composition, every Delphi round is documented. But no one has tested whether a 9-point scale produces better recommendations than a 7-point scale, or whether three rounds yield more valid guidance than two. The field has substituted procedural compliance for demonstrated effectiveness. Guideline quality scores on AGREE II rise modestly in the domains ACCORD touches — clarity, transparency, stakeholder description — and remain flat in applicability and editorial independence, the domains that proxy whether guidelines change practice free of sponsor influence [SRC-6, SRC-12]. The validation gap, now institutionalized behind walls of procedure, has become invisible because the reporting infrastructure makes it look filled.",
+          "implications": [
+            "Guideline developers and funders should expect that ACCORD compliance will become a baseline expectation without evidence that compliant methods produce better guidelines — plan for procedural compliance costs without expecting quality returns.",
+            "Clinicians and policymakers using consensus-based guidelines should treat the consensus stamp as a transparency marker, not a quality marker — the presence of structured consensus tells you how the recommendation was produced, not whether it is right.",
+            "The validation gap will widen as reporting standards make the process appear more rigorous, potentially reducing the perceived urgency of funding comparative trials — the citadel effect hides the gap it creates."
+          ],
+          "revisionTriggers": [
+            "A published or registered comparative trial — Delphi versus nominal group, or structured versus unstructured consensus — with guideline quality, clinical-practice adherence, or patient outcomes as endpoints. A single rigorous study converts the verdict from 'unvalidated' to 'validation emerging' and shifts the central scenario from 'Procedural Citadel' toward 'Evidence Reckoning'.",
+            "A major funder (NIH, Horizon Europe, Gates Foundation) issuing an RFP specifically targeting consensus-method validation rather than guideline production, signaling institutional demand for effectiveness evidence.",
+            "Evidence that ACCORD adoption is failing to gain traction — if no journal or accreditation body references ACCORD within 18 months of publication, the probability of 'Open Bazaar' rises and the central scenario shifts."
+          ],
+          "simulationLeader": "Evidence Reckoning",
+          "simulationDisagrees": true
+        },
+        "requiredElements": {
+          "missing": [],
+          "present": [
+            "base rate with named reference class",
+            "quantitative core (real series with numbers)",
+            "actor map (incentives, binding vs non-binding commitments)",
+            "two tipping points from disagreements",
+            "what would change our mind (dated indicators)",
+            "consequences for a decision-maker"
+          ],
+          "advisory": [
+            "pre-mortem of the central scenario (covered by the adversarial pass downstream)"
+          ]
+        },
+        "factChecker": {
+          "citance": {
+            "nei": 9,
+            "total": 25,
+            "supported": 16,
+            "supportRate": 0.64,
+            "contradicted": 0,
+            "evaluationComplete": true
+          },
+          "verified": 40,
+          "fatalIssues": 0,
+          "majorIssues": 21,
+          "totalClaims": 36,
+          "integrityScore": 76,
+          "artifactVersion": 6,
+          "evaluatedClaims": 61,
+          "evaluatedArtifact": "html"
+        },
+        "devilsAdvocate": {
+          "costUsd": 0.0254126,
+          "verdict": "revise",
+          "killShot": "The analysis's central claim — 'no study in the published literature tests whether these methods produce recommendations that improve patient outcomes' — is a universal negative asserted on the basis of 27 sources, then partially retracted three paragraphs later with 'this analysis cannot exclude validation studies existing outside these 27 sources.' A peer reviewer would note that the corpus incl",
+          "topChallenges": [
+            {
+              "text": "The projection's warrant is 'institutional inertia plus incentive structure' — the claim that no funder mandate, registered trial, or outcome-linkage infrastructure appears in the corpus. But absence of evidence in a 27-source corpus is not evidence of absence in the field. The corpus itself acknowl",
+              "type": "missing_warrant"
+            },
+            {
+              "text": "The analysis applies Knorr's 1975 sociology-of-science findings about research-line selection in social sciences [SRC-4] to interpret a pattern across two clinical consensus exercises [SRC-9, SRC-20]. The analogy is structurally invalid. Knorr's claim concerns how research communities select researc",
+              "type": "invalid_analogy"
+            },
+            {
+              "text": "The analysis identifies two facts — (a) ACCORD exists and targets reporting [SRC-13], (b) no validation study appears in the corpus [SRC-7] — and infers a substitution dynamic: investment is flowing into reporting 'rather than' validation. But the analysis's own evidence assessment concedes this is ",
+              "type": "causation_from_correlation"
+            }
+          ],
+          "artifactVersion": 2,
+          "fatalChallenges": 0,
+          "majorChallenges": 8,
+          "overallStrength": 32,
+          "evaluatedArtifact": "analysis",
+          "evaluationComplete": true,
+          "vulnerabilityTexts": [
+            "AI-driven evidence synthesis tools bypass the human consensus bottleneck entirely, making the debate over Delphi vs. NGT irrelevant and the 2027 projection look antiquated.",
+            "A major payer or regulator (e.g., NICE, CMS) mandates a specific consensus methodology based on internal proprietary validation, rendering the academic 'validation gap' moot in practice.",
+            "A large-scale reproducibility crisis in clinical guidelines—unrelated to consensus methods but impacting the underlying evidence base—shifts the entire focus of guideline validation away from process "
+          ],
+          "publishabilityScore": 32,
+          "futureVulnerabilities": 3,
+          "recertifiedAfterRevision": true
+        },
+        "publicationGate": {
+          "checks": [
+            {
+              "check": "source_depth",
+              "passed": true,
+              "details": "27/20 sources minimum"
+            },
+            {
+              "check": "trust_score",
+              "passed": true,
+              "details": "65/100 trust score"
+            },
+            {
+              "check": "quality_score",
+              "passed": false,
+              "details": "66/100 quality score"
+            },
+            {
+              "check": "citation_coverage",
+              "passed": true,
+              "details": "95% citation coverage"
+            },
+            {
+              "check": "word_count",
+              "passed": true,
+              "details": "12940/8000 words minimum (adaptive: 27 sources)"
+            },
+            {
+              "check": "claim_citation_density",
+              "passed": true,
+              "details": "5/108 claim-like sentences uncited"
+            },
+            {
+              "check": "fatal_challenges",
+              "passed": true,
+              "details": "0 fatal challenge(s)"
+            },
+            {
+              "check": "devils_advocate",
+              "passed": false,
+              "details": "32/100 adversarial publishability score"
+            },
+            {
+              "check": "minicheck_support",
+              "passed": true,
+              "details": "6 published claims checked — 0% not_supported (max 40%)"
+            },
+            {
+              "check": "novlangue_density",
+              "passed": true,
+              "details": "4 novlangue pattern(s) detected (0.2/1000 words): \"best practices\" → conformity to convention (often unexamined); \"reform\" → policy change (often deregulation); \"streamlining\" → layoffs / cost-cutting..."
+            },
+            {
+              "check": "central_scenario",
+              "passed": false,
+              "details": "Rendered central scenario differs from the persisted decision"
+            },
+            {
+              "check": "evaluation_freshness",
+              "passed": true,
+              "details": "All verdict evaluations match the current artifact version"
+            },
+            {
+              "check": "thesis_adherence",
+              "passed": true,
+              "details": "Verdict within the bound thesis"
+            }
+          ],
+          "reasons": [
+            "quality_score: 66/100 quality score",
+            "devils_advocate: 32/100 adversarial publishability score",
+            "central_scenario: Rendered central scenario differs from the persisted decision"
+          ],
+          "decision": "hold",
+          "readinessOk": true,
+          "binaryChecks": [
+            {
+              "id": "claims_entailed",
+              "detail": "claim→passage entailment 82% (need 100%)",
+              "passed": false
+            },
+            {
+              "id": "numbers_in_ledger",
+              "detail": "numbers traced to evidence cards 66% (need 100%)",
+              "passed": false
+            },
+            {
+              "id": "scenarios_from_chain",
+              "detail": "central scenario selectedBy='editorial' — swarm elector not yet active (OT-5)",
+              "passed": false
+            },
+            {
+              "id": "swarm_healthy",
+              "detail": "no data — swarm voter not yet active (OT-4)",
+              "passed": false
+            },
+            {
+              "id": "objections_answered",
+              "detail": "0 sourced objection(s) unanswered",
+              "passed": true
+            },
+            {
+              "id": "predictions_registered",
+              "detail": "6 resolvable predictions registered (need ≥3)",
+              "passed": true
+            }
+          ],
+          "degradedSteps": []
+        },
+        "binaryCriteriaJudge": {
+          "mode": "shadow",
+          "total": 8,
+          "costUsd": 0.0010269,
+          "enforce": false,
+          "criteria": [
+            {
+              "id": "falsifiable_thesis",
+              "label": "Thesis is a falsifiable, dated claim (not a topic)",
+              "passed": true,
+              "reason": "The thesis is falsifiable by the end of 2027 if comparative validation trials are published."
+            },
+            {
+              "id": "scenario_probability",
+              "label": "Central scenario carries a probability and an interval",
+              "passed": false,
+              "reason": "No probability is established for the central scenario projection through end-2027."
+            },
+            {
+              "id": "required_elements",
+              "label": "The mandatory analytical elements are present (base rate, quantitative core, actor map, tipping points, watch indicators, decision consequences)",
+              "passed": true,
+              "reason": "All required elements are present: base rate with references, quantitative core, actor map, tipping points, watch indicators, and decision consequences."
+            },
+            {
+              "id": "ranked_sources",
+              "label": "Each substantive section rests on at least one high-authority source",
+              "passed": true,
+              "reason": "Each substantive section rests on high-authority sources, including systematic reviews and empirical studies."
+            },
+            {
+              "id": "counter_evidence",
+              "label": "Contrary sources are discussed, not merely cited",
+              "passed": true,
+              "reason": "Contrary evidence is discussed, including the AGREE II appraisal and potential limitations of the corpus."
+            },
+            {
+              "id": "conclusions_bounded",
+              "label": "Conclusions do not exceed the evidence; projections are labeled",
+              "passed": true,
+              "reason": "Conclusions are bounded by the evidence, with explicit qualifications about the corpus being bounded and methods being heterogeneous."
+            },
+            {
+              "id": "decision_ready",
+              "label": "A decision-maker knows what to do or watch",
+              "passed": true,
+              "reason": "The note clearly states the priority is to fund and register comparative validation trials now."
+            },
+            {
+              "id": "format_style",
+              "label": "Fixed format and style rules respected",
+              "passed": true,
+              "reason": "Fixed format and style rules are respected throughout the document."
+            }
+          ],
+          "allPassed": false,
+          "judgeFamily": "glm",
+          "passedCount": 7,
+          "judgeProvider": "glm"
+        },
+        "evaluationFreshness": {
+          "stale": [],
+          "verdictStale": [],
+          "htmlArtifactVersion": 6,
+          "analysisArtifactVersion": 2
+        },
+        "regeneration": {
+          "reason": "substance failure: trust_score,quality_score",
+          "adopted": true,
+          "scoreAfter": 181,
+          "scoreBefore": 177
+        },
+        "thesisBinding": {
+          "id": "T1",
+          "origin": "corpus_derived",
+          "adhered": true,
+          "verdict": "supported",
+          "statement": "In this evidence base, empirical studies of structured consensus in guideline development document its use and the agreement it produces, but do not validate that it improves guideline quality or patient outcomes.",
+          "confidence": 85,
+          "checkedVerdict": "The central finding of this analysis is that, within this evidence base, empirical studies of structured consensus methods in guideline development document their use and the agreement they produce, but do not validate that they improve guideline quality or patient outcomes. This is a claim about the research record, not about the methods' actual value — and the distinction matters for every downstream inference. What the data demonstrates is use, measured as agreement. A Delphi exercise among French obesity experts evaluated forty-three proposed recommendations in a first round, with four achieving strong consensus [SRC-10]. A multispecialty panel on injectable biologics for chronic pain reached consensus points with more than 80% agreement, while simultaneously acknowledging high uncertainty in the underlying evidence [SRC-20]. A web-based survey of 290 guideline-development participants across 31 Chinese provinces found Delphi the most commonly reported consensus method (132 respondents, 42.31%), with nearly half of respondents reporting only a preliminary understanding of the methods they were applying [SRC-19]. A systematic review of 198 core outcome set studies found Delphi, nominal group technique, consensus conferences, and unstructured discussion coexisting with no comparative evaluation of any against another [SRC-7]. Each of these studies measures the process's output as agreement; none measures whether the agreement was right. The strongest apparent counter-signal is the AGREE II appraisal of 25 European dermatology guidelines, in which the seven S3 guidelines — built on systematic literature search plus structured consensus conference — scored within acceptable ranges on clarity of presentation and scope and purpose [SRC-6]. This analysis reads that finding as correlational and confounded, not as validation: S3 bundles the evidence search with the consensus procedure, so the consensus step cannot be isolated, and the domains where S3 scored poorly — applicability, stakeholder involvement, editorial independence — are precisely the domains that proxy whether a guideline changes practice free of sponsor influence [SRC-6]. Conflicts and confluence of interest remain documented impediments to guideline development from 2011 through 2020 [SRC-12]. Appraisal instruments generate association; they cannot attribute quality to the consensus procedure itself. The institutional response to this gap is telling. The field's investment is flowing into reporting standardization — the ACCORD guideline, developed through a five-stage EQUATOR-guided process with an 11-member multidisciplinary steering committee, exists because poor reporting of consensus definitions and panelist selection undermines confidence and hinders reproducibility [SRC-13]. ACCORD is already being applied as an appraisal instrument in a 2026 systematic review of vocal fold paralysis guidelines [SRC-18]. Transparency about method is being standardized; whether the method produces valid judgments remains untested. This analysis proposes, as its interpretive frame, that sociology-of-science findings — selection processes favoring trivial decisions, high consensus coexisting with non-cumulative knowledge [SRC-4] — correctly predict the corpus's pattern: agreement rates above 80% cluster on definitional items such as surgical terminology [SRC-9], while contested clinical recommendations carry acknowledged evidence uncertainty [SRC-20]. Confidence is tempered by three qualifications. The corpus is bounded: this analysis cannot exclude validation studies existing outside these 27 sources. The methods are heterogeneous: Delphi-as-terminology-tool [SRC-9] and Delphi-as-recommendation-generator [SRC-20] are different objects, and the verdict applies to the validation record across both without implying the methods are worthless in either role. And nothing here supports abandoning structured consensus — informal alternatives are less documented, not better validated [SRC-14]. We project, as our central scenario through end-2027, that the field will continue producing use-and-agreement documentation and reporting-standard uptake without a published head-to-head trial comparing structured consensus methods against each other or against unstructured consensus on guideline quality or downstream outcomes. This projection is falsified by the registration or publication of any such comparative method trial, or by any study linking consensus method choice to clinical-practice adherence or patient outcomes, before 31 December 2027.",
+          "adherenceReason": "The verdict restates the bound thesis as its central finding, supports it with evidence about documented use and agreement without validation of quality or outcomes, explicitly avoids causal attributi",
+          "contraryEvidence": [
+            "[SRC-17] Describes Delphi as producing clinically relevant, actionable guidelines, but provides no quantitative validation in the supplied account."
+          ],
+          "supportingSources": 3,
+          "evaluationComplete": true,
+          "supportingEvidence": [
+            "[SRC-19] A survey of 290 guideline-development respondents found Delphi was the most commonly reported consensus method (132 respondents, 42.31%); it did not test guideline quality or outcomes.",
+            "[SRC-10] A Delphi study of clinical prescribing recommendations evaluated 43 proposals and reported four with strong consensus, measuring agreement rather than the validity of the recommendations.",
+            "[SRC-20] A clinical guideline consensus report documented greater than 80% panel agreement while noting substantial uncertainty in the underlying clinical evidence."
+          ]
+        },
+        "totalCostUsd": 0.6763560999999999
+      }
+    },
+    {
+      "id": "75ba91eb-b32f-49bb-bf74-c359f58b910f",
+      "createdAt": "2026-11-26T02:08:49.901Z",
+      "status": "COMPLETED",
+      "durationMs": 3459952,
+      "question": "What evidence exists on the empirical validation of structured consensus methods in guideline development?",
+      "trustScore": 55,
+      "qualityScore": 62,
+      "stats": {
+        "questionSpec": {
+          "metric": "Adoption rate of guidelines or patient outcomes",
+          "costUsd": 0.0001975,
+          "horizon": "31 December 2028",
+          "threshold": "Higher adoption rates or improved patient outcomes in studies comparing structured consensus methods to non-structured methods",
+          "dataSource": "Peer-reviewed medical literature databases (e.g., PubMed, Cochrane Library)",
+          "resolution": "At least one peer-reviewed study published through 31 December 2028 demonstrates that structured consensus methods in guideline development lead to guidelines with higher adoption rates or improved patient outcomes compared to guidelines developed without such methods.",
+          "resolvable": true
+        },
+        "quant": {
+          "facts": 0,
+          "series": 0,
+          "providers": [],
+          "durationMs": 4
+        },
+        "swarmForecasts": {
+          "mode": "agentic",
+          "costUsd": 0.1374326,
+          "forecasts": [
+            {
+              "iqr": 0.38,
+              "linkId": 6,
+              "families": 2,
+              "variance": 0.0361,
+              "contested": true,
+              "validVotes": 2,
+              "probability": 0.65
+            },
+            {
+              "iqr": 0.32,
+              "linkId": 7,
+              "families": 2,
+              "variance": 0.0256,
+              "contested": true,
+              "validVotes": 2,
+              "probability": 0.29
+            },
+            {
+              "iqr": 0.12,
+              "linkId": 9001,
+              "families": 2,
+              "variance": 0.0036,
+              "contested": false,
+              "validVotes": 2,
+              "probability": 0.16
+            },
+            {
+              "iqr": 0,
+              "linkId": 9002,
+              "families": 2,
+              "variance": 0,
+              "contested": false,
+              "validVotes": 2,
+              "probability": 0.9
+            },
+            {
+              "iqr": 0.08000000000000007,
+              "linkId": 8000,
+              "families": 2,
+              "variance": 0.001600000000000003,
+              "contested": false,
+              "validVotes": 2,
+              "probability": 0.75
+            }
+          ],
+          "validVotes": 13,
+          "forecasters": [
+            {
+              "family": "glm",
+              "finalP": 0.12,
+              "costUsd": 0.011102,
+              "provider": "glm",
+              "iterations": 10
+            },
+            {
+              "family": "kimi",
+              "finalP": 0.13,
+              "costUsd": 0.1263306,
+              "provider": "kimi",
+              "iterations": 10
+            },
+            {
+              "family": "freepool",
+              "finalP": 0.15,
+              "costUsd": 0,
+              "provider": "freepool",
+              "iterations": 10
+            }
+          ],
+          "familiesUsed": [
+            "glm",
+            "kimi",
+            "freepool"
+          ],
+          "questionForecast": {
+            "iqr": 0.03,
+            "families": 3,
+            "contested": false,
+            "validVotes": 3,
+            "probability": 0.13
+          }
+        },
+        "swarmElection": {
+          "skipped": "insufficient_link_distributions"
+        },
+        "swarmHealth": {
+          "issues": [
+            "link 6: voters split (IQR 0.38 > 0.35)"
+          ],
+          "healthy": false,
+          "splitElectable": true
+        },
+        "centralScenario": {
+          "name": "The Agreement Charter",
+          "horizon": "31 December 2028 is a proposed review deadline, not a predicted scientific milestone. The scenarios concern how a guideline commissioner could respond to the evidence gap; the supplied studies do not support forecasts of worldwide institutional adoption. [SRC-6] [SRC-10] [SRC-19] [SRC-20]",
+          "rationale": "The observations support a narrow conclusion: applications demonstrate agreement, a survey documents reported practice, and an appraisal assesses a bundled development process. They do not establish isolated method effects. Our inference is that transparent consensus will remain usable before that attribution gap closes; this favors The Agreement Charter over The Validation Bottleneck, but only provisionally because the supplied material contains no acceptance-policy trend data. The 49% weight comes from explicit assumptions, not from the studies themselves. New evidence could change the overall conclusion without changing what the original studies measured. [SRC-6] [SRC-10] [SRC-19] [SRC-20]",
+          "confidence": "high",
+          "selectedBy": "editorial",
+          "description": "By December 2028, commissioners in the modeled setting will continue accepting documented consensus, while comparative attribution will remain unresolved. Panels will publish recommendations and explain their votes, but readers will still need to distinguish collective agreement from independent validation. The French prescribing ratings and Chinese methods survey will retain their original evidentiary roles. Chronic-pain agreement above 80% will coexist with acknowledged treatment uncertainty, and the dermatology appraisal will still assess a combined development package. Better reporting will make decisions easier to inspect without itself proving them better. Guidance will proceed; the burden will fall on commissioners to stop procedural credibility from becoming an unsupported claim of clinical accuracy. This is our central projection. [SRC-6] [SRC-10] [SRC-13] [SRC-19] [SRC-20]",
+          "implications": [
+            "Commissioners should require separate statements about agreement, evidence certainty, independent recommendation review, and comparative method validation. [SRC-6] [SRC-20]",
+            "Research funding should target comparisons that separate the decision procedure from evidence-search quality and panel composition, rather than fund another application as if it validated the method. [SRC-6] [SRC-13]"
+          ],
+          "revisionTriggers": [
+            "A result available by 31 December 2028 independently compares sufficiently similar guidelines developed through different decision procedures, documents evidence searches and panel composition, and estimates a reproducible method-attributable difference. A positive, null, or harmful result would each change the evidentiary position. [SRC-6] [SRC-13]",
+            "A binding independent-validation requirement adopted by the modeled commissioner before the deadline would falsify the acceptance-policy branch of The Agreement Charter, even if attribution remained unresolved. [SRC-6] [SRC-20]",
+            "A verified broader search identifies existing comparative studies meeting these criteria; this would require immediate revision rather than waiting until 2028. [SRC-6]"
+          ],
+          "simulationLeader": "The Practical Compact",
+          "simulationDisagrees": true
+        },
+        "requiredElements": {
+          "missing": [],
+          "present": [
+            "base rate with named reference class",
+            "quantitative core (real series with numbers)",
+            "actor map (incentives, binding vs non-binding commitments)",
+            "two tipping points from disagreements",
+            "what would change our mind (dated indicators)",
+            "consequences for a decision-maker"
+          ],
+          "advisory": [
+            "pre-mortem of the central scenario (covered by the adversarial pass downstream)"
+          ]
+        },
+        "factChecker": {
+          "citance": {
+            "nei": 24,
+            "total": 25,
+            "supported": 1,
+            "supportRate": 0.04,
+            "contradicted": 0,
+            "evaluationComplete": true
+          },
+          "verified": 1,
+          "fatalIssues": 0,
+          "majorIssues": 25,
+          "totalClaims": 1,
+          "integrityScore": 33,
+          "artifactVersion": 6,
+          "evaluatedClaims": 26,
+          "evaluatedArtifact": "html"
+        },
+        "devilsAdvocate": {
+          "costUsd": 0.093534,
+          "verdict": "revise",
+          "killShot": "The analysis presents highly precise ‘empirical’ scenario probabilities and confidence intervals while acknowledging that its sources cannot estimate the likelihood of the key future event. That unsupported precision risks undermining confidence in its otherwise careful separation of measured findings from projections.",
+          "topChallenges": [
+            {
+              "text": "This defines method validation exclusively as a comparative effect on guideline quality. Empirical validation can also test whether a procedure reliably reproduces decisions, implements its stated decision rules, or yields judgments that converge with an independent benchmark. None alone proves supe",
+              "type": "overstated_conclusion"
+            },
+            {
+              "text": "The provided [SRC-6] excerpt supports an AGREE II appraisal and reports differences among domains, but does not show the counts, the S3 definition, or the asserted S3 score comparison. These details may be in the full article; they are not verifiable against the passages designated for this review. ",
+              "type": "non_evidence"
+            },
+            {
+              "text": "An ‘empirical’ probability and a zero-width confidence interval imply estimation and near-perfect precision, yet no sampling model, elicitation procedure, calibration data, or uncertainty calculation is supplied. [SRC-6] concerns guideline appraisal, not the probability of future studies or commissi",
+              "type": "non_evidence"
+            }
+          ],
+          "artifactVersion": 3,
+          "fatalChallenges": 0,
+          "majorChallenges": 6,
+          "overallStrength": 48,
+          "evaluatedArtifact": "analysis",
+          "evaluationComplete": true,
+          "vulnerabilityTexts": [
+            "By 31 December 2028, a qualifying independent comparison could isolate a consensus-method effect, meeting the report's stated falsifier and overturning its projected evidentiary classification.",
+            "Independent validation of recommendations or of complete development packages could become the practical acceptance standard, making the report's emphasis on isolating the consensus technique less dec",
+            "Commissioners could adopt provisional, risk-tiered guidance with explicit uncertainty and post-publication review rather than a uniform validation gate; the report offers no implementation or cost fra"
+          ],
+          "publishabilityScore": 48,
+          "futureVulnerabilities": 3
+        },
+        "evaluationFreshness": {
+          "stale": [],
+          "verdictStale": [],
+          "htmlArtifactVersion": 6,
+          "analysisArtifactVersion": 3
+        },
+        "thesisBinding": {
+          "id": "T1",
+          "origin": "corpus_derived",
+          "adhered": true,
+          "verdict": "supported",
+          "statement": "The cited empirical studies show that structured consensus methods are used to develop clinical recommendations, but they report adoption or expert agreement rather than independently validating the recommendations or demonstrating improved guideline quality.",
+          "confidence": 85,
+          "checkedVerdict": "The central finding is that the cited empirical studies show structured consensus methods being used to develop clinical recommendations, but chiefly report method use or expert agreement—not independent validation of the recommendations or an improvement in guideline quality attributable to the consensus method. A French Delphi exercise reports how prescribing proposals were rated; a Chinese survey records developers’ reported methods; and a multispecialty chronic-pain group records agreed guidance while acknowledging uncertainty in its underlying treatment evidence. These are observations about guideline development, not estimates of what structured consensus achieves compared with another development process. [SRC-10] [SRC-19] [SRC-20] The distinction is substantive, not semantic. Agreement answers whether selected participants accepted a statement under a stated procedure. Recommendation validation asks whether that statement withstands independent scrutiny against relevant evidence or outcomes. Method validation asks a further comparative question: whether using Delphi, a nominal group technique, or a structured conference produces better guidance than a credible alternative, holding other important features of development sufficiently constant. The chronic-pain report makes the distinction visible: its consensus points received more than 80% expert agreement, yet its authors describe high uncertainty in the evidence for injectable biologics in chronic-pain indications. Agreement was measured; certainty about treatment effects was a separate assessment. [SRC-20] There is empirical evidence closer to guideline quality, and it must not be erased. An appraisal of European dermatology guidelines used AGREE II and found generally higher scores in some domains for its S3 category. That category combined a systematic literature search with a structured consensus conference. The appraisal therefore observes quality ratings associated with a development package; it cannot assign any difference specifically to the conference. Its poorer ratings in applicability, stakeholder involvement, and editorial independence also prevent a simple claim of uniformly better quality. The central position is consequently narrower than ‘there is no empirical assessment’: an assessment exists, but the supplied assessment does not identify the isolated effect of structured consensus. [SRC-6] A strong objection holds that structured judgment can be useful precisely when trials leave a practical question unanswered. The French prescribing exercise identifies gaps in drug-trial coverage for people with severe obesity, while a methodological account of laryngeal-cancer guidance describes Delphi recommendations as clinically relevant and actionable. That account also notes possible panel-composition bias and time demands and supplies no quantitative validation of the recommendations. This analysis accepts the practical rationale without converting it into a demonstrated comparative effect. A transparent recommendation may be preferable to no recommendation; the cited studies do not test that comparison. [SRC-10] [SRC-17] The evidence base cannot settle the broader literature-wide question. A review of trial outcome-set development lists Delphi, nominal group technique, and consensus development conferences, but outcome-set selection is not clinical guideline validation. A review of randomized-trial protocol-content guidelines concerns another class of guideline. Neither can establish the prevalence or effectiveness of structured methods in clinical treatment guidance. The available studies also do not establish the techniques’ historical origins in guideline development, their relative development times, developer satisfaction, subsequent clinical adherence, or later revision rates. These are limits of this supplied corpus, not assertions that such evidence does not exist elsewhere. [SRC-7] [SRC-14] [SRC-15] [SRC-19] This position carries tempered confidence: confidence is stronger in the distinction between observed agreement and unmeasured comparative effects than in any claim about the completeness of research selection. Our central scenario is that, at an appraisal dated 31 December 2028, these cited applications will still support a process-evidence conclusion unless newly available independent comparisons isolate a consensus method’s contribution. A published comparison by that date that independently appraises otherwise comparable clinical guidelines, separates consensus technique from evidence searching and panel composition, and demonstrates a reproducible quality advantage would prove this projected evidentiary limit wrong. [SRC-6] [SRC-10] [SRC-19] [SRC-20]",
+          "adherenceReason": "The verdict consistently frames the studies as reporting method use or agreement rather than validation, explicitly declines causal/comparative attribution (e.g., the AGREE II appraisal cannot isolate",
+          "contraryEvidence": [
+            "[SRC-17] A methodological account describes Delphi as producing clinically relevant, actionable guidelines, but provides no quantitative validation in the supplied summary."
+          ],
+          "supportingSources": 3,
+          "evaluationComplete": true,
+          "supportingEvidence": [
+            "[SRC-19] A survey of guideline developers found Delphi was the most commonly reported consensus method and identified gaps in stakeholder participation.",
+            "[SRC-20] A guideline working group reported consensus points with over 80% expert agreement while noting high uncertainty in the underlying evidence.",
+            "[SRC-10] A Delphi study reported levels of expert consensus on prescribing recommendations, not independent tests of their validity."
+          ]
+        },
+        "totalCostUsd": 1.123212
+      }
+    }
+  ]
+}

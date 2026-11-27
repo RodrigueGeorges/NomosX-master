@@ -84,12 +84,36 @@ export async function runStyleSweepRecheck(ctx: TailStepContext): Promise<void> 
         recordDegradedStep(stats, 'COPY_EDITOR', ceErr);
       }
     }
-    if (numResult.violations.length > 0) {
-      console.log(`${label} NUMERICAL GATE: ${numResult.violations.length} unsourced numbers (first 5: ${numResult.violations.slice(0, 5).map(v => v.match).join(', ')})`);
-      // Flag in stats for downstream inspection — if > 20 violations, log a warning
-      if (numResult.violations.length > 20) {
-        console.warn(`${label} NUMERICAL GATE: WARNING — ${numResult.violations.length} unsourced numbers is high. Consider reviewing the analyst output for missing citations on empirical claims.`);
+    // Claude §1.5: the unsourced-number sanitizer used to run only inside
+    // quality-loop/repair — AFTER the DA had already judged numbers it
+    // would later see sanitized. Run the deterministic pass HERE, at the
+    // last mutation point before the gate, then recount. Whatever remains
+    // becomes a hard publication-gate failure (unsourced_numbers).
+    let numViolations = numResult.violations.length;
+    if (numViolations > 0) {
+      try {
+        const { sanitizeUnsourcedNumbers } = await import('../citation-repair');
+        const san = sanitizeUnsourcedNumbers(ctx.html);
+        if (san.sanitized > 0) {
+          ctx.html = san.html;
+          const recount = runNumericalGate(ctx.html, topSources.length);
+          numViolations = recount.violations.length;
+          stats.numericalGate = {
+            violations: numViolations,
+            passed: numViolations === 0,
+            sanitized: san.sanitized,
+            details: recount.violations.slice(0, 10).map(v => ({ match: v.match, suggestion: v.suggestion })),
+          };
+          console.log(`${label} NUMERICAL GATE: sanitized ${san.sanitized} unsourced numbers → ${numViolations} remaining`);
+        }
+      } catch (sanErr) {
+        console.warn(`${label} NUMERICAL GATE sanitize failed (non-blocking):`, sanErr);
+        recordDegradedStep(stats, 'NUMERICAL_SANITIZE', sanErr);
       }
+    }
+    if (numViolations > 0) {
+      console.log(`${label} NUMERICAL GATE: ${numViolations} unsourced numbers remain after sanitize (first 5: ${(stats.numericalGate as any)?.details?.slice(0, 5).map((d: any) => d.match).join(', ') ?? ''})`);
+      stats.numericalGate = { ...(stats.numericalGate as object), violations: numViolations, passed: false };
     }
   } catch (err) {
     console.warn(`${label} STYLE GATES: failed (non-blocking):`, err);

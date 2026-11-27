@@ -71,7 +71,31 @@ export function buildAnalysisReviewText(
   push('EXECUTIVE SUMMARY', obj.executiveSummary ?? obj.summary);
   push('CONSENSUS', obj.consensus);
   push('DISAGREEMENTS', obj.disagreements);
-  push('SCENARIOS', obj.scenarios);
+  // SCENARIOS get a calibration-aware pass (run-11 DA killShot): raw analyst
+  // JSON can carry self-certified "empiricalProbability" six-decimal values
+  // and zero-width "confidenceInterval" arrays — field names that claim
+  // empirical status without any simulation behind them. Only _simulation-
+  // tagged entries carry real Monte-Carlo estimates; everything else is
+  // annotated as uncalibrated instead of laundered through those names.
+  if (Array.isArray(obj.scenarios) && obj.scenarios.length) {
+    const cleaned = obj.scenarios.map((s) => {
+      if (!s || typeof s !== 'object') return s;
+      const o = { ...(s as Record<string, unknown>) };
+      if (o._simulation == null) {
+        if (typeof o.empiricalProbability === 'number') {
+          delete o.empiricalProbability;
+          o.probabilityBasis = 'analyst-asserted percentage — no Monte Carlo simulation backing';
+        }
+        if (Array.isArray(o.confidenceInterval)) delete o.confidenceInterval;
+        if (typeof o.calibratedProbability === 'number') delete o.calibratedProbability;
+        if (typeof o.probability === 'string' && /^\s*\d/.test(o.probability)) {
+          o.probability = `${o.probability} (uncalibrated estimate)`;
+        }
+      }
+      return o;
+    });
+    sections.push(`SCENARIOS:\n${JSON.stringify(cleaned, null, 2)}`);
+  }
   push('RECOMMENDATIONS', obj.recommendations);
   push('CONCLUSION', obj.conclusion);
   push('DEBATE', obj.debate);

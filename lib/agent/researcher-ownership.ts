@@ -1978,6 +1978,23 @@ export interface SignOffResult {
   trustScore: number;
 }
 
+/** Strip markup/non-content elements and return readable brief text. */
+function briefToReviewText(html: string): string {
+  return html
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<svg[\s\S]*?<\/svg>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&#0?39;|&apos;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 /**
  * LLM-based researcher sign-off for publication quality control.
  * The researcher's persona reviews the brief and decides approve/revise/reject.
@@ -2002,8 +2019,15 @@ export async function requestResearcherSignOff(
     throw new Error('No suitable researcher found for sign-off');
   }
 
-  // Truncate HTML to avoid token overflow (keep first 3000 chars)
-  const truncatedHtml = html.length > 3000 ? html.slice(0, 3000) + '\n[...truncated...]' : html;
+  // Review the VISIBLE TEXT, not raw markup: the first 3000 chars of the
+  // brief HTML are <style>/SVG boilerplate — the sign-off was literally
+  // reviewing CSS (run-11: recurrent 'revise' on every topic). Strip
+  // non-content elements, then sample head/middle/tail so the reviewer sees
+  // the verdict, the scenarios AND the close, not only the lede.
+  const reviewText = briefToReviewText(html);
+  const reviewExcerpt = reviewText.length > 9000
+    ? `${reviewText.slice(0, 5500)}\n[…]\n${reviewText.slice(-3400)}`
+    : reviewText;
 
   try {
     const result = await callLLM({
@@ -2033,8 +2057,8 @@ Return JSON:
           content: `TOPIC: "${topic}"
 TRUST SCORE: ${trustScore}/100
 
-BRIEF CONTENT:
-${truncatedHtml}
+BRIEF CONTENT (visible text, head/middle/tail excerpt):
+${reviewExcerpt}
 
 Review this brief and provide your sign-off decision.`
         }

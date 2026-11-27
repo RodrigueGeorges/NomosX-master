@@ -1,0 +1,16 @@
+# Minimal SearXNG settings for NomosX — merged over upstream defaults.
+# `secret_key: ultrasecretkey` is replaced by $SEARXNG_SECRET at boot.
+use_default_settings: true
+
+server:
+  secret_key: "ultrasecretkey"
+  bind_address: "0.0.0.0"
+  port: 8080
+  # Server-to-server JSON API — no cookie/session limiter needed, and the
+  # limiter 429s bursts of agent queries.
+  limiter: false
+
+search:
+  formats:
+    - html
+    - json

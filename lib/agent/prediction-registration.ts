@@ -23,6 +23,7 @@ import type { ConfidenceTier, PruningResult } from './pruning-gates';
 import type { CentralScenarioDecision } from './editorial-types';
 import { evidenceLikelihoodUpdate } from './leap-aggregation';
 import { isFreeRun } from '../free-run';
+import { todayIso, extractDates } from './today';
 
 interface ExtractedPrediction {
   claim: string;
@@ -111,6 +112,25 @@ export function extractPredictions(
   const swarmLinkP = central?.selectedBy === 'swarm' ? central.linkProbabilities ?? {} : {};
   const tiers = pruningResult?.confidenceTiers ?? new Map<number, ConfidenceTier>();
   const conviction = (analysis as any).convictionLevel as "firm" | "tempered" | "causal_only" | undefined;
+
+  // Lot 1 question link: the asked question itself is a prediction — its
+  // swarm-priced resolution probability is the note's headline number and
+  // must sit on the track record like every other call.
+  const qSpec = (analysis as any).questionSpec as { resolution?: string; horizon?: string; resolvable?: boolean } | undefined;
+  const qForecast = (analysis as any).questionForecast as { probability?: number } | undefined;
+  if (qSpec?.resolvable !== false && qSpec?.resolution && typeof qForecast?.probability === 'number') {
+    predictions.push({
+      claim: `[question] ${qSpec.resolution}`,
+      horizon: qSpec.horizon || analysis.trajectory?.horizon || 'see resolution',
+      probability: Math.min(0.95, Math.max(0.05, qForecast.probability)),
+      confidence: 'SUPPORTED',
+      resolutionCriteria: qSpec.resolution,
+      whatWouldFalsify: 'The resolution condition is not met at the stated horizon',
+      sourceRefs: [],
+      probabilitySource: 'swarm',
+      linkId: 'question',
+    });
+  }
 
   // 1. Extract from future_extrapolation links in causal chain
   const chain = analysis.causalChain || [];
@@ -228,7 +248,25 @@ export function extractPredictions(
     });
   });
 
-  return predictions;
+  // Lot 0 date anchoring: a prediction whose horizon already lies in the past
+  // can never resolve — registering it poisons the Brier record with a
+  // guaranteed miss (observed live: sentinels dated "By 23 February 2026"
+  // while the model believed it was late 2025). Drop unresolvable horizons.
+  const currentYear = Number(todayIso().slice(0, 4));
+  const todayStart = new Date(`${todayIso()}T00:00:00Z`).getTime();
+  const kept = predictions.filter(p => {
+    const horizonYears = [...String(p.horizon ?? '').matchAll(/\b(20\d{2})\b/g)].map(m => Number(m[1]));
+    const criteriaDates = extractDates(String(p.resolutionCriteria ?? ''));
+    const pastCriteria = criteriaDates.some(d => d.getTime() < todayStart);
+    const horizonPast = horizonYears.length > 0 && Math.max(...horizonYears) < currentYear;
+    if (horizonPast || pastCriteria) {
+      console.warn(`[PredictionRegistration] dropping unresolvable prediction (past horizon): ${String(p.claim).slice(0, 80)}`);
+      return false;
+    }
+    return true;
+  });
+
+  return kept;
 }
 
 function extractSourceRefs(link: CausalLink): number[] {

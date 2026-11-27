@@ -54,6 +54,9 @@ export interface GroundingResult {
   strictGroundedness: number; // max(0, (supported - contradicted) / total)
   html: string; // repaired HTML with unsupported claims removed/flagged
   removedClaims: number;
+  /** Removal/flag tally by claim category — reconciles removedClaims with
+   *  the verdict counters (unsupported/contradicted/uncited*). */
+  removedByVerdict?: Record<string, number>;
   details: string[];
   /** DEER pass telemetry (P0-4): uncited factual claims verified against the
    *  nearest preceding cited source. */
@@ -376,12 +379,25 @@ function extractBigrams(text: string): Set<string> {
  * (to preserve paragraph structure).
  */
 
+/** Removal category for counter reconciliation — '20 removed vs 0
+ *  unsupported' was unreadable because uncited-quantitative and
+ *  DEER-contradicted removals all landed outside the 'unsupported' tally. */
+function removalCategory(c: AtomicClaim): string {
+  if (c.verdict === 'uncited') {
+    if (c.deerVerdict === 'contradicted') return 'uncited_deer_contradicted';
+    if (c.deerVerdict === 'supported') return 'uncited_supported_kept';
+    return /\d+\s*%|\d{4,}|\$\s*\d|million|billion|trillion/i.test(c.text) ? 'uncited_quantitative' : 'uncited_other';
+  }
+  return c.verdict;
+}
+
 export function repairHtmlWithGrounding(
   html: string,
   claims: AtomicClaim[],
   mode: 'remove' | 'flag' = 'flag',
-): { html: string; removedClaims: number; details: string[] } {
+): { html: string; removedClaims: number; details: string[]; removedByVerdict: Record<string, number> } {
   let removedClaims = 0;
+  const removedByVerdict: Record<string, number> = {};
   const details: string[] = [];
 
   // Find sentences that are unsupported or contradicted
@@ -398,7 +414,7 @@ export function repairHtmlWithGrounding(
     (c.verdict === 'uncited' && c.deerVerdict !== 'supported' && /\d+\s*%|\d{4,}|\$\s*\d|million|billion|trillion/i.test(c.text))
   );
   if (badClaims.length === 0) {
-    return { html, removedClaims: 0, details };
+    return { html, removedClaims: 0, details, removedByVerdict };
   }
 
   // Mask non-prose regions (<style>, <script>, <head>, references) so claim
@@ -478,10 +494,14 @@ export function repairHtmlWithGrounding(
           if (mode === 'remove' && span <= 2000 && !/\x00MASK|data-no-cite|<\/?(section|article|header|footer|nav|figure|table)\b/i.test(spanText)) {
             workingHtml = workingHtml.slice(0, sentenceStart) + workingHtml.slice(sentenceEnd);
             removedClaims++;
-            details.push(`Removed ${claim.verdict} claim: "${fragment.slice(0, 40)}..."`);
+            const cat = removalCategory(claim);
+            removedByVerdict[cat] = (removedByVerdict[cat] ?? 0) + 1;
+            details.push(`Removed ${cat} claim: "${fragment.slice(0, 40)}..."`);
           } else {
             removedClaims++;
-            details.push(`Flagged ${claim.verdict} claim: "${fragment.slice(0, 40)}..."`);
+            const cat = removalCategory(claim);
+            removedByVerdict[cat] = (removedByVerdict[cat] ?? 0) + 1;
+            details.push(`Flagged ${cat} claim: "${fragment.slice(0, 40)}..."`);
           }
           matched = true;
         }
@@ -489,7 +509,7 @@ export function repairHtmlWithGrounding(
     }
   }
 
-  return { html: unmask(workingHtml), removedClaims, details };
+  return { html: unmask(workingHtml), removedClaims, details, removedByVerdict };
 }
 
 // ─── MAIN ENTRY POINT ───────────────────────────────────────────────────────
@@ -601,6 +621,7 @@ export async function groundClaims(
     strictGroundedness,
     html: repair.html,
     removedClaims: repair.removedClaims,
+    removedByVerdict: repair.removedByVerdict,
     details,
   };
 }
@@ -864,6 +885,7 @@ export async function groundClaimsWithNLI(
     strictGroundedness,
     html: repair.html,
     removedClaims: repair.removedClaims,
+    removedByVerdict: repair.removedByVerdict,
     details,
     uncitedChecked: claims.filter(c => c.deerVerdict !== undefined).length,
     uncitedSupported: claims.filter(c => c.deerVerdict === 'supported').length,

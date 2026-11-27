@@ -138,6 +138,16 @@ export async function runThesisBindingRepair(
   const { stats, getAnalysis, setAnalysis, addCost, label, query, topSources, slimReadings, fullContextBlock, detectedDomain, isStrategic, pipelineStart, analystMultipass, bumpAnalysisArtifact } = deps;
   let { reAnalysisBudget } = opts;
   const binding = (stats as any).thesisBinding;
+  // Claude §1.3: with a verified forecastQuestion the thesis IS the forecast.
+  // This repair runs BEFORE the forecasters rebind thesisBinding to the
+  // probability statement — narrowing/collapse here would rewrite the verdict
+  // toward the descriptive corpus claim and strip the probability commitment.
+  // Adherence is instead verified 'pre-render' against the forecast-bound
+  // statement; a verdict that never commits fails thesis_adherence at the gate.
+  if ((stats as any).forecastQuestion?.trim()) {
+    console.log(`${label} THESIS BINDING: forecastQuestion present — skipping descriptive-thesis repair (adherence checked against forecast binding pre-render)`);
+    return { reAnalysisBudget };
+  }
   // Cheap path first — independent of reAnalysisBudget/headroom: a verdict
   // that cannot be narrowed cheaply would not survive a full re-analysis
   // budget check either, and this is the difference between a $0.005 fix

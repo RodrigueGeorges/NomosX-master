@@ -21,6 +21,7 @@
  * only the artifact is fixed.
  */
 
+import { createHash } from 'node:crypto';
 import { parseEditorialInquiry } from '../brand/inquiry-html-parse';
 import { renderCentralScenarioBlock, type CentralScenarioLabels } from './position-first-renderer';
 import { repairCitations } from './citation-repair';
@@ -514,7 +515,24 @@ export function shouldRegenerate(args: {
         : 'no actionable substance failure',
     };
   }
-  return { regenerate: true, reason: `substance failure: ${actionable.join(',') || 'readiness'}` };
+
+  // P1-B targeted regen: only when the artifact is within 5 points of the
+  // quality bar (72 pending Conformal calibration) OR already in 'revise'
+  // territory (non-hard failures only = near-pass by construction), AND
+  // the motive is a repairable substance failure — every evidence-bound
+  // and render-bound motive already returned false above. Run-11 evidence:
+  // systematic regen cost +$1.1 and +38min per run, adopted twice without
+  // changing the gate decision. Far-from-bar holds go straight to the
+  // next pre-validated candidate.
+  const QUALITY_BAR = Number(process.env.NOMOSX_QUALITY_BAR ?? 72);
+  const nearBar = gate.decision === 'revise' || args.qualityScore >= QUALITY_BAR - 5;
+  if (!nearBar) {
+    return {
+      regenerate: false,
+      reason: `quality ${args.qualityScore} is >5pts below bar ${QUALITY_BAR} (gate=${gate.decision}) — not a targeted-regen candidate; next candidate instead`,
+    };
+  }
+  return { regenerate: true, reason: `substance failure within 5pts of bar: ${actionable.join(',') || 'readiness'}` };
 }
 
 /** Monotone witness for the escalation loop: a regenerated artifact is
@@ -527,6 +545,73 @@ export function attemptScore(args: {
   const gateRank = args.gate.decision === 'publish' ? 200 : args.gate.decision === 'revise' ? 100 : 0;
   const passedChecks = args.gate.checks.filter(c => c.passed).length;
   return gateRank + passedChecks * 5 + args.trustScore + args.qualityScore;
+}
+
+/**
+ * P1-B independent winner judge — the original-vs-regen choice is a
+ * winner's-curse trap when made on composite scores alone (the artifact
+ * that tried harder tends to score higher on its own evaluators). One
+ * bounded LLM call compares the two attempts blind to which is which
+ * ordering bias: both are labeled ATTEMPT A/B deterministically by hash
+ * so the judge cannot pattern-match "regen = better". Returns the chosen
+ * attempt label + reason; null on any failure (caller falls back to the
+ * monotone attemptScore witness).
+ */
+export async function judgeRegenWinner(args: {
+  question: string;
+  original: { verdict?: string; throughLine?: string; gateFails: string[]; trustScore: number; qualityScore: number };
+  regen: { verdict?: string; throughLine?: string; gateFails: string[]; trustScore: number; qualityScore: number };
+  runId?: string;
+}): Promise<{ winner: 'original' | 'regen'; reason: string; costUsd?: number; judgeFamily?: string } | null> {
+  try {
+    const { callLLM } = await import('../llm/unified-llm');
+    const { parseJson } = await import('./json-utils');
+    // Deterministic A/B assignment — the judge never learns which attempt
+    // is the regeneration (position-bias guard).
+    const flip = createHash('sha1').update(args.question + args.runId).digest()[0] % 2 === 0;
+    const a = flip ? args.regen : args.original;
+    const b = flip ? args.original : args.regen;
+    const res = await callLLM({
+      // Claude §2: the barrier's independent judge runs on Claude Sonnet 5.5
+      // — a family that never produced the note. While the Anthropic account
+      // is suspended the provider filter skips it and the cross-family chain
+      // lands on the verification family (DeepSeek V4 Pro) instead.
+      provider: 'anthropic',
+      model: 'claude-sonnet-5-5',
+      task: 'fact_check',
+      jsonMode: true,
+      temperature: 0.1,
+      maxTokens: 400,
+      maxCostUsd: 0.02,
+      runId: args.runId,
+      traceName: 'regen_winner_judge',
+      messages: [
+        {
+          role: 'system',
+          content: `You are an independent editor choosing between two versions of the same research note that both failed the publication gate. Pick the version CLOSER to publishable — deeper analysis, better evidence use, fewer unresolved defects. Output strict JSON: {"winner":"A"|"B","reason":"<one sentence>"}. Judge only the substance shown; scores are telemetry, not the verdict.`,
+        },
+        {
+          role: 'user',
+          content: [
+            `QUESTION: ${args.question}`,
+            `ATTEMPT A — trust ${a.trustScore} quality ${a.qualityScore} | failed checks: ${a.gateFails.join(', ') || 'none'}\nVERDICT: ${String(a.verdict ?? '').slice(0, 1200)}\nTHROUGH-LINE: ${String(a.throughLine ?? '').slice(0, 600)}`,
+            `ATTEMPT B — trust ${b.trustScore} quality ${b.qualityScore} | failed checks: ${b.gateFails.join(', ') || 'none'}\nVERDICT: ${String(b.verdict ?? '').slice(0, 1200)}\nTHROUGH-LINE: ${String(b.throughLine ?? '').slice(0, 600)}`,
+          ].join('\n\n'),
+        },
+      ],
+    });
+    const parsed = parseJson<{ winner?: string; reason?: string }>(res.content);
+    if (parsed?.winner !== 'A' && parsed?.winner !== 'B') return null;
+    const pickedRegen = (parsed.winner === 'A') === flip;
+    return {
+      winner: pickedRegen ? 'regen' : 'original',
+      reason: String(parsed.reason ?? '').slice(0, 300),
+      costUsd: res.costUsd,
+      judgeFamily: (res as { provider?: string }).provider,
+    };
+  } catch {
+    return null;
+  }
 }
 
 /** Serializes the gate + adversarial findings into analyst-facing feedback

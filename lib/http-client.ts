@@ -278,6 +278,10 @@ const CB_THRESHOLDS: Record<string, { max429s: number; cooldownMs: number }> = {
   'hathitrust': { max429s: 2, cooldownMs: 60_000 },
   'searxng': { max429s: 1, cooldownMs: 30_000 },        // rotates instances anyway; trip fast
   'datacommons': { max429s: 2, cooldownMs: 60_000 },
+  // Prediction markets — few calls per run, cheap to fail-fast on dead hosts
+  'polymarket': { max429s: 1, cooldownMs: 300_000 },
+  'metaculus': { max429s: 1, cooldownMs: 300_000 },    // Cloudflare-blocked from some networks
+  'manifold': { max429s: 2, cooldownMs: 120_000 },
 };
 
 /**
@@ -348,6 +352,39 @@ export async function isCircuitBreakerTrippedAsync(provider: string): Promise<bo
     return false;
   }
   return true;
+}
+
+const FATAL_AUTH_STATUSES = new Set([401, 402, 432]);
+const FATAL_AUTH_COOLDOWN_MS = 24 * 60 * 60 * 1000; // session-scale: auth/quota errors don't heal in minutes
+
+/**
+ * Lot 0 — fatal auth/quota kill. A 401 (bad key), 402 (payment required) or
+ * 432 (quota/plan exhausted) means EVERY subsequent call to this provider
+ * fails identically — retrying or cooling down for seconds just burns budget.
+ * Trip the breaker for a session-scale cooldown on the FIRST occurrence.
+ */
+async function recordFatalAuth(provider: string, status: number): Promise<void> {
+  const threshold = CB_THRESHOLDS[provider];
+  if (!threshold) {
+    // No CB configured — still record a bare tripped state so fail-fast works.
+    circuitBreakers.set(provider, {
+      consecutive429s: 1, tripped: true, trippedAt: Date.now(),
+      cooldownMs: FATAL_AUTH_COOLDOWN_MS, totalTrips: 1,
+    });
+    return;
+  }
+  const cb: CircuitBreakerState = {
+    consecutive429s: 1, tripped: true, trippedAt: Date.now(),
+    cooldownMs: FATAL_AUTH_COOLDOWN_MS, totalTrips: 1,
+  };
+  circuitBreakers.set(provider, cb);
+  await saveCBState(provider, cb);
+  console.warn(`[CIRCUIT BREAKER] ${provider} killed for session — HTTP ${status} (auth/quota dead)`);
+}
+
+/** True when an HTTP status is a fatal auth/quota error (session kill). */
+export function isFatalAuthStatus(status: number | undefined | null): boolean {
+  return typeof status === 'number' && FATAL_AUTH_STATUSES.has(status);
 }
 
 /**
@@ -779,6 +816,9 @@ async function httpGetImpl<T = any>(
         
         // Don't retry on client errors (4xx except 429)
         if (response.status >= 400 && response.status < 500 && response.status !== 429) {
+          if (rateLimiterKey && isFatalAuthStatus(response.status)) {
+            await recordFatalAuth(rateLimiterKey, response.status).catch(() => {});
+          }
           throw new HttpError(
             `HTTP ${response.status} ${response.statusText}`,
             response.status,
@@ -989,6 +1029,9 @@ async function httpPostImpl<T = any>(
         const text = await response.text().catch(() => "");
 
         if (response.status >= 400 && response.status < 500 && response.status !== 429) {
+          if (rateLimiterKey && isFatalAuthStatus(response.status)) {
+            await recordFatalAuth(rateLimiterKey, response.status).catch(() => {});
+          }
           throw new HttpError(
             `HTTP ${response.status} ${response.statusText}`,
             response.status,

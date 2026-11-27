@@ -232,6 +232,28 @@ export interface PositionFirstBriefInput {
    *  `position` after downstream mutations produced rendered/persisted
    *  divergence and a guaranteed central_scenario gate hold. */
   centralScenario?: CentralScenarioDecision;
+  /** Lot 3 note-format dateline: probability + horizon + market odds shown
+   *  next to the verdict, per the publication spec. All fields optional —
+   *  absent data renders nothing (no fabricated figures). */
+  keyFigures?: {
+    probability?: number | null;
+    scenarioName?: string;
+    horizon?: string;
+    marketAvgProbability?: number | null;
+    marketCount?: number;
+  };
+  /** Claude §4: verified forecast question — when present the note IS the
+   *  forecast: title/chapeau = the question itself, "P = x% by [horizon]"
+   *  leads the dateline, confidence is computed (family agreement + IQR)
+   *  instead of self-declared, and the information cutoff is stamped. */
+  forecast?: {
+    question: string;
+    probability?: number | null;
+    horizon?: string;
+    iqr?: number;
+    families?: number;
+    cutoff?: string;
+  };
 }
 
 export function dimensionsFromClassification(tc: TopicClassification): EditorialDimension[] {

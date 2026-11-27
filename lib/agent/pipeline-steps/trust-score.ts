@@ -34,6 +34,9 @@ export interface TrustVetoes {
   providerDiversity?: number;
   hallDetectScore?: number;        // hallucination risk 0–100
   factFatal?: number;              // fact-checker fatal numerical discrepancies
+  /** Lot 4: fact-integrity was actually measured this run (not the 80
+   *  unevaluated default) and scored <85% → trust caps at 65. */
+  factIntegritySub85?: boolean;
   /** Evidence-independence audit verdict (deterministic embedding clusters). */
   evidenceIndependence?: 'independent' | 'thin' | 'collapsed' | null;
   /** Cited-source count backing the independence verdict. */
@@ -126,10 +129,14 @@ export function computeTrustScore(c: TrustComponents, v: TrustVetoes = {}): Trus
     cap(55, `citation integrity veto — NLI ${c.nliIntegrity}% < 70%`);
   }
 
-  // Fact-integrity veto — fatal numerical discrepancies on a <50% integrity
-  // artifact cap at 55 (12-point weight alone let 11 fatals ship at trust 82).
-  if ((v.factFatal ?? 0) > 0 && c.factIntegrity < 50) {
+  // Fact-integrity vetoes (Lot 4 honest scores): ANY fatal numerical
+  // discrepancy caps at 55 — a high integrity percentage no longer buys
+  // absolution for fatals. Integrity <85% (when actually measured) caps
+  // at 65. Refuted/removed figures are folded into factFatal upstream.
+  if ((v.factFatal ?? 0) > 0) {
     cap(55, `fact integrity veto — ${v.factFatal} fatal numerical discrepancies (integrity ${c.factIntegrity}%)`);
+  } else if (v.factIntegritySub85) {
+    cap(65, `fact integrity cap — integrity ${c.factIntegrity}% < 85%`);
   }
 
   // Evidence-independence veto — cited documents collapsing into very few
@@ -184,6 +191,12 @@ export function rescoreTrustFromStats(
   // fact-integrity veto on exactly the artifact version it judged.
   const factStale = !!(factStats?.stale || factStats?.error);
   const factIntegrity = factStale ? 80 : (factStats?.integrityScore ?? 80);
+  // Lot 4: figures the fact-checker refuted or the sanitizer removed count
+  // as defects — they were wrong in the draft even if the final text is
+  // clean. fatalIssues (pre-repair count) + numbersSanitized.
+  const sanitizedFigures = Number((stats as any).factCheckerResanitize?.sanitized ?? 0);
+  const factFatalRaw = (factStats?.error || factStats?.stale) ? 0 : (factStats?.fatalIssues ?? 0);
+  const factFatal = factFatalRaw + sanitizedFigures;
   const nliStale = !!(stats.citationVerifier as any)?.stale;
   const nliIntegrity = nliStale ? 80 : (stats.citationVerifier?.integrity ?? 80);
   const scStats = stats.sourceCheck as any;
@@ -197,7 +210,6 @@ export function rescoreTrustFromStats(
   const criticScore = stats.critic?.stale ? null : (stats.critic?.overallScore ?? null);
   const criticVerdict = stats.critic?.stale ? null : (stats.critic?.verdict ?? null);
   const panel = stats.criticPanel?.stale ? null : (stats.criticPanel as any);
-  const factFatal = (factStats?.error || factStats?.stale) ? 0 : (factStats?.fatalIssues ?? 0);
   return computeTrustScore(
     {
       citationCoverage, groundedness, factIntegrity, nliIntegrity,
@@ -215,6 +227,7 @@ export function rescoreTrustFromStats(
       providerDiversity,
       hallDetectScore: (stats as any).hallDetect?.score ?? 0,
       factFatal,
+      factIntegritySub85: !factStale && typeof factStats?.integrityScore === 'number' && factStats.integrityScore < 85,
       evidenceIndependence: (stats as any).evidenceIndependence?.verdict ?? null,
       evidenceCitedCount: (stats as any).evidenceIndependence?.citedCount ?? 0,
     },

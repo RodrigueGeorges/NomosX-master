@@ -123,6 +123,17 @@ function zeroVector(): number[] {
   return new Array(EMBEDDING_DIMS).fill(0);
 }
 
+/**
+ * True when an embedding is the failure sentinel (all zeros) rather than a
+ * real vector. embedText/embedBatch return zero vectors on backend failure —
+ * including an aborted execution scope — and callers that persist embeddings
+ * MUST refuse these (run-11: 279 null vectors written to ConceptNode while
+ * the scope was closed and the Cohere fallback was refused).
+ */
+export function isZeroEmbedding(v: number[] | null | undefined): boolean {
+  return !v || v.length === 0 || v.every(x => x === 0);
+}
+
 // ============================================================================
 // CORE: EMBED TEXT
 // ============================================================================

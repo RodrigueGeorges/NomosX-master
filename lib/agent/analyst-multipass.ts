@@ -1450,6 +1450,14 @@ export async function analystAgentV3(
       console.warn(`[Analyst V3] VALIDATION: removed ${validatedMap.removedMechanisms} mechanisms with invalid citations (${validatedMap.details})`);
     }
 
+    // Lot 3: a pass-1 that yields ZERO mechanisms after citation validation
+    // has no evidence spine — passes 2/3 would draft around nothing and the
+    // artifact must never be adopted. Fail fast with a machine-readable
+    // motif (pipeline maps _meta.failed → structured refusal).
+    if ((validatedMap.map.mechanisms ?? []).length === 0) {
+      throw new Error(`pass1_zero_mechanisms: pass 1 extracted no grounded mechanisms from ${sources.length} sources (${validatedMap.removedMechanisms} removed by validation)`);
+    }
+
     // PRE-DRAFT SCOPE REVIEW — cheap check on the pass-1 direction BEFORE
     // pass 2/3 invest in it. Scope/causality defects are repaired mid-flight
     // via a directive appended to the shared context (visible to both
@@ -1588,7 +1596,14 @@ export async function analystAgentV3(
         analysis: {
           title: question.slice(0, 100),
           throughLine: `Analysis based on ${mechanismCount} mechanisms (${survivingCount} survived stress test)`,
-          verdict: survivingCount > 0 ? 'tempered' : 'causal_only',
+          // The verdict must be a real position sentence, not the conviction
+          // enum — downstream gates (question_substituted, DA, binary judge)
+          // read verdict text and silently skip/fail on <20 chars. Run-12:
+          // REFRAIN emitted verdict="tempered" → substitution check bypassed,
+          // DA reject ×3 fatals, binary judge 0/8.
+          verdict: survivingCount > 0
+            ? `Tempered assessment: ${survivingCount} of ${mechanismCount} proposed mechanisms survived adversarial stress-testing; the causal chain reflects only surviving drivers — a bounded, evidence-conditional position rather than a forecast.`
+            : 'Causal-only assessment: no mechanisms survived stress-testing; the findings are descriptive mechanisms without a committed position on the asked outcome.',
           convictionLevel: survivingCount > 0 ? 'tempered' : 'causal_only',
           anchoringBasis: 'Pass 1 friction mapping + Pass 2 stress test',
           causalChain: synthesizeCausalChain(),
@@ -1716,6 +1731,7 @@ export async function analystAgentV3(
     };
 
     // ── FORESIGHT UNCERTAINTY FLOOR ──
+    let foresightFloorAdded = 0;
     // deriveChainScenarios needs ≥2 uncertain links to build electable
     // scenario cells; a fully-grounded chain (all present_fact/active_mechanism
     // with strong passages) yields ZERO — the swarm can never elect, the
@@ -1750,6 +1766,7 @@ export async function analystAgentV3(
           if (!c || c.length < 20) return;
           if ([...existingClaims].some(e => e && (c.toLowerCase().includes(e) || e.includes(c.toLowerCase().slice(0, 80))))) return;
           existingClaims.add(c.slice(0, 120).toLowerCase());
+          foresightFloorAdded++;
           chain.push({
             id: nextId(),
             claim: c.slice(0, 400),
@@ -1783,7 +1800,11 @@ export async function analystAgentV3(
     if (pruningResult.warnings.length > 0) {
       pruningResult.warnings.forEach(w => console.warn(`[Analyst V3] GATE WARNING: ${w}`));
     }
-    console.log(`[Analyst V3] Trust propagation: overall=${pruningResult.overallTrust}, chain=${pruningResult.prunedChain.length}/${sanitizedAnalysis.causalChain?.length || 0} links survived`);
+    // Denominator is the PRE-pruning chain — the foresight floor above can
+    // legitimately append uncertain links post-pruning, so "8/6" was an
+    // impossible-looking count. Report survived + floor additions separately.
+    const prePruneChainCount = Array.isArray(sanitizedAnalysis.causalChain) ? sanitizedAnalysis.causalChain.length : 0;
+    console.log(`[Analyst V3] Trust propagation: overall=${pruningResult.overallTrust}, chain=${pruningResult.prunedChain.length} links (pre-pruning ${prePruneChainCount}, +${foresightFloorAdded} foresight-floor)`);
 
     // ── INLINE THESIS-ADHERENCE GATE (opt-in NOMOSX_THESIS_INLINE_GATE=1) ──
     // Catch a verdict-level overclaim at the cheapest point — inside the

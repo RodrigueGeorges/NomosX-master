@@ -104,16 +104,22 @@ export async function runPipelineInit(query: string, opts: PipelineCoreOptions) 
   // Detect dead providers (suspended accounts, exhausted credits) BEFORE the pipeline
   // starts so we don't waste time discovering them through mid-pipeline failures.
   try {
-    const { getAvailableProviders, getSuspendedProviders, getFreepoolAliveEndpoints } = await import('../../llm/unified-llm');
+    const { getAvailableProviders, getSuspendedProviders, getFreepoolAliveEndpoints, PROVIDER_FAMILY } = await import('../../llm/unified-llm');
     const available = getAvailableProviders();
     const suspended = await getSuspendedProviders();
     const alive = available.filter(p => !suspended.includes(p));
+    // Lot 0: the routing contract is "any two reasoning families". One family
+    // alive means no cross-family verification, no opposite-family fact-check,
+    // and no failover — the run would spend its whole budget on a single
+    // vendor's outage surface. Abort BEFORE any retrieval spend.
+    const aliveFamilies = new Set(alive.map(p => PROVIDER_FAMILY[p as keyof typeof PROVIDER_FAMILY]).filter(Boolean));
     // Expose the snapshot: downstream sizing decisions (corpus cap, pass
     // budgets) degrade gracefully when failover headroom is gone — a
     // glm-only run cannot carry the same corpus a kimi-backed run can.
     (stats as Record<string, unknown>).preflight = {
       aliveProviders: alive,
       suspendedProviders: suspended,
+      aliveFamilies: [...aliveFamilies],
     };
     // Free-run refinement: "freepool" alive only counts if a configured endpoint
     // isn't quota-cooled — otherwise the scout burns retrieval budget for an
@@ -133,6 +139,13 @@ export async function runPipelineInit(query: string, opts: PipelineCoreOptions) 
       abort.name = 'PreflightAbortError';
       throw abort;
     }
+    if (aliveFamilies.size < 2) {
+      // Hard stop — same rationale as the 0-provider abort: cross-family
+      // independence is a publication invariant, not a nice-to-have.
+      const abort = new Error(`${label} PRE-FLIGHT ABORT [insufficient_model_families]: only ${aliveFamilies.size} reasoning famil${aliveFamilies.size === 1 ? 'y' : 'ies'} alive (${[...aliveFamilies].join(', ') || 'none'}) among providers [${alive.join(', ')}] — need ≥2 for cross-family verification and failover. Resume when a second family is healthy.`);
+      abort.name = 'PreflightAbortError';
+      throw abort;
+    }
     if (alive.length < 2) {
       console.error(`${label} PRE-FLIGHT: ⚠️ DEGRADED — only ${alive.length} provider(s) alive: ${alive.join(', ')}. No failover headroom; continuing with reduced redundancy.`);
     } else {
@@ -141,6 +154,57 @@ export async function runPipelineInit(query: string, opts: PipelineCoreOptions) 
   } catch (e) {
     if ((e as Error).name === 'PreflightAbortError') throw e;
     /* non-blocking */
+  }
+
+  // ── PRE-FLIGHT: Quant service health ──
+  // Lot 0: the quant-service (FIGARO IO + Docling PDF extraction) is a hard
+  // dependency for full-text readings and model evidence — a dead service
+  // discovered mid-reader wastes the whole retrieval spend. Probe /health
+  // (open endpoint, no token needed) before the scout; record the verdict
+  // in stats so a degraded run is explainable. Non-blocking by design:
+  // parametric models still work without it.
+  try {
+    const { quantServiceUrl, quantAuthHeaders } = await import('../../quant/figaro-client');
+    const base = quantServiceUrl();
+    if (base) {
+      const t0 = Date.now();
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 8000);
+      try {
+        const res = await fetch(`${base}/health`, {
+          signal: ctrl.signal,
+          headers: quantAuthHeaders(),
+        });
+        // /health reports per-capability flags (docling/chronos/minicheck) —
+        // run-11 paid 27×95s docling timeouts on a service whose route
+        // answered 503 "docling not installed". A capability flag of false
+        // opens the client breaker for the process: every PDF goes straight
+        // to pdf-parse instead of paying the parse timeout first.
+        let healthBody: { docling?: boolean } | null = null;
+        try { healthBody = await res.json(); } catch { /* non-JSON health */ }
+        if (healthBody?.docling === false) {
+          const { disableDocling } = await import('../../quant/docling-client');
+          disableDocling('quant-service /health reports docling unavailable');
+          (stats as Record<string, unknown>).docling = { enabled: true, serviceAvailable: false, action: 'breaker_opened' };
+        } else {
+          (stats as Record<string, unknown>).docling = { enabled: process.env.NOMOSX_DOCLING === '1', serviceAvailable: healthBody?.docling ?? null };
+        }
+        (stats as Record<string, unknown>).quantService = {
+          configured: true,
+          alive: res.ok,
+          status: res.status,
+          latencyMs: Date.now() - t0,
+        };
+        if (!res.ok) console.warn(`${label} PRE-FLIGHT: quant-service /health → HTTP ${res.status} (PDF extraction + IO models degraded)`);
+      } finally {
+        clearTimeout(timer);
+      }
+    } else {
+      (stats as Record<string, unknown>).quantService = { configured: false, alive: false };
+    }
+  } catch (e) {
+    (stats as Record<string, unknown>).quantService = { configured: true, alive: false, error: String((e as Error)?.message ?? e).slice(0, 120) };
+    console.warn(`${label} PRE-FLIGHT: quant-service unreachable — PDF extraction + IO models degraded`);
   }
 
   // ── PRE-FLIGHT: Persistence probe ──
@@ -332,7 +396,12 @@ export async function runPipelineInit(query: string, opts: PipelineCoreOptions) 
     const existing = activeRuns.get(idempotencyKey)!;
     if (Date.now() < existing.expiresAt) {
       console.warn(`${label} IDEMPOTENCY: duplicate run rejected (key=${idempotencyKey.slice(0, 30)}..., started ${Math.round((Date.now() - existing.startedAt) / 1000)}s ago)`);
-      throw new Error(`Pipeline already running for this query (started ${Math.round((Date.now() - existing.startedAt) / 1000)}s ago)`);
+      // DuplicateRunError → orchestrator maps to skipped_duplicate (terminal).
+      // A plain Error lands as HELD — burning a retry slot on a run that can
+      // never succeed while the original is still in flight (audit finding).
+      const dupErr = new Error(`Pipeline already running for this query (started ${Math.round((Date.now() - existing.startedAt) / 1000)}s ago)`);
+      dupErr.name = 'DuplicateRunError';
+      throw dupErr;
     }
   }
   activeRuns.set(idempotencyKey, { startedAt: Date.now(), expiresAt: Date.now() + IDEMPOTENCY_TTL_MS });
@@ -425,6 +494,8 @@ export async function runPipelineInit(query: string, opts: PipelineCoreOptions) 
       "club-of-rome", "millennium-project",
       // Pouls de l'actualité (gratuit)
       "gdelt-news",
+      // Metasearch floor — zero-cost web search when paid providers are dead
+      "searxng",
     ];
     providers = smartProviders
       ? Array.from(new Set([...smartProviders, ...coreAcademic])) as Providers
@@ -448,6 +519,31 @@ export async function runPipelineInit(query: string, opts: PipelineCoreOptions) 
     const before = providers.length;
     providers = filterFreeRunProviders(providers);
     console.log(`${label} FREE RUN: ${before - providers.length} paid providers dropped, ${providers.length} free remain`);
+  }
+
+  // ── PRE-FLIGHT: SearXNG self-hosted probe ──
+  // Run-11: public instances hung past the scout budget (23×90s overruns,
+  // 8 circuit cuts). When SEARXNG_URL is configured we probe it once — a
+  // dead instance drops the provider instead of burning a scout timeout on
+  // every query. Per-request timeout inside the provider stays ≤20s.
+  if ((providers as string[]).includes('searxng')) {
+    try {
+      const { env } = await import('../../env');
+      if (env.SEARXNG_URL) {
+        const { fetchFromProvider } = await import('../../http-client');
+        await fetchFromProvider('searxng-preflight', `${env.SEARXNG_URL}/search?q=prefli&format=json`, {
+          timeout: 5000, retries: 0,
+          headers: { 'Accept': 'application/json', 'User-Agent': 'NomosX Research Agent/1.0' },
+        });
+        (stats as Record<string, unknown>).preflightSearxng = { configured: true, alive: true };
+      } else {
+        (stats as Record<string, unknown>).preflightSearxng = { configured: false, note: 'public instances only — unverified' };
+      }
+    } catch (searxErr) {
+      providers = (providers as string[]).filter(p => p !== 'searxng') as Providers;
+      (stats as Record<string, unknown>).preflightSearxng = { configured: true, alive: false, reason: String(searxErr).slice(0, 200) };
+      console.warn(`${label} PRE-FLIGHT: searxng self-hosted instance unreachable — dropped from providers`);
+    }
   }
 
   // ── SKILL BANK: bias provider order toward configurations that previously

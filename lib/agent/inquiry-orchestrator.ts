@@ -482,6 +482,11 @@ export async function runAndPublishInquiry(
   // 5. Scores & gate — packaged into `assess` so the bounded regeneration
   // round can re-run the identical evaluation (scores → sign-off → gate →
   // revision round) on a regenerated artifact.
+  // Spec shared across candidates: the question is identical for the
+  // original and any regen, so a spec extracted once operationalizes all of
+  // them. A regen whose extraction flaked inherits it — the substitution
+  // check must run on the FINAL adopted artifact, not silently skip.
+  let sharedQuestionSpec: import('./question-spec').QuestionSpec | undefined;
   const assess = async (p: InquiryPipelineResult) => {
     const scores = extractPipelineScores(
       p.stats,
@@ -563,6 +568,45 @@ export async function runAndPublishInquiry(
         if (!tb?.statement) return undefined;
         return { adhered: tb.adhered, evaluationComplete: tb.evaluationComplete === true, reason: tb.adherenceReason };
       })(),
+      // Lot 1 question_substituted: populated by the bounded check below
+      // (corpus-derived theses only). Cached in stats — revision rounds
+      // re-evaluate the gate without re-spending the check.
+      questionSubstitution: (p.stats.questionSubstitution as PublicationGateInput['questionSubstitution'] | undefined)?.substituted === true
+        ? (p.stats.questionSubstitution as PublicationGateInput['questionSubstitution'])
+        : undefined,
+      // P0-C: a verified forecastQuestion makes ≥1 real fetched series a
+      // publication requirement — abstract-only numeric claims are not
+      // verified evidence. quant.series undefined = quant never ran →
+      // the gate check stays absent (fail-open contract).
+      requiresQuantSeries: typeof p.stats.forecastQuestion === 'string' && p.stats.forecastQuestion.trim().length > 0,
+      quantSeriesCount: typeof (p.stats.quant as { series?: number } | undefined)?.series === 'number'
+        ? (p.stats.quant as { series: number }).series
+        : undefined,
+      // Claude §1.5: statistical numbers still unsourced after the final
+      // sanitize pass — published notes must carry 0 (hard gate check).
+      unsourcedNumberCount: typeof (p.stats.numericalGate as { violations?: number } | undefined)?.violations === 'number'
+        ? (p.stats.numericalGate as { violations: number }).violations
+        : undefined,
+      // Claude §1.6 step contracts — present iff a verified forecastQuestion
+      // reached the run. Each violated contract is a hard-fail motif.
+      forecastContract: (() => {
+        const fq = typeof p.stats.forecastQuestion === 'string' ? p.stats.forecastQuestion.trim() : '';
+        if (!fq) return undefined;
+        const tb = p.stats.thesisBinding as { origin?: string; probability?: number } | undefined;
+        const qSpec = p.stats.questionSpec as { horizon?: string } | undefined;
+        const qFc = p.stats.questionForecast as { probability?: number } | undefined;
+        return {
+          thesisOrigin: tb?.origin,
+          probability: typeof tb?.probability === 'number' ? tb.probability : qFc?.probability,
+          horizon: qSpec?.horizon || fq,
+          question: fq,
+          // Claude §3 recency quota — recorded by rank-enrichment for
+          // forecast runs; undefined when it never ran (fail-open).
+          recentSourceCount: typeof (p.stats.corpusQuotas as { recent?: { count?: number } } | undefined)?.recent?.count === 'number'
+            ? (p.stats.corpusQuotas as { recent: { count: number } }).recent.count
+            : undefined,
+        };
+      })(),
       failedEvaluations: ['critic', 'criticPanel', 'devilsAdvocate', 'structuralEditor'].filter(key => {
         if (key === 'devilsAdvocate') return !aDa && !optionalDa;
         const evaluation = (p.stats[key] ?? p.lineage[key]) as Record<string, unknown> | undefined;
@@ -579,6 +623,75 @@ export async function runAndPublishInquiry(
           )
       ),
     };
+
+    // Lot 1 question_substituted: when the thesis was corpus-derived (no
+    // registered hypothesis won), verify the shipped verdict actually
+    // answers the operationalized question — the v10 failure mode was a
+    // costs thesis under an emissions question. One bounded call, cached
+    // in stats; only explicit `answers:false` produces a HOLD motif.
+    if (p.stats.questionSubstitution === undefined) {
+      // Propagate the spec across candidates (same question): a regen whose
+      // extraction flaked inherits the original's operationalization instead
+      // of skipping the check — run-11 had the check absent on 2 of 3 finals.
+      let spec = (p.stats.questionSpec as import('./question-spec').QuestionSpec | undefined) ?? sharedQuestionSpec;
+      // Mandatory on the final artifact: if EVERY candidate flaked spec
+      // extraction, derive it once here (bounded ~$0.01 call, shared across
+      // candidates) rather than silently skipping question_substituted.
+      // P0-B: applies to ANY thesis origin — a bound hypothesis can still
+      // ship a descriptive verdict that never answers the forecast question.
+      if (!spec) {
+        try {
+          const { extractQuestionSpec } = await import('./question-spec');
+          // P0-A: prefer the dispatch-verified forecastQuestion over the raw
+          // research question — the spec must operationalize the ASKED
+          // forecast, not whatever title the run happened to carry.
+          const fq = typeof p.stats.forecastQuestion === 'string' && p.stats.forecastQuestion.trim()
+            ? p.stats.forecastQuestion.trim() : question;
+          spec = (await extractQuestionSpec(fq)) ?? undefined;
+          if (spec) sharedQuestionSpec = spec;
+        } catch { /* spec stays absent — check skips, never fabricates */ }
+      }
+      if (spec) {
+        p.stats.questionSpec = spec;
+        sharedQuestionSpec = spec;
+      }
+      const analysis = (p.lineage?.analysis ?? p.stats.analysis) as { verdict?: string; throughLine?: string } | undefined;
+      // Fallback chain: analysis.verdict can collapse to an enum label
+      // (REFRAIN lightweight synthesis emitted "tempered" — run-12), which
+      // silently skipped the check. The bound thesis statement is the
+      // authoritative position text when verdict is absent or degenerate.
+      const thesisStmt = (p.stats.thesisBinding as { statement?: string } | undefined)?.statement;
+      const verdictText = (typeof analysis?.verdict === 'string' && analysis.verdict.trim().length >= 20)
+        ? analysis.verdict
+        : (typeof thesisStmt === 'string' && thesisStmt.trim().length >= 20 ? thesisStmt : undefined);
+      if (spec?.resolvable !== false && verdictText) {
+        try {
+          const { checkQuestionSubstitution } = await import('./question-spec');
+          // Claude §1.4: the check must compare against the ASKED forecast
+          // question, not the academic "How do…" research framing — run-12
+          // passed the research question while the spec came from the fq.
+          const askedQuestion = (typeof p.stats.forecastQuestion === 'string' && p.stats.forecastQuestion.trim())
+            ? p.stats.forecastQuestion.trim() : question;
+          const sub = await checkQuestionSubstitution({
+            question: askedQuestion,
+            spec,
+            verdict: verdictText,
+            throughLine: analysis?.throughLine,
+          });
+          if (sub) {
+            p.stats.questionSubstitution = sub;
+            if (typeof sub.costUsd === 'number') p.stats.totalCostUsd = (Number(p.stats.totalCostUsd) || 0) + sub.costUsd;
+            console.log(`[InquiryOrchestrator] QUESTION CHECK: substituted=${sub.substituted} — ${sub.reason.slice(0, 120)}`);
+          }
+        } catch (subErr) {
+          console.warn('[InquiryOrchestrator] question substitution check failed (non-blocking):', subErr);
+        }
+      }
+    }
+    // Refresh the gate input now that the check may have populated stats.
+    gi.questionSubstitution = (p.stats.questionSubstitution as PublicationGateInput['questionSubstitution'] | undefined)?.substituted === true
+      ? (p.stats.questionSubstitution as PublicationGateInput['questionSubstitution'])
+      : undefined;
 
     let g = evaluatePublicationGate({ ...gi, html: aHtml });
 
@@ -772,7 +885,7 @@ export async function runAndPublishInquiry(
   // corpus — the dispatcher falls back to the next radar candidate. ──
   if (assessment.gate.decision !== "publish" || !assessment.readiness.ok) {
     try {
-      const { shouldRegenerate, buildFailureFeedback, attemptScore, daFailureSignature } = await import('./revision-controller');
+      const { shouldRegenerate, buildFailureFeedback, attemptScore, daFailureSignature, judgeRegenWinner } = await import('./revision-controller');
       // Regen-futility memory (R2-MAD-style): the experience bank records
       // 'regen' entries when a same-corpus regen reproduced the identical DA
       // failure signature. A related question that already paid for that
@@ -925,17 +1038,43 @@ export async function runAndPublishInquiry(
           const reAssessed = await assess(regenPipeline);
           const before = attemptScore({ gate: assessment.gate, trustScore: assessment.scores.trustScore, qualityScore: assessment.scores.qualityScore });
           const after = attemptScore({ gate: reAssessed.gate, trustScore: reAssessed.scores.trustScore, qualityScore: reAssessed.scores.qualityScore });
-          if (after > before) {
-            console.log(`[InquiryOrchestrator] REGEN adopted: attempt ${before} → ${after} (gate ${assessment.gate.decision} → ${reAssessed.gate.decision})`);
+          // P1-B independent winner judge: the original-vs-regen choice is a
+          // winner's-curse trap on composite scores — one bounded LLM call
+          // picks the attempt closer to publishable (position-blind A/B).
+          // Null → fall back to the monotone attemptScore witness.
+          const origAnalysis = (pipeline.lineage?.analysis ?? pipeline.stats.analysis) as { verdict?: string; throughLine?: string } | undefined;
+          const regenAnalysis = (regenPipeline.lineage?.analysis ?? regenPipeline.stats.analysis) as { verdict?: string; throughLine?: string } | undefined;
+          const gateFailsOf = (g: typeof assessment.gate) => g.checks.filter(c => !c.passed).map(c => c.checkType ?? 'unknown');
+          const judged = await judgeRegenWinner({
+            question,
+            original: {
+              verdict: origAnalysis?.verdict, throughLine: origAnalysis?.throughLine,
+              gateFails: gateFailsOf(assessment.gate),
+              trustScore: assessment.scores.trustScore, qualityScore: assessment.scores.qualityScore,
+            },
+            regen: {
+              verdict: regenAnalysis?.verdict, throughLine: regenAnalysis?.throughLine,
+              gateFails: gateFailsOf(reAssessed.gate),
+              trustScore: reAssessed.scores.trustScore, qualityScore: reAssessed.scores.qualityScore,
+            },
+            runId: pipeline.stats?.runId as string | undefined,
+          });
+          // P1-B: the judge picks the winner; attemptScore is telemetry +
+          // fallback when the judge is unavailable.
+          const adoptRegen = judged ? judged.winner === 'regen' : after > before;
+          if (adoptRegen) {
+            console.log(`[InquiryOrchestrator] REGEN adopted${judged ? ` (independent judge: ${judged.reason.slice(0, 120)})` : ''}: attempt ${before} → ${after} (gate ${assessment.gate.decision} → ${reAssessed.gate.decision})`);
             (regenPipeline.stats as Record<string, unknown>).regeneration = {
               adopted: true, scoreBefore: before, scoreAfter: after, reason: regen.reason,
+              winnerJudge: judged ?? undefined,
             };
             pipeline = regenPipeline;
             assessment = reAssessed;
           } else {
-            console.log(`[InquiryOrchestrator] REGEN discarded: attempt ${before} → ${after} — stagnation/regression, original kept`);
+            console.log(`[InquiryOrchestrator] REGEN discarded${judged ? ` (independent judge: ${judged.reason.slice(0, 120)})` : `: attempt ${before} → ${after} — stagnation/regression`}, original kept`);
             (pipeline.stats as Record<string, unknown>).regeneration = {
               adopted: false, scoreBefore: before, scoreAfter: after, reason: regen.reason,
+              winnerJudge: judged ?? undefined,
             };
             // Futility signal: the regen reproduced the IDENTICAL DA failure
             // signature — rewriting cannot fix this failure class on this
@@ -990,6 +1129,37 @@ export async function runAndPublishInquiry(
   const gate = assessment.gate;
   const readiness = assessment.readiness;
 
+  // P1-B.4 — barrier audit for the future Conformal Risk Control calibration:
+  // every run logs the gate decision, its component scores, and the objective
+  // defects observed (fatal pipeline error, question substitution, DA fatal
+  // objection). Prediction resolution is joined post-hoc from the forecast
+  // ledger — this row is the label-side input for the ~50-note calibration.
+  try {
+    const failedNames = gate.checks.filter(c => !c.passed).map(c => c.checkType ?? 'unknown');
+    const daNow = da as { verdict?: string; fatalChallenges?: number } | undefined;
+    (pipeline.stats as Record<string, unknown>).barrierAudit = {
+      gateDecision: gate.decision,
+      failedChecks: failedNames,
+      trustScore, qualityScore,
+      devilsAdvocateVerdict: daNow?.verdict ?? null,
+      devilsAdvocateFatal: daNow?.fatalChallenges ?? 0,
+      questionSubstituted: (pipeline.stats.questionSubstitution as { substituted?: boolean } | undefined)?.substituted === true,
+      // Claude §1.6: forecast-contract motifs (thesis_origin_not_forecast,
+      // probability_out_of_band, horizon_*, word_cap_exceeded,
+      // question_not_displayed) — the calibration label side needs the
+      // named defect, not just the check name.
+      forecastContract: (() => {
+        const c = gate.checks.find(x => x.checkType === 'forecast_contract');
+        return c ? { passed: c.passed, details: c.details } : null;
+      })(),
+      thesisAdhered: (pipeline.stats.thesisBinding as { adhered?: boolean } | undefined)?.adhered ?? null,
+      qualityBar: Number(process.env.NOMOSX_QUALITY_BAR ?? 72),
+      regen: (pipeline.stats.regeneration as { adopted?: boolean; winnerJudge?: { winner?: string } } | undefined) ?? null,
+      predictionResolution: 'pending', // resolved later from the forecast ledger
+      recordedAt: new Date().toISOString(),
+    };
+  } catch { /* audit is telemetry — never block */ }
+
   // OT-8: persist the final gate verdict into PipelineRun.steps so the
   // per-check decision is reconstructible from the run record (previously
   // only stored inside publication metadata — invisible on held/failed runs).
@@ -1025,6 +1195,10 @@ export async function runAndPublishInquiry(
       (pipeline.stats.centralScenario as { selectedBy?: string } | undefined)?.selectedBy,
     scenariosFromChain:
       !!(pipeline.stats.swarmElection as { scenarioId?: string } | undefined)?.scenarioId,
+    scenarioDominant:
+      typeof (pipeline.stats.swarmElection as { dominant?: boolean } | undefined)?.dominant === 'boolean'
+        ? (pipeline.stats.swarmElection as { dominant?: boolean }).dominant
+        : undefined,
     swarmVotes: (() => {
       // Per-link minimum, not the run total: 15 voters over 2 links report
       // 30 "valid votes" while one link may hold only a handful.
@@ -1040,7 +1214,7 @@ export async function runAndPublishInquiry(
       const fc = (sf?.forecasts ?? []).filter(f =>
         // Sentinels ride linkId >= SENTINEL_VOTE_ID_BASE (9000) — exclude even
         // when the chain-link set is unavailable (fail-closed on sentinels).
-        (typeof f.linkId === 'number' && f.linkId < 9000)
+        ((typeof f.linkId === 'number') && f.linkId > 0 && f.linkId < 9000)
         && (chainLinkIds.size === 0 || (typeof f.linkId === 'number' && chainLinkIds.has(f.linkId))));
       return fc.length
         ? {
@@ -1073,6 +1247,26 @@ export async function runAndPublishInquiry(
       ? (pipeline.stats as Record<string, any>).degradedSteps
       : [],
   };
+
+  // Lot 5 observability: attach the gate verdict + artifact versions to the
+  // Langfuse trace (fire-and-forget, no-op unless ENABLE_LANGFUSE=true).
+  try {
+    const { traceGateVerdict } = await import('./langfuse');
+    const freshness = (pipeline.stats as Record<string, any>).evaluationFreshness;
+    traceGateVerdict(executionId, {
+      decision: gate.decision,
+      trustScore,
+      qualityScore,
+      failedChecks: (gate.checks ?? [])
+        .filter((c: { passed?: boolean }) => c.passed === false)
+        .map((c: { checkType?: string; name?: string }) => c.checkType ?? c.name ?? 'unknown'),
+      artifactVersions: freshness
+        ? { analysis: freshness.analysisArtifactVersion, html: freshness.htmlArtifactVersion }
+        : undefined,
+    });
+  } catch (lfErr) {
+    console.warn('[InquiryOrchestrator] Langfuse gate verdict failed (non-blocking):', lfErr);
+  }
 
   // THINK-TANK FORM GRID (lever 8, shadow): deterministic checklist on the
   // final rendered HTML. Recorded for measurement — promotion to a gate
@@ -1682,9 +1876,9 @@ async function persistQualityChecks(
   checks.push({
     publicationId,
     checkType: "THRESHOLD",
-    passed: qualityScore >= 70,
+    passed: qualityScore >= 72,
     score: qualityScore,
-    details: { checkName: "quality_score", threshold: 70, detail: `Quality score ${qualityScore} (min 70)` },
+    details: { checkName: "quality_score", threshold: 72, detail: `Quality score ${qualityScore} (min 72)` },
   });
 
   // CITATION checks — threshold aligned with the actual gate

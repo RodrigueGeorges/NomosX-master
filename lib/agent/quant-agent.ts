@@ -405,9 +405,12 @@ export async function quantAgent(
   }
 
   const fetchers = selectFetchers(query, sources);
+  // Run-12 defect (Claude §1.1): an early return here skipped the macro
+  // floor entirely — the EU-budget subject got 0 series despite
+  // macro-series.ts covering budget/fiscal/spending. Specialized fetchers
+  // are optional; the macro floor ALWAYS runs.
   if (fetchers.length === 0) {
-    console.log('[QUANT] No relevant primary-data fetchers for this query');
-    return { series: [], facts: [], evidenceBlock: '', chartData: [], fetchedProviders: [], durationMs: Date.now() - start };
+    console.log('[QUANT] No specialized primary-data fetchers — macro floor only');
   }
 
   const results = await Promise.allSettled(fetchers.map(f => f()));
@@ -415,6 +418,31 @@ export async function quantAgent(
     .filter((r): r is PromiseFulfilledResult<QuantSeries | null> => r.status === 'fulfilled')
     .map(r => r.value)
     .filter((s): s is QuantSeries => s !== null && s.points.length >= 3);
+
+  // P0-C quantitative floor: EVERY note attempts real macro series —
+  // DBnomics (INSEE/Eurostat/OECD/IMF) + FRED, domain-matched specs first,
+  // always-on macro floor behind them. Abstract-only numeric claims are
+  // not verified evidence; the gate requires ≥1 fetched series.
+  try {
+    const { fetchMacroSeries } = await import('./macro-series');
+    const macro = await fetchMacroSeries(query);
+    for (const ms of macro.series.slice(0, 3)) {
+      const stats = computeStats(downsample(ms.points));
+      series.push({
+        label: ms.label,
+        unit: ms.unit,
+        provider: ms.provider,
+        sourceId: ms.sourceId,
+        points: downsample(ms.points),
+        ...stats,
+      });
+    }
+    if (macro.series.length > 0) {
+      console.log(`[QUANT] Macro floor: ${macro.series.length} real series from ${[...new Set(macro.series.map(s => s.provider))].join(', ')} (${macro.attempted} specs attempted)`);
+    }
+  } catch (err) {
+    console.warn('[QUANT] Macro floor failed (non-blocking):', err);
+  }
 
   const facts = series.flatMap(seriesToFacts);
 

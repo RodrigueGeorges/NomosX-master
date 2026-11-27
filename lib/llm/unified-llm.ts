@@ -160,13 +160,17 @@ const CROSS_FAMILY_FALLBACK: Record<LLMFamily, LLMFamily[]> = {
 // kimi→glm, which must stay GLM-first so kimi-produced text never verifies
 // itself when the chain's first live provider is kimi.
 const OPPOSITE_FAMILY: Record<LLMFamily, LLMFamily> = {
-  deepseek: "google",
-  glm: "google",
-  openai: "google",
-  anthropic: "google",
-  kimi: "glm",
-  google: "kimi",
-  freepool: "google",
+  // Claude §2: verification runs on DeepSeek V4 Pro whenever the producer is
+  // GLM/Kimi/OpenAI/Anthropic/Google — a family that never wrote the text.
+  // DeepSeek-produced text is verified by Kimi (the other funded frontier
+  // family) so self-verification stays impossible.
+  deepseek: "kimi",
+  glm: "deepseek",
+  openai: "deepseek",
+  anthropic: "deepseek",
+  kimi: "deepseek",
+  google: "deepseek",
+  freepool: "deepseek",
 };
 
 // ============================================================================
@@ -210,17 +214,19 @@ const PROVIDER_MIN_TIMEOUT_MS: Record<LLMProvider, number> = {
   freepool: 30_000,
 };
 
-/** Resolved once at module load — KIMI_MODEL env override (default kimi-k3). */
-const KIMI_MODEL = env.KIMI_MODEL || "kimi-k3";
+/** Resolved once at module load — KIMI_MODEL env override (default kimi-k3.1-pro,
+ *  verified live against api.moonshot.ai/v1/models 2026-11-27). */
+const KIMI_MODEL = env.KIMI_MODEL || "kimi-k3.1-pro";
 
 /** Fast/cheap utility model — glm-4.5-air ($0.20/$1.10 per Mtok, ~15× cheaper
  *  than the kimi-k3 fallback it replaces while OpenAI is out of credits). */
 const GLM_FAST = "glm-4.5-air";
-const OPENAI_FAST = "gpt-6-luna";
-/** Frontier mid-tier — score 81.3 vs Kimi K3's 78.5 at ~2/3 the price ($2/$10
- *  vs $3/$15). Assigned primary for the analytical roles; falls back to Kimi
- *  while the OpenAI account is unfunded. */
-const OPENAI_REASONING = "gpt-6-sol";
+/** Claude §2 verified IDs (api /models, 2026-11-27): glm-5.3 is the newest
+ *  flagship the z.ai account can access (glm-5.4 → 403 permission), same
+ *  $1.4/$4.4 pricing as 5.2 with a 1M context — strict upgrade. */
+const GLM_WRITER = env.GLM_MODEL || "glm-5.3";
+const KIMI_PRO = "kimi-k3.1-pro";
+const DEEPSEEK_PRO = env.DEEPSEEK_MODEL_REASONING || "deepseek-v4-pro";
 
 const TASK_ASSIGNMENT: Record<LLMTask, TaskAssignment> = {
   // Fast / cheap / frequent — glm-4.5-air (OpenAI credits exhausted 2026-09,
@@ -228,35 +234,36 @@ const TASK_ASSIGNMENT: Record<LLMTask, TaskAssignment> = {
   query_enhancement:      { provider: "glm", model: GLM_FAST, timeoutMs: 30_000 },
   topic_classification:   { provider: "glm", model: GLM_FAST, timeoutMs: 30_000 },
   casting:                { provider: "glm", model: GLM_FAST, timeoutMs: 30_000 },
-  editor_in_chief:        { provider: "glm", model: GLM_FAST, timeoutMs: 60_000 },
+  // One call per cycle that picks the subjects and drafts the forecast
+  // questions — judgement, not volume.
+  editor_in_chief:        { provider: "glm", model: GLM_WRITER, timeoutMs: 180_000 },
   swarm_persona:          { provider: "glm", model: GLM_FAST, timeoutMs: 30_000 },
 
-  // Extraction / verification — Gemini 3.8 Flash: best measured groundedness
-  // (AA-Omniscience 21, vs 3 for Sonnet 5), 332 tok/s, $0.75/$3.75 — 13×
-  // cheaper than gpt-6-astra for the exact job. Needs GOOGLE_API_KEY; without
-  // it the opposite-family rule still routes kimi↔glm verification.
-  fact_check:             { provider: "google", model: "gemini-3.8-flash", timeoutMs: 60_000 },
-  citation_verification:  { provider: "google", model: "gemini-3.8-flash", timeoutMs: 60_000 },
+  // Extraction / verification — Claude §2: DeepSeek V4 Pro verifies text it
+  // did not produce (OPPOSITE_FAMILY routes producer-family → deepseek).
+  // Gemini 3.8 Flash remains the preferred verifier IF a Google key is
+  // funded — swap provider back to "google" then.
+  fact_check:             { provider: "deepseek", model: DEEPSEEK_PRO, timeoutMs: 120_000 },
+  citation_verification:  { provider: "deepseek", model: DEEPSEEK_PRO, timeoutMs: 120_000 },
 
-  // Heavy INPUT + OUTPUT — Kimi K3 is the analytical brain (1M ctx, 128K output,
-  // frontier reasoning). reader_v3 (bulk reading) runs on cheap GLM — the
-  // fallback chain routes to Kimi when GLM can't handle it (ctx or timeout).
+  // Heavy INPUT + OUTPUT — Claude §2 "Rédaction": GLM-5.2 writes; the
+  // cross-family chain falls back to Kimi K3.1 Pro while OpenAI/others
+  // are suspended. reader_v3 stays on the volume tier (glm-4.5-air).
   reader_v3:              { provider: "glm", model: GLM_FAST, timeoutMs: 300_000 },
-  strategic_analyst:      { provider: "openai", model: OPENAI_REASONING, timeoutMs: 600_000 },
-  harvard_council:        { provider: "openai", model: OPENAI_REASONING, timeoutMs: 600_000 },
-  elenchus:               { provider: "openai", model: OPENAI_REASONING, timeoutMs: 600_000 },
+  strategic_analyst:      { provider: "glm", model: GLM_WRITER, timeoutMs: 600_000 },
+  harvard_council:        { provider: "glm", model: GLM_WRITER, timeoutMs: 600_000 },
+  // Contre-analyse — Claude §2: Kimi K3.1 Pro (family ≠ rédacteur GLM).
+  elenchus:               { provider: "kimi", model: KIMI_PRO, timeoutMs: 600_000 },
 
-  // Heavy structured-JSON OUTPUT — Kimi K3 (its original role): 128K output
-  // headroom for long structured briefs, reasoning_effort=high on reasoning tasks.
-  analyst_brief:          { provider: "openai", model: OPENAI_REASONING, timeoutMs: 600_000 },
-  auto_revision:          { provider: "openai", model: OPENAI_REASONING, timeoutMs: 600_000 },
-  // Editorial arbiter upgraded to gpt-6-astra for frontier reasoning in scenario synthesis
-  editorial_arbiter:      { provider: "openai", model: "gpt-6-astra", timeoutMs: 600_000 },
+  // Heavy structured-JSON OUTPUT — GLM-5.2 (128K-class output headroom,
+  // reasoning_effort=high on reasoning tasks).
+  analyst_brief:          { provider: "glm", model: GLM_WRITER, timeoutMs: 600_000 },
+  auto_revision:          { provider: "glm", model: GLM_WRITER, timeoutMs: 600_000 },
+  editorial_arbiter:      { provider: "glm", model: GLM_WRITER, timeoutMs: 600_000 },
 
-  // Precision / structure — gpt-6-sol: frontier-enough for these tasks at
-  // 5× lower cost than astra (kept only for the editorial arbiter apex).
-  meta_analysis:          { provider: "openai", model: OPENAI_REASONING, timeoutMs: 90_000 },
-  structural_editor:      { provider: "openai", model: OPENAI_REASONING, timeoutMs: 60_000 },
+  // Precision / structure — GLM-5.2 writing tier.
+  meta_analysis:          { provider: "glm", model: GLM_WRITER, timeoutMs: 90_000 },
+  structural_editor:      { provider: "glm", model: GLM_WRITER, timeoutMs: 60_000 },
 
   // Conversational / utility — GLM fast tier
   studiox:                { provider: "glm", model: GLM_FAST, timeoutMs: 60_000 },
@@ -264,11 +271,10 @@ const TASK_ASSIGNMENT: Record<LLMTask, TaskAssignment> = {
   preflight_semantic_check: { provider: "glm", model: GLM_FAST, timeoutMs: 30_000 },
   query_reformulation:    { provider: "glm", model: GLM_FAST, timeoutMs: 30_000 },
 
-  // Primary data synthesis — back on Kimi K3 (frontier reasoning for expert
-  // interviews / survey synthesis)
-  primary_data_synthesis: { provider: "openai", model: OPENAI_REASONING, timeoutMs: 600_000 },
-  // Policy stress test — multi-archetype risk review on the frontier mid-tier
-  stress_test: { provider: "openai", model: OPENAI_REASONING, timeoutMs: 600_000 },
+  // Primary data synthesis — GLM-5.2 writing tier.
+  primary_data_synthesis: { provider: "glm", model: GLM_WRITER, timeoutMs: 600_000 },
+  // Policy stress test — contre-analyse: Kimi K3.1 Pro (family ≠ rédacteur).
+  stress_test: { provider: "kimi", model: KIMI_PRO, timeoutMs: 600_000 },
 
   // Legacy aliases — never read directly (normalizeTask() redirects before lookup),
   // kept so LLMTask stays a superset and TS doesn't complain about missing keys.
@@ -276,8 +282,8 @@ const TASK_ASSIGNMENT: Record<LLMTask, TaskAssignment> = {
   extraction:             { provider: "glm", model: GLM_FAST, timeoutMs: 120_000 },
   citation:               { provider: "glm", model: GLM_FAST, timeoutMs: 60_000 },
   analysis:               { provider: "glm", model: GLM_FAST, timeoutMs: 120_000 },
-  strategic_analysis:     { provider: "openai", model: OPENAI_REASONING, timeoutMs: 600_000 },
-  critique:               { provider: "openai", model: OPENAI_REASONING, timeoutMs: 120_000 },
+  strategic_analysis:     { provider: "glm", model: GLM_WRITER, timeoutMs: 600_000 },
+  critique:               { provider: "kimi", model: KIMI_PRO, timeoutMs: 120_000 },
   rewrite:                { provider: "glm", model: GLM_FAST, timeoutMs: 120_000 },
   reflection:             { provider: "glm", model: GLM_FAST, timeoutMs: 30_000 },
   // V3.2: New tasks for 2026 innovations
@@ -318,15 +324,37 @@ const MODEL_CONFIG: Record<string, Record<string, {
   costPer1kCachedInput?: number;
 }>> = {
   deepseek: {
-    "deepseek-v4-pro": { contextWindow: 1000000, costPer1kInput: 0.000435, costPer1kOutput: 0.00087 },
-    "deepseek-v4-flash": { contextWindow: 1000000, costPer1kInput: 0.00014, costPer1kOutput: 0.00028 },
-    "deepseek-flash": { contextWindow: 1000000, costPer1kInput: 0.00022, costPer1kOutput: 0.00066 },
+    // Claude §2 cost table (per 1K tokens = $/Mtok ÷ 1000): V4 Pro peaks at
+    // $1.32/$3.96 — conservative peak pricing; off-peak is half. V4 Flash
+    // $0.44/$1.32 peak. deepseek-flash alias kept for legacy callers.
+    "deepseek-v4-pro": { contextWindow: 1048576, costPer1kInput: 0.00132, costPer1kOutput: 0.00396 },
+    "deepseek-v4-flash": { contextWindow: 1048576, costPer1kInput: 0.00044, costPer1kOutput: 0.00132 },
+    "deepseek-flash": { contextWindow: 1048576, costPer1kInput: 0.00044, costPer1kOutput: 0.00132 },
     "deepseek-chat": { contextWindow: 128000, costPer1kInput: 0.00028, costPer1kOutput: 0.00042 },
     "deepseek-reasoner": { contextWindow: 128000, costPer1kInput: 0.00028, costPer1kOutput: 0.00042 },
   },
   glm: {
-    // z.ai GLM-4.5/4.6 family — verified against the account 2026-09
-    // (glm-5.x model codes returned 400 "Unknown Model").
+    // z.ai GLM family — glm-5.3 verified live on /models + chat 2026-11-27
+    // ($1.4/$4.4 per Mtok, cached $0.26 — same price as 5.2, newer weights).
+    // glm-5.3-flash ($0.15/$0.50) is the cheap volume-tier candidate pending
+    // an A/B against glm-4.5-air; glm-5.4 exists but this account lacks access.
+    "glm-5.3": {
+      contextWindow: 200000,
+      costPer1kInput: 0.0014,
+      costPer1kOutput: 0.0044,
+      costPer1kCachedInput: 0.00026,
+    },
+    "glm-5.3-flash": {
+      contextWindow: 200000,
+      costPer1kInput: 0.00015,
+      costPer1kOutput: 0.0005,
+      costPer1kCachedInput: 0.00003,
+    },
+    "glm-5.2": {
+      contextWindow: 200000,
+      costPer1kInput: 0.0014,
+      costPer1kOutput: 0.0044,
+    },
     "glm-4.6": {
       contextWindow: 200000,
       costPer1kInput: 0.0006,
@@ -362,11 +390,23 @@ const MODEL_CONFIG: Record<string, Record<string, {
     "gemini-3.5-flash-lite": { contextWindow: 1000000, costPer1kInput: 0.0003, costPer1kOutput: 0.0025 },
   },
   anthropic: {
+    // Claude §2: Sonnet 5.5 = $2/$10 per Mtok (cache read $0.10–0.20,
+    // batch −50%). ID unverified until the Anthropic account is funded —
+    // TASK_ASSIGNMENT does not route here yet.
+    "claude-sonnet-5-5": { contextWindow: 1000000, costPer1kInput: 0.002, costPer1kOutput: 0.010, costPer1kCachedInput: 0.00015 },
     "claude-sonnet-5": { contextWindow: 1000000, costPer1kInput: 0.002, costPer1kOutput: 0.010, costPer1kCachedInput: 0.0002 },
-    "claude-opus-5.5": { contextWindow: 1000000, costPer1kInput: 0.004, costPer1kOutput: 0.02, costPer1kCachedInput: 0.0002 },
+    "claude-opus-5-5": { contextWindow: 1000000, costPer1kInput: 0.004, costPer1kOutput: 0.02, costPer1kCachedInput: 0.0002 },
     "claude-opus-5": { contextWindow: 1000000, costPer1kInput: 0.005, costPer1kOutput: 0.025 },
   },
   kimi: {
+    // Claude §2: Kimi K3.1 Pro = $2/$10 per Mtok, cache $0.20/Mtok —
+    // verified live on api.moonshot.ai/v1/models 2026-11-27.
+    "kimi-k3.1-pro": {
+      contextWindow: 1048576,
+      costPer1kInput: 0.002,
+      costPer1kOutput: 0.010,
+      costPer1kCachedInput: 0.0002,
+    },
     "kimi-k3": {
       contextWindow: 1048576,
       costPer1kInput: 0.003,
@@ -1155,15 +1195,15 @@ function resolveModelForTask(provider: LLMProvider, task: LLMTask): string {
   const isFast = FAST_TASKS.has(task);
   switch (provider) {
     case "deepseek":
-      return isFast ? env.DEEPSEEK_MODEL_FAST : env.DEEPSEEK_MODEL_REASONING;
+      return isFast ? (env.DEEPSEEK_MODEL_FAST || "deepseek-flash") : (env.DEEPSEEK_MODEL_REASONING || DEEPSEEK_PRO);
     case "glm":
-      return isFast ? (env.GLM_MODEL_FAST || "glm-4.5-air") : (env.GLM_MODEL || "glm-4.6");
+      return isFast ? (env.GLM_MODEL_FAST || GLM_FAST) : (env.GLM_MODEL || GLM_WRITER);
     case "openai":
       return isFast ? "gpt-6-luna" : (env.OPENAI_MODEL || "gpt-6-sol");
     case "anthropic":
-      return isFast ? "claude-sonnet-5" : "claude-opus-5.5";
+      return isFast ? "claude-sonnet-5" : "claude-opus-5-5";
     case "kimi":
-      return env.KIMI_MODEL || "kimi-k3";
+      return env.KIMI_MODEL || KIMI_PRO;
     case "google":
       return "gemini-3.8-flash";
     case "freepool":
@@ -1910,7 +1950,13 @@ async function callLLMProvider(request: LLMRequest): Promise<LLMResponse> {
   const task = normalizeTask(request.task);
   const primaryProvider = resolvePrimaryProvider(request);
   const primaryFamily = PROVIDER_FAMILY[primaryProvider];
-  const model = resolveModelForTask(primaryProvider, task);
+  // Claude §2: an explicit provider+model pair is a deliberate pin (the
+  // agentic forecasters run GLM-5.2/Kimi-K3.1-Pro/DeepSeek-V4-Pro regardless
+  // of the task's default assignment). provider alone still resolves via
+  // TASK_ASSIGNMENT.
+  const model = (request.provider && request.model)
+    ? request.model
+    : resolveModelForTask(primaryProvider, task);
 
   // Check cache first if enabled. Tool-calling turns are stateful (the model's
   // tool_calls depend on the conversation so far and must be executed once) —
@@ -2030,7 +2076,12 @@ async function callLLMProvider(request: LLMRequest): Promise<LLMResponse> {
 
   for (const provider of orderedProviders) {
     assertExecutionActive();
-    const fallbackModel = resolveModelForTask(provider, task);
+    // The explicit provider+model pin applies ONLY to the requested provider —
+    // fallback providers must resolve their own task model, never inherit a
+    // foreign model id (e.g. claude-sonnet-5-5 sent to glm would 400).
+    const fallbackModel = (provider === primaryProvider && request.provider && request.model)
+      ? request.model
+      : resolveModelForTask(provider, task);
     const timeoutMs = getCallTimeout(provider, task);
 
     try {

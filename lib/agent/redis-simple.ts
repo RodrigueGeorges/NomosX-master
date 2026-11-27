@@ -32,6 +32,12 @@ export const simpleRedisConfig: SimpleRedisConfig = {
 export class SimpleRedisManager {
   private client: Redis | null = null;
   private isConnected: boolean = false;
+  // Lot 0: in-memory fallback. When Redis is CONFIGURED but unreachable
+  // (Upstash DNS down, network partition), cache reads/writes degrade to a
+  // bounded process-local map instead of hard-failing every caller. Not used
+  // when no Redis is configured at all — that stays fail-fast by design.
+  private memoryCache = new Map<string, { value: string; expiresAt: number }>();
+  private static readonly MEMORY_CACHE_MAX = 5000;
   private connectionAttempts: number = 0;
   private maxConnectionAttempts: number = 3;
   private reconnectTimer: NodeJS.Timeout | null = null;
@@ -194,40 +200,86 @@ export class SimpleRedisManager {
     return this.isConnected && this.client !== null;
   }
   
+  /** True when Redis is configured but currently unreachable → memory fallback active. */
+  private useMemoryFallback(): boolean {
+    return !this.permanentlyDisabled && !(this.isConnected && this.client !== null);
+  }
+
+  private memoryGet(key: string): string | null {
+    const e = this.memoryCache.get(key);
+    if (!e) return null;
+    if (e.expiresAt < Date.now()) { this.memoryCache.delete(key); return null; }
+    return e.value;
+  }
+
+  private memorySet(key: string, serialized: string, ttlSeconds: number): void {
+    if (this.memoryCache.size >= SimpleRedisManager.MEMORY_CACHE_MAX) {
+      // Evict expired first, then oldest insertion (Map preserves order).
+      const now = Date.now();
+      for (const [k, v] of this.memoryCache) {
+        if (v.expiresAt < now) this.memoryCache.delete(k);
+      }
+      while (this.memoryCache.size >= SimpleRedisManager.MEMORY_CACHE_MAX) {
+        const oldest = this.memoryCache.keys().next().value;
+        if (oldest === undefined) break;
+        this.memoryCache.delete(oldest);
+      }
+    }
+    this.memoryCache.set(key, { value: serialized, expiresAt: Date.now() + ttlSeconds * 1000 });
+  }
+
   /**
    * Cache une valeur avec TTL (avec retry et fallback)
    */
   async setWithTTL(key: string, value: any, ttlSeconds: number): Promise<boolean> {
     if (this.permanentlyDisabled) return false;
-    if (!this.isRedisConnected()) return false;
-    
+    if (this.useMemoryFallback()) {
+      try {
+        this.memorySet(key, JSON.stringify(value), ttlSeconds);
+        return true;
+      } catch { return false; }
+    }
+
     try {
       const serialized = JSON.stringify(value);
       await this.client!.setex(key, ttlSeconds, serialized);
       return true;
     } catch (error) {
       console.error('[Redis] Failed to set with TTL:', error);
-      // Mark as disconnected on error
+      // Mark as disconnected on error — subsequent calls use memory fallback
       this.isConnected = false;
-      return false;
+      try { this.memorySet(key, JSON.stringify(value), ttlSeconds); } catch { /* ignore */ }
+      return true;
     }
   }
-  
+
   /**
    * Récupère une valeur du cache (avec retry)
    */
   async get<T>(key: string): Promise<T | null> {
     if (this.permanentlyDisabled) return null;
-    if (!this.isRedisConnected()) return null;
-    
+    if (this.useMemoryFallback()) {
+      const raw = this.memoryGet(key);
+      if (raw === null) return null;
+      try { return JSON.parse(raw) as T; } catch { return null; }
+    }
+
     try {
       const value = await this.client!.get(key);
-      if (value === null) return null;
-      
+      if (value === null) {
+        // Redis miss — the same key may live in the memory fallback written
+        // during an earlier outage window.
+        const mem = this.memoryGet(key);
+        if (mem !== null) { try { return JSON.parse(mem) as T; } catch { /* fall through */ } }
+        return null;
+      }
+
       return JSON.parse(value) as T;
     } catch (error) {
       console.error('[Redis] Failed to get value:', error);
       this.isConnected = false;
+      const mem = this.memoryGet(key);
+      if (mem !== null) { try { return JSON.parse(mem) as T; } catch { /* ignore */ } }
       return null;
     }
   }
@@ -248,10 +300,14 @@ export class SimpleRedisManager {
    * Supprime une clé du cache
    */
   async delete(key: string): Promise<boolean> {
-    if (this.permanentlyDisabled || !this.isRedisConnected()) {
+    if (this.permanentlyDisabled) {
       return false;
     }
-    
+    this.memoryCache.delete(key);
+    if (this.useMemoryFallback()) {
+      return true;
+    }
+
     try {
       const result = await this.client!.del(key);
       return result > 0;
@@ -265,10 +321,19 @@ export class SimpleRedisManager {
    * Scan les clés avec un pattern
    */
   async scanKeys(pattern: string, count: number = 100): Promise<string[]> {
-    if (this.permanentlyDisabled || !this.isRedisConnected()) {
+    if (this.permanentlyDisabled) {
       return [];
     }
-    
+    if (this.useMemoryFallback()) {
+      // Glob-ish match: callers pass redis patterns like 'emb:*' — support
+      // the '*' wildcard and plain substring fallback.
+      const rx = new RegExp('^' + pattern.split('*').map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('.*') + '$');
+      const now = Date.now();
+      return [...this.memoryCache.entries()]
+        .filter(([k, v]) => v.expiresAt >= now && rx.test(k))
+        .map(([k]) => k);
+    }
+
     const allKeys: string[] = [];
     let cursor = '0';
     

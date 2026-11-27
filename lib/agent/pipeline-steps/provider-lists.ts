@@ -273,4 +273,6 @@ export const DEFAULT_ACADEMIC_PROVIDERS: Providers = [
   "cyberleninka", "jstage", "scielo",
   // Pouls de l'actualité (gratuit)
   "gdelt-news",
+  // Metasearch floor — zero-cost web search when paid providers are dead
+  "searxng",
 ];

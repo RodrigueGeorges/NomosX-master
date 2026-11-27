@@ -26,6 +26,12 @@ export interface ChainUncertainty {
   dependsOn?: number;
 }
 
+export interface RejectedAxis {
+  linkId: number;
+  claim: string;
+  reason: 'compound_axis' | 'conditional_axis' | 'out_of_horizon';
+}
+
 export interface ChainScenario {
   /** Stable id — election and tie-breaking key (OT-5). */
   id: string;
@@ -43,6 +49,29 @@ function isUncertain(link: CausalLink): 'future_extrapolation' | 'weak_mechanism
   if (link.temporalStatus === 'future_extrapolation') return 'future_extrapolation';
   if (link.temporalStatus === 'active_mechanism' && (link.unsupported || link.passageVerdict === 'weak' || link.passageVerdict === 'none')) {
     return 'weak_mechanism';
+  }
+  return null;
+}
+
+/** Lot 1 axis validation: a scenario axis must be a single proposition
+ *  about the question's horizon. Compound ("X but Y"), conditional
+ *  ("if … then", "le cas échéant") and out-of-horizon claims make bad
+ *  axes — the swarm would be voting on a bundle, not a proposition.
+ *  The causal-effect-on-question check needs the question text and lives
+ *  in the caller; here we enforce what is decidable from the claim. */
+const COMPOUND_RE = /\bmais\b|\bcependant\b|\btoutefois\b|\bhowever\b|\bnevertheless\b|\bnonetheless\b|\bbut\b/i;
+const CONDITIONAL_RE = /\ble cas échéant\b|\bsous réserve\b|\bsi et seulement si\b|\bà condition que\b|\bprovided that\b|\bif and only if\b|\bunless\b|\bconditioned on\b/i;
+
+function axisRejection(claim: string, horizon: string | undefined): RejectedAxis['reason'] | null {
+  if (COMPOUND_RE.test(claim)) return 'compound_axis';
+  if (CONDITIONAL_RE.test(claim)) return 'conditional_axis';
+  // Out-of-horizon: the claim anchors on a year beyond the note's horizon
+  // (grace: horizon year itself or earlier is in-scope).
+  const horizonYear = (horizon ?? '').match(/(20\d{2})/)?.[1];
+  if (horizonYear) {
+    for (const m of claim.matchAll(/\b(20\d{2})\b/g)) {
+      if (parseInt(m[1], 10) > parseInt(horizonYear, 10)) return 'out_of_horizon';
+    }
   }
   return null;
 }
@@ -71,19 +100,29 @@ function downstreamCounts(links: CausalLink[]): Map<number, number> {
 export function deriveChainScenarios(
   links: CausalLink[] | undefined,
   horizon: string | undefined,
-): { scenarios: ChainScenario[]; uncertainties: ChainUncertainty[] } | null {
+): { scenarios: ChainScenario[]; uncertainties: ChainUncertainty[]; rejectedAxes?: RejectedAxis[] } | null {
   if (!links || links.length < 3) return null;
 
   const down = downstreamCounts(links);
+  const rejectedAxes: RejectedAxis[] = [];
   const uncertain: ChainUncertainty[] = links
     .map(l => {
       const kind = isUncertain(l);
-      return kind ? { linkId: l.id, claim: l.claim, kind, downstream: down.get(l.id) ?? 0 } : null;
+      if (!kind) return null;
+      const rejection = axisRejection(l.claim, horizon);
+      if (rejection) {
+        rejectedAxes.push({ linkId: l.id, claim: l.claim, reason: rejection });
+        return null;
+      }
+      return { linkId: l.id, claim: l.claim, kind, downstream: down.get(l.id) ?? 0 };
     })
     .filter((u): u is ChainUncertainty => u !== null)
     // Criticality: downstream dependents first, then chain order.
     .sort((a, b) => b.downstream - a.downstream || a.linkId - b.linkId);
 
+  if (rejectedAxes.length > 0) {
+    console.log(`[chain-scenarios] rejected ${rejectedAxes.length} axis candidate(s): ${rejectedAxes.map(r => `link${r.linkId}:${r.reason}`).join(', ')}`);
+  }
   if (uncertain.length < 2) return null;
   const [u1, u2] = uncertain;
 
@@ -135,5 +174,9 @@ export function deriveChainScenarios(
     uncertaintyIds: [u1.linkId, u2.linkId],
   }));
 
-  return { scenarios, uncertainties: [u1, u2dependsOnU1 ? { ...u2, dependsOn: u1.linkId } : u2] };
+  return {
+    scenarios,
+    uncertainties: [u1, u2dependsOnU1 ? { ...u2, dependsOn: u1.linkId } : u2],
+    rejectedAxes: rejectedAxes.length ? rejectedAxes : undefined,
+  };
 }

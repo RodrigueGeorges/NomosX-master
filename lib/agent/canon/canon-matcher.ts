@@ -155,7 +155,12 @@ export function matchCanon(query: string, opts?: { topN?: number; minScore?: num
   // Backfill: if concept matching found fewer than topN, add standing canon
   // entries for the hinted domains — the canon is the intellectual background
   // the analyst should always hold, not a strict keyword index.
-  if (matches.length < topN) {
+  // Lot 3 relevance gate: backfill ONLY unlocks on a strong real match
+  // (score ≥ 6 ≈ concept + domain + author-level evidence). A lone weak
+  // concept hit — or a domain hinted by a generic token like 'border' in
+  // "carbon border adjustment" — must not drag Thucydides into a CBAM note.
+  const hasStrongRealMatch = matches.some(m => m.score >= 6);
+  if (matches.length < topN && hasStrongRealMatch) {
     const seen = new Set(matches.map(m => m.entry.id));
     // Interleave domain canons round-robin so no single domain fills all slots
     const domainIds = [...hintedDomains].map(d => DOMAIN_CANON_DEFAULTS[d] ?? []);

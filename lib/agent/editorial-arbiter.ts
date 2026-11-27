@@ -40,6 +40,10 @@ export interface ArbiterInput {
     runnerUpId?: string;
     electedName?: string;
     electedDescription?: string;
+    /** Lot 1 dominance rule: false → the swarm found no dominant scenario.
+     *  Cells are still published with their probabilities, but the arbiter
+     *  must not crown a "central" branch — it reports dispersion instead. */
+    dominant?: boolean;
     /** Every chain cell with its computed probability. The published
      *  scenario set is exactly these cells — the arbiter names and narrates
      *  them, it adds none and prices none. */
@@ -107,11 +111,12 @@ function extractScenariosFromAnalysis(analysis: Record<string, unknown>): Scenar
     description: String(s.description ?? s.implications ?? ''),
     signals: Array.isArray(s.signals) ? s.signals.map(String) : undefined,
     empiricalProbability:
-      typeof s.empiricalProbability === 'number'
-        ? s.empiricalProbability
-        : typeof s._simulation === 'object' && s._simulation
-          ? (s._simulation as { empiricalProbability?: number }).empiricalProbability
-          : undefined,
+      // Only a real Monte-Carlo simulation may claim "empirical" — an
+      // analyst-written empiricalProbability is self-certified precision
+      // (run-11 DA killShot: six-decimal invented values, zero-width CIs).
+      typeof s._simulation === 'object' && s._simulation
+        ? (s._simulation as { empiricalProbability?: number }).empiricalProbability
+        : undefined,
   }));
 }
 
@@ -451,7 +456,9 @@ Return JSON:
       const rebuilt = pinScenariosToCells(outScenarios, electionCells, input.election.scenarioId, input.election.confidenceInterval);
       outScenarios.length = 0;
       outScenarios.push(...rebuilt);
-      dominantScenario = rebuilt.find(s => s.cellId === input.election!.scenarioId)?.name;
+      dominantScenario = input.election.dominant === false
+        ? 'No dominant scenario'
+        : rebuilt.find(s => s.cellId === input.election!.scenarioId)?.name;
     } else if (input.election) {
       const electedName = input.election.electedName ?? input.election.scenarioId;
       const electedPctValue = Math.round(input.election.probability * 100);
@@ -475,7 +482,7 @@ Return JSON:
         elected.empiricalProbability = Math.round(input.election.probability * 10000) / 10000;
       }
       elected.confidenceInterval = input.election.confidenceInterval;
-      dominantScenario = elected.name;
+      dominantScenario = input.election.dominant === false ? 'No dominant scenario' : elected.name;
 
       // Rescale the remaining scenarios so the set still sums to 100%.
       const parsePct = (p: string) => {

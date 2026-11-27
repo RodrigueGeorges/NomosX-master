@@ -40,6 +40,15 @@ export interface ElectedScenario {
   probabilities: Record<string, number>;
   monteCarloRuns: number;
   seed: number;
+  /** Lot 1 dominance rule: a "central scenario" exists only when the leader
+   *  clears the uniform baseline by >10 points AND leads in ≥60% of draws.
+   *  Otherwise the honest publication is "no dominant scenario" — the
+   *  probabilities and tipping points below are still reported. */
+  dominant: boolean;
+  /** 1 / scenarioCount — the uniform-draw baseline the leader must beat. */
+  uniformBaseline: number;
+  /** Leader point probability minus uniformBaseline (negative = below chance). */
+  dominanceMargin: number;
 }
 
 function mulberry32(seed: number): () => number {
@@ -132,14 +141,21 @@ export function electScenario(input: {
   forecasts: LinkForecast[];
   question: string;
   runs?: number;
+  /** Participation floor per link. Card swarm: 3 (default). Agentic
+   *  forecasters: 2 — three deep voters, one ballot each; the health
+   *  check already admits minVotesPerLink:2, so a hardcoded 3 here made
+   *  election mathematically impossible (live: insufficient_link_
+   *  distributions on every agentic run). */
+  minValidVotes?: number;
 }): ElectedScenario | null {
   const { scenarios, forecasts } = input;
+  const minValidVotes = input.minValidVotes ?? 3;
   if (!scenarios.length || !forecasts.length) return null;
 
   const means = new Map<number, number>();
   const linkDist = new Map<number, { a: number; b: number }>();
   for (const f of forecasts) {
-    if (f.validVotes < 3) continue; // too thin to elect on
+    if (f.validVotes < minValidVotes) continue; // too thin to elect on
     // Clamp link means to [0.05, 0.95] — the BLF/ForecastBench finding:
     // capable models overestimate tail probabilities on long horizons and
     // Brier can't see it. [0.02,0.98] let a near-certain link dominate the
@@ -203,6 +219,15 @@ export function electScenario(input: {
   const winShare = wins / runs;
   const contested = !!runner && winShare < 0.8;
 
+  // Lot 1 dominance rule (Claude review): plurality is not dominance. The
+  // leader must beat a uniform draw by >10 points AND hold the lead in ≥60%
+  // of Monte Carlo draws — otherwise the swarm is telling us the question
+  // has no dominant scenario, and publishing one anyway is a fabricated call.
+  // (Live evidence: v10 elected p=0.281 vs uniform 0.25, winShare 53%.)
+  const uniformBaseline = 1 / scenarios.length;
+  const dominanceMargin = point[leader.i] - uniformBaseline;
+  const dominant = dominanceMargin > 0.10 && winShare >= 0.60;
+
   // Most sensitive link: the one whose ±0.05 move changes the leader's
   // probability the most (exact finite difference).
   let mostSensitiveLinkId: number | undefined;
@@ -234,5 +259,8 @@ export function electScenario(input: {
     probabilities,
     monteCarloRuns: runs,
     seed,
+    dominant,
+    uniformBaseline,
+    dominanceMargin,
   };
 }
