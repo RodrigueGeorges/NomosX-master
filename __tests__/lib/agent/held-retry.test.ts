@@ -18,6 +18,31 @@ import { prisma } from '@/lib/db';
 jest.mock('@/lib/agent/inquiry-orchestrator', () => ({
   runAndPublishInquiry: jest.fn(),
 }));
+// Hermetic LLM boundary — verifyDispatchQuestion runs REAL callLLM calls
+// (provider cascade ~7s → 5s jest timeout + post-teardown zombie imports).
+jest.mock('@/lib/llm/unified-llm', () => {
+  const stub = {
+    content: JSON.stringify({
+      passed: true, verdict: 'pass', adhered: true, defensible: true,
+      evaluationComplete: true, substituted: false, answers: true,
+      confidence: 70, reasoning: 'hermetic stub',
+      forecastQuestion: 'Will grid-scale batteries displace peaker plants by 2030?',
+    }),
+    provider: 'glm', model: 'hermetic-stub', family: 'glm',
+    costUsd: 0, cached: false,
+    usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+  };
+  return {
+    callLLM: jest.fn(async () => ({ ...stub })),
+    streamLLM: jest.fn(async (_r: unknown, onChunk?: (c: string) => void) => {
+      onChunk?.(stub.content);
+      return { ...stub };
+    }),
+    callLLMWithCascade: jest.fn(async () => ({ ...stub })),
+    DEFAULT_C3PO_CONFIG: {},
+    PROVIDER_FAMILY: {},
+  };
+});
 jest.mock('@/lib/agent/topic-radar', () => ({
   runTopicRadar: jest.fn(),
 }));

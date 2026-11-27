@@ -399,7 +399,9 @@ Return JSON:
           console.log(`[HYPOTHESIS JUDGE] Corpus-derived thesis bound: "${derived.claim.slice(0, 100)}" (${boundThesis.supportingSourceCount} distinct documents)`);
         } else if (derived?.evaluationComplete && derived.defensible === false) {
           thesisAbsent = true;
-          console.warn(`[HYPOTHESIS JUDGE] No supportable thesis — registered verdicts inconclusive AND corpus derivation found nothing defensible`);
+          // Refusals must be auditable — the reasoning is the only way to tell
+          // a calibrated "nothing defensible" from a judge that misread the base.
+          console.warn(`[HYPOTHESIS JUDGE] No supportable thesis — registered verdicts inconclusive AND corpus derivation found nothing defensible | reasoning: ${derived.reasoning?.slice(0, 300) || 'none'}`);
         } else {
           thesisUnavailable = true;
         }
