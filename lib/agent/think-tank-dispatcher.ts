@@ -635,10 +635,13 @@ async function collectBreakingItems(
         question: finalQuestion,
         topicTitle: decision.topic.title,
         signalContext: decision.reasoning,
+        // The EiC's own forecastQuestion is evaluated FIRST — it selected
+        // this topic partly on that question; generation is the fallback.
+        candidateForecastQuestion: (decision as { forecastQuestion?: string }).forecastQuestion,
       });
       questionGateCostUsd += vq.costUsd ?? 0;
       if (!vq.pass) {
-        console.log(`[QUESTION-GATE] ❌ "${finalQuestion.slice(0, 60)}" — rejected: ${vq.motif} (quality=${vq.checks.quality} ambiguity=${vq.checks.ambiguity} resolvable=${vq.checks.resolvable})`);
+        console.log(`[QUESTION-GATE] ❌ "${finalQuestion.slice(0, 60)}" — rejected: ${vq.motif} (quality=${vq.checks.quality} ambiguity=${vq.checks.ambiguity} resolvable=${vq.checks.resolvable}) | forecastQ: "${(vq.forecastQuestion ?? '(none generated)').slice(0, 110)}"`);
         preflightResults.push({
           question: finalQuestion.slice(0, 80), viable: false, count: check.academicCount,
           details: `question_gate:${vq.motif}`, semanticScore: check.semanticScore,

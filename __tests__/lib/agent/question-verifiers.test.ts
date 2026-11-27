@@ -71,13 +71,43 @@ describe('verifyDispatchQuestion', () => {
   });
 
   it('deterministic guard: ambiguous questions rejected even when LLM says pass', async () => {
-    mockCall.mockResolvedValue(JSON.stringify({
-      forecastQuestion: 'Will things improve soon?', quality: 80, ambiguity: 0.9,
-      resolvable: true, difficulty: 55, antiBiasRisk: false, verdict: 'pass', motif: '',
-    }));
+    // Stage-1 generates an ambiguous question; the motif-guided
+    // reformulation then fails (empty forecastQuestion) so the ORIGINAL
+    // motif is what gets reported.
+    mockCall
+      .mockResolvedValueOnce(JSON.stringify({
+        forecastQuestion: 'Will things improve soon?', quality: 80, ambiguity: 0.9,
+        resolvable: true, difficulty: 55, antiBiasRisk: false, verdict: 'pass', motif: '',
+      }))
+      .mockResolvedValue('{}');
     const v = await verifyDispatchQuestion({ question: 'Vague topic that somehow passed triage filters' });
     expect(v.pass).toBe(false);
     expect(v.motif).toBe('ambiguous');
+  });
+
+  it('recovers via motif-guided reformulation when the first candidate fails a guard', async () => {
+    // Call 0: stage-1 generates a stale-horizon question. Call 1: the
+    // reformulation returns a fixed future-dated question. Calls 2-3:
+    // independent verifier + base-rate both pass.
+    const GOOD_VERDICT = JSON.stringify({ verdict: 'pass', resolvable: true, ambiguity: 0.2, trivial: false, motif: '' });
+    mockCall
+      .mockResolvedValueOnce(JSON.stringify({
+        forecastQuestion: 'Will the treaty be signed eventually?', quality: 80, ambiguity: 0.2,
+        resolvable: true, difficulty: 55, antiBiasRisk: false, verdict: 'pass', motif: '',
+      }))
+      .mockResolvedValueOnce(JSON.stringify({
+        forecastQuestion: 'Will the treaty be signed by March 2027?',
+      }))
+      .mockResolvedValueOnce(GOOD_VERDICT)
+      .mockResolvedValueOnce(JSON.stringify({ p: 0.45 }));
+    const v = await verifyDispatchQuestion({
+      question: 'Treaty ratification timeline',
+      topicTitle: 'Senate treaty vote',
+      signalContext: 'Foreign relations committee schedules markup',
+    });
+    expect(v.pass).toBe(true);
+    expect(v.forecastQuestion).toBe('Will the treaty be signed by March 2027?');
+    expect(mockCall.mock.calls.length).toBe(4);
   });
 
   it('short questions are rejected without an LLM call', async () => {
