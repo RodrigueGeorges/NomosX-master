@@ -242,6 +242,18 @@ export interface PositionFirstBriefInput {
     marketAvgProbability?: number | null;
     marketCount?: number;
   };
+  /** Claude §4: verified forecast question — when present the note IS the
+   *  forecast: title/chapeau = the question itself, "P = x% by [horizon]"
+   *  leads the dateline, confidence is computed (family agreement + IQR)
+   *  instead of self-declared, and the information cutoff is stamped. */
+  forecast?: {
+    question: string;
+    probability?: number | null;
+    horizon?: string;
+    iqr?: number;
+    families?: number;
+    cutoff?: string;
+  };
 }
 
 export function dimensionsFromClassification(tc: TopicClassification): EditorialDimension[] {

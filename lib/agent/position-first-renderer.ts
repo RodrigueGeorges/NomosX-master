@@ -179,7 +179,13 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
   const dimensions = dimensionsFromClassification(classification);
   const collision = collisionLabel(dimensions);
   const apaCitations = sources.map((s, i) => formatAPA(s, i + 1));
-  const title = String(analysis.title ?? position.headline ?? question);
+  // Claude §4: a verified forecastQuestion IS the note's title/chapeau —
+  // the reader must see the exact question being answered, not a headline
+  // the pipeline invented around it.
+  const forecast = input.forecast;
+  const title = forecast?.question
+    ? String(forecast.question)
+    : String(analysis.title ?? position.headline ?? question);
   const detectedReason = classification.detectedSubject ?? classification.reasoning ?? question;
 
   // ── Style-adaptive labels ──
@@ -252,7 +258,27 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
   const formatBadgeHtml = `<span class="format-badge" title="${esc(fmt.description)}">${esc(fmt.label)}</span>`;
   // metaLine mixes raw badge HTML with metadata text — escape the text part
   // only; escaping the whole line renders the badge as literal &lt;span&gt; text.
-  const metaLine = `${formatBadgeHtml} ${esc(`${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} · ${sources.length} sources · ${providers.length} providers · Confidence: ${position.confidence}/100`)}`;
+  // Claude §4: confidence is COMPUTED, not self-declared — family agreement
+  // (≥3 forecaster families) and vote dispersion (IQR) decide the label,
+  // Stimson-style. The raw position.confidence score no longer ships.
+  const computedConfidence = forecast?.question
+    ? ((forecast.families ?? 0) >= 3 && (forecast.iqr ?? 1) <= 0.15 ? 'high'
+      : (forecast.families ?? 0) >= 2 && (forecast.iqr ?? 1) <= 0.25 ? 'medium' : 'low')
+    : null;
+  const confidenceDisplay = computedConfidence ?? `${position.confidence}/100`;
+  const metaLine = `${formatBadgeHtml} ${esc(`${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} · ${sources.length} sources · ${providers.length} providers · Confidence: ${confidenceDisplay}`)}`;
+
+  // Forecast dateline (Claude §4): "P = x% by [horizon]" from the forecaster
+  // ensemble — never the analyst's uncalibrated guess — plus the
+  // information cutoff, OFCE-style.
+  const forecastStrip = forecast?.question
+    ? `<div class="pf-forecast" data-no-cite>
+    ${typeof forecast.probability === 'number' && Number.isFinite(forecast.probability)
+      ? `<p class="pf-forecast-p"><strong>P = ${Math.round(forecast.probability * 100)}%</strong>${forecast.horizon ? ` by ${esc(forecast.horizon)}` : ''}</p>`
+      : ''}
+    ${forecast.cutoff ? `<p class="pf-forecast-cutoff">Information as of ${esc(forecast.cutoff)}</p>` : ''}
+  </div>`
+    : '';
 
   // Low-confidence warning banner (if confidence < 65)
   const lowConfidenceWarning = (position.confidence != null && position.confidence < 65)
@@ -505,10 +531,13 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
       }).join('\n')
     : '';
 
-  // ── Trajectory as prose ──
+  // ── Trajectory as prose — assumptions get their own labelled block
+  // (Claude §4, PIIE-style "key assumptions": if X, then…) instead of
+  // being buried inside the trajectory paragraph. ──
   const trajectory = analysis.trajectory as any;
+  const trajectoryAssumptions = trajectory?.assumptions ? String(trajectory.assumptions) : '';
   const trajectoryHtml = trajectory
-    ? `${renderParagraphs(String(trajectory.state), sources.length)}${renderParagraphs(String(trajectory.assumptions), sources.length)}`
+    ? renderParagraphs(String(trajectory.state), sources.length)
     : '';
 
   // ── Rejected alternatives ──
@@ -652,10 +681,15 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
   if (trajectoryHtml) {
     actIIIParts.push(`<section class="nx-block trajectory"><p class="nx-eyebrow" data-no-cite>${esc(L.roadAhead)}</p>${trajectoryHtml}</section>`);
   }
+  if (trajectoryAssumptions) {
+    actIIIParts.push(`<section class="nx-block key-assumptions"><p class="nx-eyebrow" data-no-cite>${esc(L.keyAssumptions ?? 'Key assumptions')}</p><p class="assumptions-intro" data-no-cite>If these hold, then our central scenario follows — if one breaks, revisit the probability above.</p>${renderParagraphs(trajectoryAssumptions, sources.length)}</section>`);
+  }
 
   // 4. What We Ruled Out (rejected alternatives)
   if (rejectedHtml) {
-    actIIIParts.push(`<section class="nx-block rejected-alternatives"><p class="nx-eyebrow" data-no-cite>${esc(L.dismissed)}</p>${rejectedHtml}</section>`);
+    // Claude §4 (Eurasia Group-style): name the recurring media narratives
+    // judged improbable — the rejected alternatives ARE the false leads.
+    actIIIParts.push(`<section class="nx-block rejected-alternatives"><p class="nx-eyebrow" data-no-cite>${esc(L.dismissed)}</p><p class="false-leads-intro" data-no-cite>Recurring narratives we judged improbable — the probability above does not price them in.</p>${rejectedHtml}</section>`);
   }
 
   // 5. Signals to Watch (early warning indicators)
@@ -703,6 +737,7 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
   <article class="nomosx-brief">
     <h1 data-no-cite>${esc(title)}</h1>
     <div class="brief-meta" data-no-cite>${metaLine}</div>
+    ${forecastStrip}
 
     ${position.lede ? `<p class="nx-lede" data-no-cite>${esc(position.lede)}</p>` : ''}
 
