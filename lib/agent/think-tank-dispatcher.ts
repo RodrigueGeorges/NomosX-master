@@ -583,7 +583,10 @@ async function collectBreakingItems(
   // candidate is held after the escalation ladder (revision → regeneration),
   // the dispatch loop falls back to the next PRE-VALIDATED spare instead of
   // wasting the slot. Topic-level fallback — the gate is never relaxed.
-  const preflightTarget = Math.min(maxPublications * 2, triageResult.decisions.length);
+  // Claude §1.2: hard cap of 3 NEW subjects per cycle — run-12's EiC
+  // retained 9 candidates; spend concentrates on the best three.
+  const CYCLE_MAX_NEW_SUBJECTS = Math.max(1, Number(process.env.NOMOSX_CYCLE_MAX_SUBJECTS ?? 3) || 3);
+  const preflightTarget = Math.min(maxPublications * 2, triageResult.decisions.length, CYCLE_MAX_NEW_SUBJECTS * 2);
   for (const decision of triageResult.decisions) {
     if (viableItems.length >= preflightTarget) break;
 
@@ -994,6 +997,10 @@ export async function executeDispatchQueue(
   // (2x target, bounded by pool size) keeps cost bounded — each candidate
   // runs exactly once, no infinite retry.
   const maxAttempts = Math.min(items.length, maxExecutions * 2);
+  // Claude §1.2: fresh-subject cap — distinct from maxAttempts (which also
+  // covers held-retry/watch obligations and fallback spares).
+  const CYCLE_MAX_NEW_SUBJECTS = Math.max(1, Number(process.env.NOMOSX_CYCLE_MAX_SUBJECTS ?? 3) || 3);
+  let freshSubjects = 0;
   // Sequential-by-default dispatch: a spare candidate only pays when the head
   // item actually failed (published >= maxExecutions stops the loop before the
   // spare launches). Speculative pipelining (PASTE pattern, arXiv 2603.18897)
@@ -1028,6 +1035,17 @@ export async function executeDispatchQueue(
       const i = nextIdx++;
       if (i >= items.length) return;
       const item = items[i];
+
+      // Claude §1.2: hard cap of 3 NEW subjects per cycle. Held-retry and
+      // watch items (retryAttempt set or no forecastQuestion) discharge
+      // prior obligations and do not consume the fresh-subject budget —
+      // they remain bounded by maxAttempts and the budget guard.
+      const isFreshSubject = !!item.forecastQuestion && !item.retryAttempt;
+      if (isFreshSubject && freshSubjects >= CYCLE_MAX_NEW_SUBJECTS) {
+        console.log(`[ThinkTank] CYCLE CAP: "${item.question.slice(0, 60)}" — ${freshSubjects} fresh subjects already dispatched this cycle (cap ${CYCLE_MAX_NEW_SUBJECTS}), skipped`);
+        skipped++;
+        continue;
+      }
       // Capture the durable key BEFORE ensureSignalForItem can assign a
       // signalId mid-flight — otherwise the done-check key (question) and the
       // completion key (signalId) diverge and a crash-resume re-dispatches.
@@ -1182,6 +1200,7 @@ export async function executeDispatchQueue(
       // launch (all skip checks passed); under concurrency this keeps the
       // pull-gate accurate. A $0 reserve release never consumes an attempt.
       executed++;
+      if (isFreshSubject) freshSubjects++;
       inFlight++;
       assertExecutionActive();
       // Pre-generate the pipeline executionId: when the dispatch timeout
