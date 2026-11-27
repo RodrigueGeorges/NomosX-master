@@ -68,11 +68,11 @@ const FAMILY_OF: Record<string, string> = {
 };
 
 /** Claude §2: the forecast ensemble runs three REAL frontier families —
- *  GLM-5.2 (rédaction), Kimi K3.1 Pro (contre-analyse), DeepSeek V4 Pro
+ *  GLM-5.3 (rédaction), Kimi K3.1 Pro (contre-analyse), DeepSeek V4 Pro
  *  (vérification) — pinned per provider so the task's default model never
  *  silently downgrades a forecaster to the volume tier. */
 const FORECASTER_MODEL: Partial<Record<LLMProvider, string>> = {
-  glm: 'glm-5.2',
+  glm: 'glm-5.3',
   kimi: 'kimi-k3.1-pro',
   deepseek: 'deepseek-v4-pro',
   google: 'gemini-3.8-flash',

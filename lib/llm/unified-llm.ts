@@ -221,9 +221,10 @@ const KIMI_MODEL = env.KIMI_MODEL || "kimi-k3.1-pro";
 /** Fast/cheap utility model — glm-4.5-air ($0.20/$1.10 per Mtok, ~15× cheaper
  *  than the kimi-k3 fallback it replaces while OpenAI is out of credits). */
 const GLM_FAST = "glm-4.5-air";
-/** Claude §2 verified IDs (api /models, 2026-11-27): glm-5.2 exists on z.ai,
- *  kimi-k3.1-pro on Moonshot, deepseek-v4-pro on DeepSeek. */
-const GLM_WRITER = env.GLM_MODEL || "glm-5.2";
+/** Claude §2 verified IDs (api /models, 2026-11-27): glm-5.3 is the newest
+ *  flagship the z.ai account can access (glm-5.4 → 403 permission), same
+ *  $1.4/$4.4 pricing as 5.2 with a 1M context — strict upgrade. */
+const GLM_WRITER = env.GLM_MODEL || "glm-5.3";
 const KIMI_PRO = "kimi-k3.1-pro";
 const DEEPSEEK_PRO = env.DEEPSEEK_MODEL_REASONING || "deepseek-v4-pro";
 
@@ -331,7 +332,22 @@ const MODEL_CONFIG: Record<string, Record<string, {
     "deepseek-reasoner": { contextWindow: 128000, costPer1kInput: 0.00028, costPer1kOutput: 0.00042 },
   },
   glm: {
-    // z.ai GLM family — glm-5.2 verified live on /models 2026-11-27.
+    // z.ai GLM family — glm-5.3 verified live on /models + chat 2026-11-27
+    // ($1.4/$4.4 per Mtok, cached $0.26 — same price as 5.2, newer weights).
+    // glm-5.3-flash ($0.15/$0.50) is the cheap volume-tier candidate pending
+    // an A/B against glm-4.5-air; glm-5.4 exists but this account lacks access.
+    "glm-5.3": {
+      contextWindow: 200000,
+      costPer1kInput: 0.0014,
+      costPer1kOutput: 0.0044,
+      costPer1kCachedInput: 0.00026,
+    },
+    "glm-5.3-flash": {
+      contextWindow: 200000,
+      costPer1kInput: 0.00015,
+      costPer1kOutput: 0.0005,
+      costPer1kCachedInput: 0.00003,
+    },
     "glm-5.2": {
       contextWindow: 200000,
       costPer1kInput: 0.0014,
