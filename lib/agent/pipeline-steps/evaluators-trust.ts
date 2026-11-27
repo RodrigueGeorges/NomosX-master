@@ -485,13 +485,25 @@ export async function runEvaluatorsAndTrust(deps: EvaluatorsTrustDeps): Promise<
       // Replace raw metrics (TRUST 55, Ancrage 69%, etc.) with a clean, institutional
       // "Evidence confidence" rating that a think tank reader expects.
       // The raw deterministic score stays in the backend lineage/audit layer.
-      const confidenceLabel = deterministicScore >= 75 ? 'High' : deterministicScore >= 55 ? 'Medium' : 'Low';
-      const confidenceColor = deterministicScore >= 75 ? '#5EEAD4' : deterministicScore >= 55 ? '#FBBF24' : '#FB7185';
-      const confidenceDesc = deterministicScore >= 75
-        ? 'Claims are well-supported by cited evidence. Numerical data verified against sources. Citation coverage is comprehensive.'
-        : deterministicScore >= 55
-        ? 'Most claims are supported by cited evidence. Some claims rely on partial evidence or require additional verification.'
-        : 'Several claims lack sufficient evidence or citation support. Readers should treat conclusions with caution.';
+      // The label must agree with the coverage figures printed next to it:
+      // a 'High' badge over a corpus read mostly from abstracts was the DA's
+      // kill shot on a held note. 'High' therefore also requires that at
+      // least half the corpus was read in full text and 60% of it is cited.
+      // Reader depth is the ground truth for what was actually read; fall
+      // back to stored full text only when the reader stats are absent.
+      const readerStats = (stats as any).reader as { count?: number; fullText?: number } | undefined;
+      const fullTextCount = typeof readerStats?.fullText === 'number'
+        ? readerStats.fullText
+        : topSources.filter((s: any) => typeof s.fullText === 'string' && s.fullText.length > 200).length;
+      const fullTextShare = topSources.length > 0 ? Math.min(1, fullTextCount / topSources.length) : 0;
+      const citedShare = topSources.length > 0 ? Math.min(1, citedSources / topSources.length) : 0;
+      const sortedYears = [...years].sort((a: number, b: number) => a - b);
+      const medianYear = sortedYears.length > 0 ? sortedYears[Math.floor(sortedYears.length / 2)] : null;
+      const coverageSupportsHigh = fullTextShare >= 0.5 && citedShare >= 0.6;
+      const confidenceTier = deterministicScore >= 75 && coverageSupportsHigh ? 2 : deterministicScore >= 55 ? 1 : 0;
+      const confidenceLabel = ['Low', 'Medium', 'High'][confidenceTier];
+      const confidenceColor = ['#FB7185', '#FBBF24', '#5EEAD4'][confidenceTier];
+      const confidenceDesc = `${fullTextCount} of ${topSources.length} sources read in full text (${Math.round(fullTextShare * 100)}%), the rest from abstracts. ${citedSources} distinct sources cited (${Math.round(citedShare * 100)}%).${medianYear ? ` Median source year: ${medianYear}.` : ''}`;
       const methodologyHtml = `
 <section class="nx-block methodology-note" style="border-top:1px solid rgba(240,240,250,0.12);padding:16px 0 8px;margin:32px 0 0;font-size:0.72rem;line-height:1.7;color:rgba(240,240,250,0.55);">
   <p class="nx-eyebrow" style="letter-spacing:0.08em;text-transform:uppercase;font-size:0.6rem;margin-bottom:12px;">Methodological transparency</p>
