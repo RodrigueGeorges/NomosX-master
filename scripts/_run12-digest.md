@@ -1,0 +1,1947 @@
+# Run-12 monitor digest
+started 2026-11-26T19:59:38.998Z
+
+- `19:59:39` **status** Cache get error: TypeError: fetch failed
+- `19:59:39` **radar** [TOPIC RADAR V3] Starting maximum coverage sweep...
+- `19:59:39` **status** [HTTP] Retry 1/1 after 968ms: fetch failed
+- `19:59:39` **status** [HTTP] Retry 1/1 after 875ms: fetch failed
+- `19:59:39` **degraded** [CIRCUIT BREAKER] semanticscholar tripped after 1× 429 — skipping for 120s (trip #1)
+- `19:59:39` **status** [HTTP] Retry 1/1 after 1111ms: fetch failed
+- `19:59:39` **status** [HTTP] Retry 1/1 after 821ms: fetch failed
+- `19:59:39` **status** [HTTP] Retry 1/1 after 829ms: fetch failed
+- `19:59:39` **degraded** [CIRCUIT BREAKER] gdelt-news tripped after 2× 429 — skipping for 45s (trip #1)
+- `19:59:39` **radar** [TOPIC RADAR V3] CROSS-SOURCE SIGNALS: 8 high-confidence clusters (top score: 68)
+- `19:59:39` **radar** [TOPIC RADAR V3] Trajectories: 0 emerging, 0 bursting, 157 new, 0 fading | Anticipatory outliers: 146
+- `19:59:39` **radar** [TOPIC RADAR V3] Signal distribution: 15 breaking, 0 emerging, 0 routine
+- `19:59:39` **radar** [TOPIC RADAR V3] ✅ 163 raw → 157 deduped → 15 topics in 30354ms | gdelt:0 breaking:0 spikes:0 wires:39 social:6 rss:75 academic:43 db:0 events:0
+- `19:59:39` **status** [ThinkTank] HELD CIRCUIT BREAKER: "China international reserve diversification away from US dol" — 2 cluster holds ≥ 2, parked
+- `19:59:39` **degraded** [ThinkTank] HELD CIRCUIT BREAKER: "China international reserve diversification away from US dol" — 2 cluster holds ≥ 2, parked
+- `19:59:39` **status** [ThinkTank] HELD CIRCUIT BREAKER: "How is China's economic and diplomatic strategy challenging " — 3 cluster holds ≥ 2, parked
+- `19:59:39` **degraded** [ThinkTank] HELD CIRCUIT BREAKER: "How is China's economic and diplomatic strategy challenging " — 3 cluster holds ≥ 2, parked
+- `19:59:39` **status** [ThinkTank] HELD CIRCUIT BREAKER: "How is China's challenge to the US dollar reshaping global f" — 2 cluster holds ≥ 2, parked
+- `19:59:39` **degraded** [ThinkTank] HELD CIRCUIT BREAKER: "How is China's challenge to the US dollar reshaping global f" — 2 cluster holds ≥ 2, parked
+- `19:59:39` **status** [ThinkTank] HELD CIRCUIT BREAKER: "How do competing US and Chinese approaches to artificial gen" — 2 cluster holds ≥ 2, parked
+- `19:59:39` **degraded** [ThinkTank] HELD CIRCUIT BREAKER: "How do competing US and Chinese approaches to artificial gen" — 2 cluster holds ≥ 2, parked
+- `19:59:39` **llm** ✅ glm/glm-4.5-air [query_reformulation] | 2070ms | 499+102 tok (65 cache-hit) | $0.0002 | cum≈$0.000
+- `19:59:39` **llm** ✅ glm/glm-4.5-air [editor_in_chief] | 14582ms | 3762+1048 tok (64 cache-hit) | $0.0019 | cum≈$0.002
+- `19:59:39` **llm** ✅ glm/glm-4.5-air [topic_classification] | 4368ms | 5257+265 tok (66 cache-hit) | $0.0013 | cum≈$0.003
+- `19:59:39` **llm** ✅ glm/glm-4.5-air [topic_classification] | 3906ms | 5340+248 tok (5213 cache-hit) | $0.0013 | cum≈$0.005
+- `19:59:39` **llm** ✅ glm/glm-4.5-air [topic_classification] | 3976ms | 5313+240 tok (5213 cache-hit) | $0.0013 | cum≈$0.006
+- `19:59:39` **llm** ✅ glm/glm-4.5-air [topic_classification] | 4882ms | 5252+256 tok (5213 cache-hit) | $0.0013 | cum≈$0.007
+- `19:59:39` **llm** ✅ glm/glm-4.5-air [topic_classification] | 3899ms | 5256+232 tok (5213 cache-hit) | $0.0013 | cum≈$0.009
+- `19:59:39` **llm** ✅ glm/glm-4.5-air [topic_classification] | 4277ms | 5297+268 tok (5213 cache-hit) | $0.0014 | cum≈$0.010
+- `19:59:39` **llm** ✅ glm/glm-4.5-air [topic_classification] | 3348ms | 5336+255 tok (5213 cache-hit) | $0.0013 | cum≈$0.011
+- `19:59:39` **llm** ✅ glm/glm-4.5-air [topic_classification] | 3263ms | 5317+262 tok (5213 cache-hit) | $0.0014 | cum≈$0.013
+- `19:59:39` **llm** ✅ glm/glm-4.5-air [topic_classification] | 3972ms | 5338+260 tok (5213 cache-hit) | $0.0014 | cum≈$0.014
+- `19:59:39` **llm** [EDITOR-IN-CHIEF] ✅ 9 publications selected, 0 budget-cut, 6 skipped in 50509ms ($0.0140) | cum≈$0.028
+- `19:59:39` **eic** [EDITOR-IN-CHIEF] ✅ 9 publications selected, 0 budget-cut, 6 skipped in 50509ms ($0.0140)
+- `19:59:39` **status** [SemanticScholar] Search failed: Circuit breaker tripped for semanticscholar — skipping queued call
+- `19:59:39` **degraded** [SemanticScholar] Search failed: Circuit breaker tripped for semanticscholar — skipping queued call
+- `19:59:39` **degraded** [CIRCUIT BREAKER] tavily killed for session — HTTP 432 (auth/quota dead)
+- `19:59:39` **degraded** [CIRCUIT BREAKER] exa killed for session — HTTP 402 (auth/quota dead)
+- `19:59:39` **llm** ✅ glm/glm-4.5-air [preflight_semantic_check] | 2638ms | 519+152 tok (63 cache-hit) | $0.0003 | cum≈$0.028
+- `19:59:39` **llm** ✅ glm/glm-4.5-air [query_reformulation] | 1508ms | 471+95 tok (419 cache-hit) | $0.0002 | cum≈$0.029
+- `19:59:39` **question** [PREFLIGHT] ✅ "How do drone attacks by state actors in the Persian Gulf aff" — 33 sources, semantic=55%, strategy=direct in 19980ms | forecastQ: "Will the International Court of Justice (ICJ) issue a ruling on the le"
+- `19:59:39` **degraded** [SCOUT/Tavily] Error: Circuit breaker tripped for tavily
+- `19:59:39` **llm** ✅ glm/glm-4.5-air [preflight_semantic_check] | 2105ms | 513+92 tok (95 cache-hit) | $0.0002 | cum≈$0.029
+- `19:59:39` **llm** ✅ glm/glm-4.5-air [query_reformulation] | 1775ms | 517+100 tok (419 cache-hit) | $0.0002 | cum≈$0.029
+- `19:59:39` **question** [PREFLIGHT] ✅ "How do budgetary decisions reflect competing visions of Euro" — 29 sources, semantic=60%, strategy=direct in 18940ms | forecastQ: "Will the EU adopt a budget with at least a 10% increase in funding for"
+- `19:59:39` **llm** ✅ glm/glm-4.5-air [preflight_semantic_check] | 1999ms | 541+103 tok (95 cache-hit) | $0.0002 | cum≈$0.029
+- `19:59:39` **llm** ✅ glm/glm-4.5-air [query_reformulation] | 1710ms | 472+89 tok (419 cache-hit) | $0.0002 | cum≈$0.029
+- `19:59:39` **question** [PREFLIGHT] ✅ "How do regulatory gaps and governance failures contribute to" — 38 sources, semantic=40%, strategy=direct in 19007ms | forecastQ: "Will Egypt implement new industrial safety regulations within 12 month"
+- `19:59:39` **degraded** [CIRCUIT BREAKER] semanticscholar tripped after 1× 429 — skipping for 240s (trip #2)
+- `19:59:39` **status** [SemanticScholar] Search failed: Circuit breaker tripped for semanticscholar
+- `19:59:39` **degraded** [SemanticScholar] Search failed: Circuit breaker tripped for semanticscholar
+- `19:59:39` **degraded** [CIRCUIT BREAKER] gdelt-news tripped after 4 consecutive dead calls — skipping for 90s (trip #2)
+- `19:59:39` **llm** ✅ glm/glm-4.5-air [preflight_semantic_check] | 2052ms | 630+107 tok (95 cache-hit) | $0.0002 | cum≈$0.030
+- `19:59:39` **llm** ✅ glm/glm-4.5-air [query_reformulation] | 1489ms | 473+92 tok (419 cache-hit) | $0.0002 | cum≈$0.030
+- `19:59:39` **question** [PREFLIGHT] ✅ "How do climate-induced environmental disasters intersect wit" — 32 sources, semantic=60%, strategy=direct in 19296ms | forecastQ: "Will the number of Palestinians displaced in Gaza due to climate-induc"
+- `19:59:39` **status** [SCOUT/GDELT] Error: Circuit breaker tripped for gdelt-news — skipping queued call
+- `19:59:39` **degraded** [SCOUT/GDELT] Error: Circuit breaker tripped for gdelt-news — skipping queued call
+- `19:59:39` **status** [GATHER] gdelt-news: Circuit breaker tripped for gdelt-news — skipping queued call
+- `19:59:39` **degraded** [GATHER] gdelt-news: Circuit breaker tripped for gdelt-news — skipping queued call
+- `19:59:39` **llm** ✅ glm/glm-4.5-air [preflight_semantic_check] | 2048ms | 527+120 tok (95 cache-hit) | $0.0002 | cum≈$0.030
+- `19:59:39` **llm** ✅ glm/glm-4.5-air [query_reformulation] | 1707ms | 475+88 tok (419 cache-hit) | $0.0002 | cum≈$0.030
+- `19:59:39` **question** [PREFLIGHT] ✅ "How do institutional power dynamics and regulatory failures " — 31 sources, semantic=35%, strategy=direct in 4461ms | forecastQ: "Will Croatia's parliament pass comprehensive psychiatric care reform l"
+- `19:59:39` **llm** ✅ glm/glm-4.5-air [preflight_semantic_check] | 1772ms | 606+93 tok (94 cache-hit) | $0.0002 | cum≈$0.030
+- `19:59:39` **llm** ✅ glm/glm-4.5-air [query_reformulation] | 1883ms | 480+90 tok (418 cache-hit) | $0.0002 | cum≈$0.031
+- `19:59:39` **question** [PREFLIGHT] ✅ "How does the rise of far-right parties in Southern Europe ch" — 40 sources, semantic=40%, strategy=direct in 3754ms | forecastQ: "Will Vox, Spain's far-right party, become the largest party in Spain's"
+- `19:59:39` **pipeline** [Pipeline] CONDUCTOR: workflow="brief", 10 steps (pruned optional steps due to budget=$3)
+- `19:59:39` **pipeline** [Pipeline] PRE-FLIGHT: ⚠️ Suspended providers: anthropic, deepseek, google — will skip automatically
+- `19:59:39` **status** [Pipeline] PRE-FLIGHT: ⚠️ Suspended providers: anthropic, deepseek, google — will skip automatically
+- `19:59:39` **pipeline** [Pipeline] PRE-FLIGHT: ✅ 4 providers alive: glm, openai, kimi, freepool (suspended: anthropic, deepseek, google)
+- `19:59:39` **pipeline** [Pipeline] COMPLEXITY ROUTING: moderate query (score=3) — 25 providers, 15/provider
+- `19:59:39` **pipeline** [Pipeline] ORCHESTRATOR: calibrated trust threshold = 55 (from AgentMemory)
+- `19:59:39` **pipeline** [Pipeline] CONTEXT PRIMER: loading institutional memory
+- `19:59:39` **pipeline** [Pipeline] SCOUT: query="How do drone attacks by state actors in the Persian Gulf affect international security frameworks and diplomatic relations?" (25 providers, 15/provider)
+- `19:59:39` **quant** [REALTIME] FRED: 24/24 indicators fetched
+- `19:59:39` **status** [REALTIME] GDELT conflict failed: Circuit breaker tripped for gdelt-news — skipping queued call
+- `19:59:39` **degraded** [REALTIME] GDELT conflict failed: Circuit breaker tripped for gdelt-news — skipping queued call
+- `19:59:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 5560ms | 472+378 tok (65 cache-hit) | $0.0005 | cum≈$0.031
+- `19:59:39` **pipeline** [Pipeline] DEEP PLANNER: 5 sub-questions planned
+- `19:59:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2928ms | 790+156 tok (68 cache-hit) | $0.0003 | cum≈$0.031
+- `19:59:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3049ms | 791+160 tok (68 cache-hit) | $0.0003 | cum≈$0.032
+- `19:59:39` **status** ❌ openai failed for task "meta_analysis": 429 You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.
+- `19:59:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3062ms | 791+161 tok (68 cache-hit) | $0.0003 | cum≈$0.032
+- `19:59:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3457ms | 792+173 tok (68 cache-hit) | $0.0003 | cum≈$0.032
+- `19:59:39` **status** [SCOUT] Skipping 3 empty-result providers: exa, linkup, tavily
+- `19:59:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3464ms | 798+186 tok (68 cache-hit) | $0.0004 | cum≈$0.033
+- `19:59:39` **degraded** [CIRCUIT BREAKER] crossref tripped after 3× 429 — skipping for 30s (trip #1)
+- `19:59:39` **status** [Crossref] Search failed: Circuit breaker tripped for crossref
+- `19:59:39` **degraded** [Crossref] Search failed: Circuit breaker tripped for crossref
+- `19:59:39` **status** [Crossref] Search failed: Circuit breaker tripped for crossref (30s remaining)
+- `19:59:39` **degraded** [Crossref] Search failed: Circuit breaker tripped for crossref (30s remaining)
+- `19:59:39` **status** ❌ kimi failed for task "meta_analysis": 429 Your account org-774d71d4dfd84636b8fc43ef23175faa <ak-fbpa5sih1x3111ghdf1i> is suspended due to insufficient balance, please recharge your account or check your plan and billing details
+- `19:59:39` **status** ❌ glm failed for task "meta_analysis": 400 System detected potentially unsafe or sensitive content in input or generation. Please avoid using prompts that may generate sensitive content. Thank you for your cooperation.
+- `19:59:39` **llm** ✅ freepool/groq/openai/gpt-oss-20b [meta_analysis] | 8083ms | 1062+921 tok | $0.0000 | cum≈$0.033
+- `19:59:39` **pipeline** [Pipeline] CONTEXT PRIMER: 0 concepts, 0 prior briefs, 0 trend breaks
+- `19:59:39` **radar** [SCOUT] Per-provider results: openalex=53, _unknown=0, crossref=15, europepmc=1
+- `19:59:39` **radar** [SCOUT] Per-provider results: openalex=45, crossref=30, europepmc=26, _unknown=0
+- `19:59:39` **radar** [SCOUT] Raw results: 73 sources from 3 query variations (3 providers: openalex, crossref, europepmc)
+- `19:59:39` **radar** [SCOUT] Raw results: 112 sources from 3 query variations (4 providers: openalex, crossref, europepmc, political-science)
+- `19:59:39` **radar** [SCOUT] Per-provider results: openalex=45, _unknown=0, europepmc=23
+- `19:59:39` **radar** [SCOUT] Per-provider results: openalex=45, _unknown=0, europepmc=27
+- `19:59:39` **radar** [SCOUT] Per-provider results: openalex=45, _unknown=0, europepmc=2
+- `19:59:39` **radar** [SCOUT] Raw results: 71 sources from 3 query variations (2 providers: openalex, europepmc)
+- `19:59:39` **radar** [SCOUT] Done in 17306ms: 73 raw â†’ 61 dedup â†’ 3 ranked â†’ 3 saved
+- `19:59:39` **pipeline** [Pipeline] DEEP PLANNER: node n2 "What are the immediate security impacts of state-sponsored d" → 3 sources
+- `19:59:39` **radar** [SCOUT] Raw results: 81 sources from 3 query variations (3 providers: openalex, europepmc, political-science)
+- `19:59:39` **radar** [SCOUT] Raw results: 58 sources from 3 query variations (3 providers: openalex, europepmc, history)
+- `20:00:39` **radar** [SCOUT] Done in 29795ms: 112 raw â†’ 94 dedup â†’ 35 ranked â†’ 35 saved
+- `20:00:39` **pipeline** [Pipeline] DEEP PLANNER: node n3 "How do drone attacks affect diplomatic relations between Gul" → 35 sources
+- `20:00:39` **degraded** [CIRCUIT BREAKER] crossref tripped after 3× 429 — skipping for 60s (trip #2)
+- `20:00:39` **radar** [SCOUT] Done in 40114ms: 71 raw â†’ 70 dedup â†’ 9 ranked â†’ 9 saved
+- `20:00:39` **pipeline** [Pipeline] DEEP PLANNER: node n4 "What legal frameworks govern or are challenged by state dron" → 9 sources
+- `20:00:39` **radar** [SCOUT] Relevance filter too strict even at 0.10 (2 results), keeping top 45/45 by score
+- `20:00:39` **status** [Unpaywall] Lookup failed for 10.24382/1001: HTTP 404 Not Found
+- `20:00:39` **radar** [SCOUT] Done in 40992ms: 58 raw â†’ 45 dedup â†’ 45 ranked â†’ 45 saved
+- `20:00:39` **radar** [SCOUT] Done in 41019ms: 81 raw â†’ 69 dedup â†’ 0 ranked â†’ 0 saved
+- `20:00:39` **pipeline** [Pipeline] DEEP PLANNER: node n5 "How do different stakeholders (military, diplomatic, civilia" → 0 sources
+- `20:00:39` **pipeline** [Pipeline] DEEP PLANNER: node n1 "What is the historical evolution of drone warfare by state a" → 45 sources
+- `20:00:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3685ms | 795+179 tok (106 cache-hit) | $0.0004 | cum≈$0.033
+- `20:00:39` **status** [Crossref] Search failed: Circuit breaker tripped for crossref — skipping queued call
+- `20:00:39` **degraded** [Crossref] Search failed: Circuit breaker tripped for crossref — skipping queued call
+- `20:00:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3827ms | 805+188 tok (113 cache-hit) | $0.0004 | cum≈$0.033
+- `20:00:39` **radar** [SCOUT] Per-provider results: openalex=80, _unknown=0
+- `20:00:39` **radar** [SCOUT] Raw results: 83 sources from 3 query variations (1 providers: openalex)
+- `20:00:39` **radar** [SCOUT] Relevance filter too strict even at 0.10 (0 results), keeping top 50/72 by score
+- `20:00:39` **radar** [SCOUT] Done in 14406ms: 83 raw â†’ 72 dedup â†’ 50 ranked â†’ 50 saved
+- `20:00:39` **pipeline** [Pipeline] DEEP PLANNER: node n2 expanded → +50 sources
+- `20:00:39` **radar** [SCOUT] Per-provider results: openalex=75, _unknown=0, europepmc=43
+- `20:00:39` **radar** [SCOUT] Raw results: 127 sources from 3 query variations (3 providers: openalex, europepmc, political-science)
+- `20:00:39` **radar** [SCOUT] Done in 29194ms: 127 raw â†’ 113 dedup â†’ 0 ranked â†’ 0 saved
+- `20:00:39` **pipeline** [Pipeline] DEEP PLANNER: node n5 expanded → +0 sources
+- `20:00:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2637ms | 415+156 tok (68 cache-hit) | $0.0003 | cum≈$0.034
+- `20:00:39` **pipeline** [Pipeline] DEEP PLANNER REPLAN: 3 follow-up nodes for 1 thin/failed
+- `20:00:39` **status** [Pipeline] DEEP PLANNER REPLAN: 3 follow-up nodes for 1 thin/failed
+- `20:00:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3512ms | 795+170 tok (92 cache-hit) | $0.0003 | cum≈$0.034
+- `20:00:39` **status** [SCOUT] Skipping 4 empty-result providers: crossref, exa, linkup, tavily
+- `20:00:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3597ms | 795+175 tok (94 cache-hit) | $0.0004 | cum≈$0.034
+- `20:00:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3732ms | 797+184 tok (93 cache-hit) | $0.0004 | cum≈$0.035
+- `20:01:39` **radar** [SCOUT] Per-provider results: openalex=75, _unknown=0, europepmc=4
+- `20:01:39` **radar** [SCOUT] Raw results: 79 sources from 3 query variations (2 providers: openalex, europepmc)
+- `20:01:39` **radar** [SCOUT] Raw results: 139 sources from 3 query variations (4 providers: openalex, europepmc, sociology, political-science)
+- `20:01:39` **radar** [SCOUT] Raw results: 136 sources from 3 query variations (4 providers: openalex, europepmc, psychology, semantic-scholar)
+- `20:01:39` **degraded** [CIRCUIT BREAKER] crossref tripped after 3× 429 — skipping for 120s (trip #3)
+- `20:01:39` **radar** [SCOUT] Relevance filter too strict even at 0.10 (1 results), keeping top 50/71 by score
+- `20:01:39` **radar** [SCOUT] Done in 25835ms: 79 raw â†’ 71 dedup â†’ 50 ranked â†’ 50 saved
+- `20:01:39` **pipeline** [Pipeline] DEEP PLANNER REPLAN: r7 "How do military strategists and defense analysts in Gulf sta" → 50 sources
+- `20:01:39` **radar** [SCOUT] Done in 33319ms: 139 raw â†’ 115 dedup â†’ 19 ranked â†’ 19 saved
+- `20:01:39` **pipeline** [Pipeline] DEEP PLANNER REPLAN: r8 "What diplomatic communication strategies do Persian Gulf sta" → 19 sources
+- `20:01:39` **status** [Unpaywall] Lookup failed for 10.17615/n36k-f729: HTTP 404 Not Found
+- `20:01:39` **radar** [SCOUT] Done in 38921ms: 136 raw â†’ 118 dedup â†’ 11 ranked â†’ 11 saved
+- `20:01:39` **pipeline** [Pipeline] DEEP PLANNER REPLAN: r6 "What are the documented psychological and social impacts of " → 11 sources
+- `20:01:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 12727ms | 2165+915 tok (74 cache-hit) | $0.0014 | cum≈$0.036
+- `20:01:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2747ms | 785+155 tok (91 cache-hit) | $0.0003 | cum≈$0.037
+- `20:01:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 3420ms | 247+207 tok (63 cache-hit) | $0.0003 | cum≈$0.037
+- `20:01:39` **status** [SCOUT] Skipping 1 empty-result providers: crossref
+- `20:01:39` **status** [FEED-ENGINE] Host circuit open: issafrica.org (≥2 fails) — skipping for 15min
+- `20:02:39` **radar** [SCOUT] Per-provider results: openalex=96, _unknown=0, hcss=6, sipri=4, un=2, taxfoundation=2, fiia=2
+- `20:02:39` **radar** [SCOUT] Raw results: 112 sources from 12 query variations (6 providers: openalex, hcss, sipri, un, taxfoundation, fiia)
+- `20:02:39` **radar** [SCOUT] Done in 51749ms: 112 raw â†’ 54 dedup â†’ 16 ranked â†’ 16 saved
+- `20:02:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2415ms | 784+151 tok (92 cache-hit) | $0.0003 | cum≈$0.037
+- `20:02:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 3669ms | 246+201 tok (82 cache-hit) | $0.0003 | cum≈$0.037
+- `20:02:39` **status** [SCOUT] Skipping 2 empty-result providers: crossref, semanticscholar
+- `20:02:39` **radar** [SCOUT] Per-provider results: openalex=48, ons-uk=48
+- `20:02:39` **radar** [SCOUT] Raw results: 109 sources from 12 query variations (3 providers: openalex, ons-uk, political-science)
+- `20:02:39` **status** [Unpaywall] Lookup failed for 10.22081/psq.2025.70870.2947: HTTP 404 Not Found
+- `20:02:39` **status** [Unpaywall] Lookup failed for 10.25911/5d651456ccf4e: HTTP 404 Not Found
+- `20:02:39` **radar** [SCOUT] Done in 10106ms: 109 raw â†’ 50 dedup â†’ 19 ranked â†’ 19 saved
+- `20:02:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2988ms | 786+162 tok (92 cache-hit) | $0.0003 | cum≈$0.038
+- `20:02:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 3267ms | 248+199 tok (82 cache-hit) | $0.0003 | cum≈$0.038
+- `20:02:39` **status** [FEED-ENGINE] Host circuit open: unhabitat.org (≥2 fails) — skipping for 15min
+- `20:02:39` **status** [FEED-ENGINE] Host circuit open: www.unep.org (≥2 fails) — skipping for 15min
+- `20:02:39` **status** [FEED-ENGINE] Host circuit open: www.wto.org (≥2 fails) — skipping for 15min
+- `20:02:39` **status** [FEED-ENGINE] Host circuit open: www.imo.org (≥2 fails) — skipping for 15min
+- `20:02:39` **radar** [SCOUT] Per-provider results: openalex=96, _unknown=0, unfpa=25, un=6, unwomen=8, unsc=5
+- `20:02:39` **radar** [SCOUT] Raw results: 143 sources from 12 query variations (6 providers: openalex, unfpa, unwomen, ohchr, un, unsc)
+- `20:03:39` **radar** [SCOUT] Done in 20274ms: 143 raw â†’ 71 dedup â†’ 20 ranked â†’ 20 saved
+- `20:03:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3649ms | 785+156 tok (92 cache-hit) | $0.0003 | cum≈$0.038
+- `20:03:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 4200ms | 247+255 tok (82 cache-hit) | $0.0003 | cum≈$0.039
+- `20:03:39` **degraded** [CIRCUIT BREAKER] semanticscholar tripped after 1× 429 — skipping for 480s (trip #3)
+- `20:03:39` **radar** [SCOUT] Per-provider results: openalex=32, un=4, unfpa=21, rte-france=24, ons-uk=48, geography=12, unsc=4, _unknown=0, unwomen=14
+- `20:03:39` **radar** [SCOUT] Raw results: 172 sources from 12 query variations (11 providers: openalex, un, unfpa, unwomen, ohchr, rte-france, ons-uk, geography, unsc, isidore, sociology)
+- `20:03:39` **degraded** [CIRCUIT BREAKER] crossref tripped after 3× 429 — skipping for 240s (trip #4)
+- `20:03:39` **radar** [SCOUT] Done in 18896ms: 172 raw â†’ 58 dedup â†’ 23 ranked â†’ 23 saved
+- `20:03:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2705ms | 784+150 tok (94 cache-hit) | $0.0003 | cum≈$0.039
+- `20:03:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 2973ms | 246+210 tok (84 cache-hit) | $0.0003 | cum≈$0.039
+- `20:03:39` **status** [SCOUT] Skipping 3 empty-result providers: semanticscholar, sec-edgar, crossref
+- `20:03:39` **radar** [SCOUT] Per-provider results: openalex=350, arxiv=180, _unknown=0, hcss=60, mit-dspace=179, inria=1, un=7, fiia=97
+- `20:03:39` **radar** [SCOUT] Raw results: 866 sources from 12 query variations (19 providers: openalex, arxiv, hcss, fiia, elcano, europeum, itif, taxfoundation, lowy, mit-dspace, inria, un, pew, aspi, saiia, resfoundatio
+- `20:03:39` **radar** [SCOUT] Relevance filter too strict even at 0.10 (0 results), keeping top 50/490 by score
+- `20:03:39` **radar** [SCOUT] Done in 30228ms: 866 raw â†’ 490 dedup â†’ 58 ranked â†’ 58 saved
+- `20:03:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2915ms | 786+164 tok (94 cache-hit) | $0.0003 | cum≈$0.040
+- `20:03:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 4273ms | 248+227 tok (84 cache-hit) | $0.0003 | cum≈$0.040
+- `20:03:39` **status** [HTTP] Retry 1/2 after 781ms: fetch failed
+- `20:03:39` **status** [HTTP] Retry 2/2 after 1799ms: fetch failed
+- `20:04:39` **status** [IMF-SDMX] Dataflow fetch failed: fetch failed
+- `20:04:39` **degraded** [CIRCUIT BREAKER] gdelt-news tripped after 4 consecutive dead calls — skipping for 180s (trip #3)
+- `20:04:39` **degraded** [SCOUT/GDELT] Error: Circuit breaker tripped for gdelt-news (180s remaining)
+- `20:04:39` **degraded** [SCOUT/GDELT] Error: Circuit breaker tripped for gdelt-news
+- `20:04:39` **radar** [SCOUT] Per-provider results: openalex=292, _unknown=0, bbc=45, imf=60, history=51, oecd=1, wired=30, moscowtimes=11, aljazeera=37, grist=15, guardian=26
+- `20:04:39` **radar** [SCOUT] Raw results: 568 sources from 12 query variations (30 providers: openalex, bbc, guardian, aljazeera, dw, abc-au, breakingdefense, spacenews, grist, insideclimatenews, aeon, imf, history, oecd,
+- `20:04:39` **radar** [SCOUT] Relevance filter too strict even at 0.10 (0 results), keeping top 50/242 by score
+- `20:04:39` **status** [OpenAlex] Search failed: Budget lane 'scout' exhausted for upstream openalex
+- `20:04:39` **radar** [SCOUT] Done in 48717ms: 568 raw â†’ 242 dedup â†’ 50 ranked â†’ 50 saved
+- `20:04:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2686ms | 784+149 tok (95 cache-hit) | $0.0003 | cum≈$0.040
+- `20:04:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 4955ms | 246+244 tok (85 cache-hit) | $0.0003 | cum≈$0.041
+- `20:04:39` **status** [SCOUT] Skipping 1 blacklisted providers: gdelt-news
+- `20:04:39` **status** [FEED-ENGINE] Host circuit open: restofworld.org (≥2 fails) — skipping for 15min
+- `20:04:39` **status** [SCOUT/JSTOR] Error: Circuit breaker tripped for crossref — skipping queued call
+- `20:04:39` **degraded** [SCOUT/JSTOR] Error: Circuit breaker tripped for crossref — skipping queued call
+- `20:04:39` **radar** [SCOUT] Per-provider results: _unknown=0, defenseone=45, federal-register=5, guardian=90, notesfrompoland=15, bbc=15
+- `20:04:39` **radar** [SCOUT] Raw results: 170 sources from 11 query variations (27 providers: defenseone, breakingdefense, guardian, aljazeera, dw, france24, abc-au, grist, theverge, federal-register, mit-tr, spacenews, s
+- `20:04:39` **radar** [SCOUT] Relevance filter too strict even at 0.10 (0 results), keeping top 50/87 by score
+- `20:04:39` **radar** [SCOUT] Done in 10568ms: 170 raw â†’ 87 dedup â†’ 50 ranked â†’ 50 saved
+- `20:04:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2622ms | 785+153 tok (92 cache-hit) | $0.0003 | cum≈$0.041
+- `20:04:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 4114ms | 247+250 tok (82 cache-hit) | $0.0003 | cum≈$0.041
+- `20:04:39` **status** [SCOUT] Skipping 4 empty-result providers: crossref, jstor, openalex, history
+- `20:05:39` **radar** [SCOUT] Per-provider results: defenseone=4, _unknown=0, internet-archive=8, dw=2, bbc=14, guardian=4
+- `20:05:39` **radar** [SCOUT] Raw results: 34 sources from 12 query variations (7 providers: defenseone, internet-archive, dw, bbc, guardian, france24, isidore)
+- `20:05:39` **radar** [SCOUT] Relevance filter too strict even at 0.10 (0 results), keeping top 27/27 by score
+- `20:05:39` **radar** [SCOUT] Done in 13149ms: 34 raw â†’ 27 dedup â†’ 27 ranked â†’ 27 saved
+- `20:05:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2285ms | 785+150 tok (92 cache-hit) | $0.0003 | cum≈$0.041
+- `20:05:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 5228ms | 247+238 tok (82 cache-hit) | $0.0003 | cum≈$0.042
+- `20:05:39` **radar** [SCOUT] Per-provider results: ons-uk=24, internet-archive=6, _unknown=0
+- `20:05:39` **radar** [SCOUT] Raw results: 30 sources from 12 query variations (2 providers: ons-uk, internet-archive)
+- `20:05:39` **radar** [SCOUT] Done in 12760ms: 30 raw â†’ 7 dedup â†’ 7 ranked â†’ 7 saved
+- `20:05:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2548ms | 784+123 tok (92 cache-hit) | $0.0003 | cum≈$0.042
+- `20:05:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 4551ms | 246+217 tok (82 cache-hit) | $0.0003 | cum≈$0.042
+- `20:05:39` **status** [SCOUT] Skipping 3 empty-result providers: crossref, jstor, openalex
+- `20:05:39` **radar** [SCOUT] Per-provider results: _unknown=0, ons-uk=24, internet-archive=7
+- `20:05:39` **radar** [SCOUT] Raw results: 31 sources from 12 query variations (2 providers: ons-uk, internet-archive)
+- `20:05:39` **radar** [SCOUT] Done in 12223ms: 31 raw â†’ 9 dedup â†’ 9 ranked â†’ 9 saved
+- `20:05:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2613ms | 785+150 tok (92 cache-hit) | $0.0003 | cum≈$0.043
+- `20:05:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 5728ms | 247+261 tok (82 cache-hit) | $0.0003 | cum≈$0.043
+- `20:05:39` **radar** [SCOUT] Per-provider results: _unknown=0, internet-archive=8
+- `20:05:39` **radar** [SCOUT] Raw results: 8 sources from 12 query variations (1 providers: internet-archive)
+- `20:05:39` **radar** [SCOUT] Done in 13479ms: 8 raw â†’ 8 dedup â†’ 8 ranked â†’ 8 saved
+- `20:05:39` **radar** [IntelligentScout] Done: 235 sources, diversity=87%, consensus=45%, scenarioRichness=80%, 256383ms
+- `20:05:39` **pipeline** [Pipeline] INTELLIGENT SCOUT: +201 eclectic sources (235 from 9 lenses, diversity=87%, scenarioRichness=80%)
+- `20:05:39` **pipeline** [Pipeline] INTELLIGENT SCOUT lenses: core(63), contrarian(43), cross_domain(45), historical(41), weak_signal(0), scenario(43), provocative(0), ontological(0), dissident(0)
+- `20:05:39` **pipeline** [Pipeline] CITATION GRAPH: +0 sources (1 hubs, 0 bridges, 0 clusters)
+- `20:05:39` **pipeline** [Pipeline] INDEX: 397 sources
+- `20:06:39` **pipeline** [Pipeline] EMBED: generating semantic vectors...
+- `20:06:39` **pipeline** [Pipeline] EMBED: 360 new, 37 cached
+- `20:06:39` **pipeline** [Pipeline] DEDUPLICATE
+- `20:06:39` **pipeline** [Pipeline] RANK: scoring candidates from 397 SCOUT sources (ceiling 100)
+- `20:06:39` **status** [ENHANCED RANK] T8: 16 load-bearing sources (full-text), 27 abstract, 10 skip
+- `20:06:39` **pipeline** [Pipeline] PERTINENCE SELECTION: kept 53/53 candidates (bar=55.0, top=100.0, cutoff score=89.7)
+- `20:06:39` **pipeline** [Pipeline] SOURCE QUALITY: re-ranked 53 by composite (relevance 60% + quality 40%)
+- `20:06:39` **pipeline** [Pipeline] QUALITY TAIL TRIM: dropped 27 sources <40/100 quality — 26 remain (avg improves)
+- `20:06:39` **llm** ✅ glm/glm-4.5-air [topic_classification] | 3240ms | 1543+196 tok (64 cache-hit) | $0.0005 | cum≈$0.043
+- `20:06:39` **pipeline** [Pipeline] RELEVANCE SCREEN: dropped 10 off-topic + 6 tangential sources — 10 proceed to reader
+- `20:06:39` **pipeline** [Pipeline] LOAD BEARING: 3 sources tagged as load_bearing
+- `20:06:39` **llm** ✅ glm/glm-4.5-air [enrichment_reasoner] | 9058ms | 1218+472 tok (66 cache-hit) | $0.0008 | cum≈$0.044
+- `20:06:39` **pipeline** [Pipeline] ENRICHMENT: 5 gaps identified — searching with 5 targeted queries
+- `20:06:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2964ms | 786+155 tok (92 cache-hit) | $0.0003 | cum≈$0.045
+- `20:06:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3051ms | 786+161 tok (92 cache-hit) | $0.0003 | cum≈$0.045
+- `20:06:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3052ms | 788+161 tok (92 cache-hit) | $0.0003 | cum≈$0.045
+- `20:06:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 3613ms | 248+207 tok (82 cache-hit) | $0.0003 | cum≈$0.045
+- `20:06:39` **status** [SCOUT] Skipping 10 empty-result providers: crossref, exa, harvard-dash, linkup, openalex, semanticscholar, tavily, legifrance, eur-lex, sec-edgar
+- `20:06:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 3679ms | 250+214 tok (82 cache-hit) | $0.0003 | cum≈$0.046
+- `20:06:39` **status** [SCOUT] Dimensions: skipped (no DIMENSIONS_API_KEY)
+- `20:06:39` **status** [SCOUT] Lens: skipped (no LENS_API_TOKEN)
+- `20:06:39` **status** [SCOUT] Skipping 7 empty-result providers: crossref, exa, harvard-dash, linkup, openalex, semanticscholar, tavily
+- `20:06:39` **degraded** [CIRCUIT BREAKER] core killed for session — HTTP 401 (auth/quota dead)
+- `20:06:39` **status** CORE search failed: Circuit breaker tripped for core — skipping queued call
+- `20:06:39` **degraded** CORE search failed: Circuit breaker tripped for core — skipping queued call
+- `20:06:39` **status** [CORE] Keyless fallback also failed: Circuit breaker tripped for core — skipping queued call
+- `20:06:39` **degraded** [CORE] Keyless fallback also failed: Circuit breaker tripped for core — skipping queued call
+- `20:06:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 4939ms | 248+300 tok (82 cache-hit) | $0.0004 | cum≈$0.046
+- `20:06:39` **status** [SCOUT] Skipping 12 empty-result providers: core, crossref, dimensions, exa, harvard-dash, lens, linkup, openalex, semanticscholar, tavily, sec-edgar, history
+- `20:06:39` **status** [OpenReview] Search failed: Request failed with status code 429
+- `20:06:39` **status** [bioRxiv] Search failed: timeout of 15000ms exceeded
+- `20:07:39` **status** CORE search failed: Circuit breaker tripped for core (86374s remaining)
+- `20:07:39` **degraded** CORE search failed: Circuit breaker tripped for core (86374s remaining)
+- `20:07:39` **degraded** [SCOUT/Springer] Direct API error: Circuit breaker tripped for springer (86384s remaining) — falling back to OpenAlex
+- `20:07:39` **degraded** [SCOUT/Springer] Direct API error: Circuit breaker tripped for springer (86359s remaining) — falling back to OpenAlex
+- `20:08:39` **radar** [SCOUT] springer: call deadline 90s exceeded — dropping results
+- `20:08:39` **radar** [SCOUT] consolidated-institutions: call deadline 90s exceeded — dropping results
+- `20:08:39` **radar** [SCOUT] extended-registry: call deadline 90s exceeded — dropping results
+- `20:08:39` **radar** [SCOUT] arxiv: call deadline 90s exceeded — dropping results
+- `20:08:39` **radar** [SCOUT] datacite: call deadline 90s exceeded — dropping results
+- `20:08:39` **radar** [SCOUT] newsapi: call deadline 90s exceeded — dropping results
+- `20:08:39` **radar** [SCOUT] hf-papers: call deadline 90s exceeded — dropping results
+- `20:08:39` **radar** [SCOUT] ons-uk: call deadline 90s exceeded — dropping results
+- `20:08:39` **radar** [SCOUT] global-intelligence: call deadline 90s exceeded — dropping results
+- `20:08:39` **radar** [SCOUT] global-orgs: call deadline 90s exceeded — dropping results
+- `20:08:39` **radar** [SCOUT] global-science: call deadline 90s exceeded — dropping results
+- `20:08:39` **radar** [SCOUT] Per-provider results: arxiv=20, _unknown=0, bellingcat=4, who=6, amnesty=220, openai-research=11, openreview=200, biorxiv=83, mit-dspace=174, ons-uk=8, newsapi=2, hrw=20
+- `20:08:39` **radar** [SCOUT] mega-press: call deadline 90s exceeded — dropping results
+- `20:08:39` **radar** [SCOUT] Per-provider results: arxiv=40, _unknown=0, iai=6, bellingcat=8, who=9, amnesty=200, nasa=12, hcss=80, openreview=200, biorxiv=119, mit-dspace=180, hf-papers=8, openalex=20, fiia=106, datacite
+- `20:08:39` **degraded** [SCOUT/Springer] Direct API error: Circuit breaker tripped for springer (86345s remaining) — falling back to OpenAlex
+- `20:08:39` **radar** [SCOUT] Per-provider results: _unknown=0, amnesty=60, unsc=46, hcss=80, biorxiv=47, mit-dspace=105, hrw=100, unfpa=4, aljazeera=11, fiia=23, unwomen=17, bbc=17, guardian=14, elcano=18, taxfoundation=1
+- `20:09:39` **status** [GLOBAL-INTELLIGENCE] Feed mi5 failed: HTTP 429 Too Many Requests
+- `20:09:39` **status** [GLOBAL-INTELLIGENCE] Feed csis-canada failed: HTTP 429 Too Many Requests
+- `20:09:39` **status** [GLOBAL-ORGS] Feed worldbank failed: HTTP 429 Too Many Requests
+- `20:09:39` **status** [GLOBAL-SCIENCE] Feed doe failed: HTTP 429 Too Many Requests
+- `20:11:39` **status** [GLOBAL-SCIENCE] Feed nsf failed: HTTP 429 Too Many Requests
+- `20:16:39` **status** [GLOBAL-SCIENCE] Feed cern failed: HTTP 429 Too Many Requests
+- `20:16:39` **status** [GLOBAL-SCIENCE] Feed royal-society failed: HTTP 429 Too Many Requests
+- `20:16:39` **status** [GLOBAL-SCIENCE] Feed meta-ai failed: HTTP 429 Too Many Requests
+- `20:16:39` **status** [GLOBAL-INTELLIGENCE] Feed asio failed: HTTP 429 Too Many Requests
+- `20:16:39` **status** [GLOBAL-ORGS] Feed ifrc failed: HTTP 429 Too Many Requests
+- `20:16:39` **status** [GLOBAL-ORGS] Feed imo failed: HTTP 429 Too Many Requests
+- `20:16:39` **status** [GLOBAL-ORGS] Feed wmo failed: HTTP 429 Too Many Requests
+- `20:16:39` **status** [GLOBAL-ORGS] Feed ifad failed: HTTP 429 Too Many Requests
+- `20:16:39` **status** [GLOBAL-ORGS] Feed imf failed: HTTP 429 Too Many Requests
+- `20:16:39` **status** [GLOBAL-SCIENCE] Feed dfg failed: HTTP 429 Too Many Requests
+- `20:16:39` **status** [GLOBAL-SCIENCE] Feed jst failed: HTTP 429 Too Many Requests
+- `20:16:39` **degraded** [SCOUT/Springer] Direct API error: Circuit breaker tripped for springer (85837s remaining) — falling back to OpenAlex
+- `20:16:39` **degraded** [SCOUT/Springer] Direct API error: Circuit breaker tripped for springer (85836s remaining) — falling back to OpenAlex
+- `20:16:39` **degraded** [SCOUT/Springer] Direct API error: Circuit breaker tripped for springer (85835s remaining) — falling back to OpenAlex
+- `20:16:39` **degraded** [SCOUT/Springer] Direct API error: Circuit breaker tripped for springer (85834s remaining) — falling back to OpenAlex
+- `20:16:39` **degraded** [SCOUT/Springer] Direct API error: Circuit breaker tripped for springer (85833s remaining) — falling back to OpenAlex
+- `20:16:39` **degraded** [SCOUT/Springer] Direct API error: Circuit breaker tripped for springer (85832s remaining) — falling back to OpenAlex
+- `20:16:39` **degraded** [SCOUT/Springer] Direct API error: Circuit breaker tripped for springer (85831s remaining) — falling back to OpenAlex
+- `20:16:39` **degraded** [SCOUT/Springer] Direct API error: Circuit breaker tripped for springer (85830s remaining) — falling back to OpenAlex
+- `20:16:39` **degraded** [SCOUT/Springer] Direct API error: Circuit breaker tripped for springer (85829s remaining) — falling back to OpenAlex
+- `20:16:39` **status** Cache set error: TypeError: fetch failed
+- `20:16:39` **degraded** [CIRCUIT BREAKER] arxiv tripped after 2× 429 — skipping for 15s (trip #1)
+- `20:16:39` **status** [arXiv] Search failed: Circuit breaker tripped for arxiv
+- `20:16:39` **degraded** [arXiv] Search failed: Circuit breaker tripped for arxiv
+- `20:16:39` **status** [arXiv] Search failed: Circuit breaker tripped for arxiv (15s remaining)
+- `20:16:39` **degraded** [arXiv] Search failed: Circuit breaker tripped for arxiv (15s remaining)
+- `20:16:39` **status** [OpenAlex] Search failed: Request budget exhausted for upstream openalex
+- `20:16:39` **radar** [SCOUT] Raw results: 747 sources from 12 query variations (43 providers: arxiv, bellingcat, who, amnesty, hrw, foreign-affairs, atlantic-council, crisis-group, heritage, gmf, aspen, csis, hoover, aei,
+- `20:17:39` **radar** [SCOUT] Raw results: 1079 sources from 12 query variations (65 providers: arxiv, iai, cnrs, swp, who-direct, eth-zurich, bellingcat, who, amnesty, hrw, foreign-affairs, atlantic-council, crisis-group,
+- `20:17:39` **radar** [SCOUT] Raw results: 553 sources from 12 query variations (61 providers: amnesty, hrw, foreign-affairs, atlantic-council, crisis-group, heritage, gmf, csis, hoover, clingendael, freedom-house, eu-comm
+- `20:17:39` **degraded** [CIRCUIT BREAKER] crossref tripped after 3× 429 — skipping for 240s (trip #5)
+- `20:17:39` **status** [SCOUT/Springer] Crossref fallback also failed: Circuit breaker tripped for crossref (240s remaining)
+- `20:17:39` **degraded** [SCOUT/Springer] Crossref fallback also failed: Circuit breaker tripped for crossref (240s remaining)
+- `20:17:39` **status** [SCOUT/Springer] Crossref fallback also failed: Circuit breaker tripped for crossref — skipping queued call
+- `20:17:39` **degraded** [SCOUT/Springer] Crossref fallback also failed: Circuit breaker tripped for crossref — skipping queued call
+- `20:17:39` **status** [SCOUT/Springer] Crossref fallback also failed: Circuit breaker tripped for crossref
+- `20:17:39` **degraded** [SCOUT/Springer] Crossref fallback also failed: Circuit breaker tripped for crossref
+- `20:17:39` **radar** [SCOUT] Done in 648906ms: 553 raw â†’ 320 dedup â†’ 4 ranked â†’ 4 saved
+- `20:17:39` **radar** [SCOUT] Relevance filter too strict even at 0.10 (0 results), keeping top 50/458 by score
+- `20:17:39` **radar** [SCOUT] Done in 653425ms: 747 raw â†’ 458 dedup â†’ 50 ranked â†’ 50 saved
+- `20:17:39` **radar** [SCOUT] Done in 653797ms: 1079 raw â†’ 571 dedup â†’ 23 ranked â†’ 23 saved
+- `20:17:39` **pipeline** [Pipeline] ENRICHMENT: +63 new sources from targeted queries — re-ranking
+- `20:17:39` **status** [ENHANCED RANK] T8: 19 load-bearing sources (full-text), 32 abstract, 12 skip
+- `20:17:39` **llm** ✅ glm/glm-4.5-air [topic_classification] | 5346ms | 2552+308 tok (63 cache-hit) | $0.0008 | cum≈$0.047
+- `20:17:39` **pipeline** [Pipeline] LATE RELEVANCE SCREEN: dropped 25/42 low-relevance late additions — 27 proceed to reader
+- `20:17:39` **llm** ✅ glm/glm-4.5-air [topic_classification] | 4994ms | 5237+260 tok (5 cache-hit) | $0.0013 | cum≈$0.048
+- `20:17:39` **pipeline** [Pipeline] FOUNDATIONAL INJECTION: prepared 3 seminal works from security KB (will inject after rank)
+- `20:17:39` **pipeline** [Pipeline] FOUNDATIONAL INJECTION: +3 seminal works injected into topSources (now 30 total)
+- `20:17:39` **pipeline** [Pipeline] DOMAIN: security (confidence: 0.9, cross=true)
+- `20:17:39` **pipeline** [Pipeline] COLLISION: Military Strategy × Diplomatic Norms × Regional Power Balance
+- `20:17:39` **pipeline** [Pipeline] COMPLEXITY GATE: meta-analysis skipped (domain "security" not quantitative-study oriented)
+- `20:17:39` **status** [Pipeline] COMPLEXITY GATE: meta-analysis skipped (domain "security" not quantitative-study oriented)
+- `20:17:39` **llm** ✅ glm/glm-4.5-air [casting] | 3796ms | 409+220 tok (66 cache-hit) | $0.0003 | cum≈$0.049
+- `20:17:39` **pipeline** [Pipeline] CASTING: 2 lenses — Drone attacks by state actors in the Persian Gulf challenge traditional deterrence models, erode diplomatic sovereignty norms, and reshape regional power dynamics through asymmetric capabilities
+- `20:17:39` **pipeline** [Pipeline] LAS GATE: pool=30, providers=13, debate=true, meta=false, DA=true, foresight_eligible=true
+- `20:17:39` **pipeline** [Pipeline] BRANCH COVERAGE: 2 strong, 3 weak, 3 unsupported
+- `20:17:39` **pipeline** [Pipeline] READER V3: deep extraction from 30 sources (domain: security)
+- `20:17:39` **status** [AGENT MEMORY] Rejected lesson (relevance 0.14 < 0.25): "The agent failed to extract sufficient citations from the source material, resul..."
+- `20:17:39` **status** [AGENT MEMORY] Rejected lesson (relevance 0.11 < 0.25): "The agent failed to extract sufficient evidence on structured consensus methods ..."
+- `20:17:39` **status** [AGENT MEMORY] Rejected lesson (relevance 0.14 < 0.25): "The agent failed to provide relevant citations about mineral resource dependenci..."
+- `20:17:39` **quant** [QUANT] Macro floor: 2 real series from dbnomics, fred (3 specs attempted)
+- `20:17:39` **quant** [QUANT] Complete: 3 series, 6 facts from worldbank-data, dbnomics, fred (1088ms)
+- `20:17:39` **llm** ✅ glm/glm-4.5-air [topic_classification] | 14255ms | 439+739 tok (66 cache-hit) | $0.0009 | cum≈$0.049
+- `20:18:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 18545ms | 2832+1352 tok (63 cache-hit) | $0.0021 | cum≈$0.052
+- `20:18:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 20079ms | 2856+1291 tok (5 cache-hit) | $0.0020 | cum≈$0.054
+- `20:18:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 24248ms | 2689+1255 tok (63 cache-hit) | $0.0019 | cum≈$0.055
+- `20:18:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 7492ms | 1348+510 tok (85 cache-hit) | $0.0008 | cum≈$0.056
+- `20:18:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 11742ms | 1306+765 tok (69 cache-hit) | $0.0011 | cum≈$0.057
+- `20:18:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 18788ms | 3871+961 tok (69 cache-hit) | $0.0018 | cum≈$0.059
+- `20:18:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 25216ms | 1479+1597 tok (69 cache-hit) | $0.0021 | cum≈$0.061
+- `20:18:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 20448ms | 2066+1296 tok (85 cache-hit) | $0.0018 | cum≈$0.063
+- `20:18:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 13867ms | 1628+954 tok (83 cache-hit) | $0.0014 | cum≈$0.064
+- `20:18:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 26498ms | 1996+1680 tok (85 cache-hit) | $0.0022 | cum≈$0.067
+- `20:19:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 27090ms | 3378+1404 tok (83 cache-hit) | $0.0022 | cum≈$0.069
+- `20:19:39` **status** [Reader V3] PDF extraction failed: Request failed with status code 403
+- `20:19:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 19954ms | 3418+1168 tok (85 cache-hit) | $0.0020 | cum≈$0.071
+- `20:19:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 20621ms | 3642+1339 tok (85 cache-hit) | $0.0022 | cum≈$0.073
+- `20:19:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 14119ms | 1303+884 tok (85 cache-hit) | $0.0012 | cum≈$0.074
+- `20:19:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 12303ms | 1678+822 tok (85 cache-hit) | $0.0012 | cum≈$0.075
+- `20:19:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 23021ms | 1890+1457 tok (83 cache-hit) | $0.0020 | cum≈$0.077
+- `20:19:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 20524ms | 4186+1243 tok (85 cache-hit) | $0.0022 | cum≈$0.080
+- `20:20:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 13548ms | 1282+683 tok (85 cache-hit) | $0.0010 | cum≈$0.081
+- `20:20:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 13399ms | 1391+1079 tok (85 cache-hit) | $0.0015 | cum≈$0.082
+- `20:20:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 19458ms | 4096+1399 tok (85 cache-hit) | $0.0024 | cum≈$0.085
+- `20:20:39` **status** [Reader V3] PDF extraction failed: The PDF file is empty, i.e. its size is zero bytes.
+- `20:20:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 14438ms | 1453+943 tok (83 cache-hit) | $0.0013 | cum≈$0.086
+- `20:20:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 12336ms | 1584+782 tok (85 cache-hit) | $0.0012 | cum≈$0.087
+- `20:20:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 12198ms | 1372+779 tok (83 cache-hit) | $0.0011 | cum≈$0.088
+- `20:20:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 20487ms | 1616+1306 tok (83 cache-hit) | $0.0018 | cum≈$0.090
+- `20:21:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 19554ms | 1480+1223 tok (83 cache-hit) | $0.0016 | cum≈$0.092
+- `20:21:39` **pipeline** [Pipeline] FRAMING: 5 hypotheses pre-registered
+- `20:21:39` **pipeline** [Pipeline] QUANT: 6 machine-verified facts from worldbank-data, dbnomics, fred
+- `20:21:39` **pipeline** [Pipeline] MINICHECK shadow: 20 pairs — 19 supported / 0 not / 1 unclear (51318ms)
+- `20:21:39` **pipeline** [Pipeline] EVIDENCE BANK: 100 entries across 25 sources
+- `20:21:39` **gate** [ORCHESTRATOR] Step decision (not publish verdict): PROCEED — 25/27 sources have abstracts (93%). Sufficient for analysis.
+- `20:21:39` **status** [ORCHESTRATOR] Step decision (not publish verdict): PROCEED — 25/27 sources have abstracts (93%). Sufficient for analysis.
+- `20:21:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 2782ms | 253+151 tok (70 cache-hit) | $0.0002 | cum≈$0.092
+- `20:22:39` **llm** ✅ glm/glm-4.5 [elenchus] | 13443ms | 5615+947 tok | $0.0055 | cum≈$0.097
+- `20:22:39` **llm** ✅ glm/glm-4.5 [elenchus] | 9089ms | 4868+445 tok | $0.0039 | cum≈$0.101
+- `20:22:39` **pipeline** [Pipeline] DPP SYNTHESIS: 20/278 points (diversity=100%)
+- `20:22:39` **llm** ✅ glm/glm-4.5-air [enrichment_reasoner] | 3689ms | 3877+189 tok (5 cache-hit) | $0.0010 | cum≈$0.102
+- `20:22:39` **pipeline** [Pipeline] ADAPTIVE RAG: insufficient (55%): Low retrieval confidence (55%)
+- `20:22:39` **pipeline** [Pipeline] ANALYST: V3 multi-pass (depth: brief)
+- `20:22:39` **status** [AGENT MEMORY] Rejected lesson (relevance 0.18 < 0.25): "The agent failed to properly analyze the geopolitical implications of mineral re..."
+- `20:22:39` **pipeline** [Pipeline] CANON: 1 foundational frameworks injected (Hobbes)
+- `20:22:39` **pipeline** [Pipeline] CONFLICT-AWARE: no contradictions detected (consensus 100%)
+- `20:22:39` **pipeline** [Pipeline] INNOVATOR AUTHORS: 3 authors | 0 emerging | 0 cross-domain | 0 heterodox | 0 dissident
+- `20:23:39` **llm** ✅ glm/glm-4.5 [harvard_council] | 67883ms | 4363+3728 tok | $0.0108 | cum≈$0.113
+- `20:23:39` **pipeline** [Pipeline] DOMAIN EXPERT: security lens injected (confidence 28, 9 findings, $0.0108)
+- `20:25:39` **llm** ✅ glm/glm-4.5 [analyst_brief] | 87471ms | 29226+5701 tok | $0.0301 | cum≈$0.154
+- `20:25:39` **llm** ✅ glm/glm-4.5 [elenchus] | 10899ms | 1496+499 tok | $0.0020 | cum≈$0.156
+- `20:26:39` **llm** ✅ glm/glm-4.5 [analyst_brief] | 60610ms | 31159+4099 tok (26624 cache-hit) | $0.0277 | cum≈$0.184
+- `20:26:39` **llm** ✅ glm/glm-4.5 [elenchus] | 7628ms | 621+303 tok | $0.0010 | cum≈$0.185
+- `20:26:39` **fatal** [Analyst V3] PREMORTEM: 5 fatal objections captured ($0.0010)
+- `20:28:39` **llm** ✅ glm/glm-4.5 [analyst_brief] | 117273ms | 38658+8000 tok (26880 cache-hit) | $0.0408 | cum≈$0.226
+- `20:28:39` **llm** ✅ glm/glm-4.5 [elenchus] | 2089ms | 1009+61 tok | $0.0007 | cum≈$0.227
+- `20:28:39` **pipeline** [Pipeline] DIAGNOSTIC: chain=12, findings=0, verdict=2453ch, citDensity=3.3/1K
+- `20:28:39` **pipeline** [Pipeline] TOPIC CONSISTENCY ISSUES DETECTED:
+- `20:28:39` **gate** [ORCHESTRATOR] Step decision (not publish verdict): PROCEED — Analysis quality acceptable: confidence=N/A, citations=N/A.
+- `20:28:39` **status** [ORCHESTRATOR] Step decision (not publish verdict): PROCEED — Analysis quality acceptable: confidence=N/A, citations=N/A.
+- `20:28:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 4397ms | 815+284 tok (77 cache-hit) | $0.0005 | cum≈$0.330
+- `20:28:39` **llm** ✅ glm/glm-4.5 [elenchus] | 11710ms | 811+572 tok | $0.0017 | cum≈$0.332
+- `20:28:39` **pipeline** [Pipeline] OUTLINE CRITIC (early): coverage 45/100 — 5 missing dimensions
+- `20:30:39` **llm** ✅ glm/glm-4.5 [analyst_brief] | 92134ms | 28213+6406 tok (8704 cache-hit) | $0.0310 | cum≈$0.363
+- `20:30:39` **llm** ✅ glm/glm-4.5 [elenchus] | 9281ms | 1649+456 tok | $0.0020 | cum≈$0.365
+- `20:30:39` **degraded** [Analyst V3] PASS 2/3: Stress Test (compact/degraded)...
+- `20:31:39` **llm** ✅ glm/glm-4.5 [analyst_brief] | 48236ms | 28942+3047 tok (25600 cache-hit) | $0.0241 | cum≈$0.389
+- `20:31:39` **llm** ✅ glm/glm-4.5 [elenchus] | 3602ms | 355+49 tok (256 cache-hit) | $0.0003 | cum≈$0.389
+- `20:31:39` **llm** ✅ glm/glm-4.5-air [topic_classification] | 3102ms | 890+79 tok (65 cache-hit) | $0.0003 | cum≈$0.447
+- `20:31:39` **llm** ✅ glm/glm-4.5 [elenchus] | 11796ms | 683+550 tok | $0.0016 | cum≈$0.448
+- `20:31:39` **pipeline** [Pipeline] OUTLINE CRITIC (early): coverage 45→58/100 — rewrite adopted
+- `20:31:39` **pipeline** [Pipeline] BRANCH CITATIONS: 4/8 branches uncited — targeted gap requests queued
+- `20:31:39` **pipeline** [Pipeline] EVIDENCE-INDEPENDENCE: 22/22 effective clusters (0 near-dup pairs, maxSim=0.558) — independent
+- `20:31:39` **pipeline** [Pipeline] GAP ANALYSIS: all sections have adequate citation coverage
+- `20:31:39` **pipeline** [Pipeline] REQUIRED ELEMENTS: 3/6 present — missing: two tipping points from disagreements; what would change our mind (dated indicators); consequences for a decision-maker
+- `20:31:39` **pipeline** [Pipeline] RESEARCH GAPS: 3 typed gaps identified
+- `20:31:39` **pipeline** [Pipeline] BLACKBOARD: 7 gap requests from ANALYST deferred (reanalysis_budget_reserved)
+- `20:31:39` **pipeline** [Pipeline] POST-ANALYST ENRICHMENT: 3 critical gaps — attempting targeted search
+- `20:31:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 4062ms | 807+184 tok (95 cache-hit) | $0.0004 | cum≈$0.449
+- `20:31:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 4153ms | 808+186 tok (95 cache-hit) | $0.0004 | cum≈$0.449
+- `20:31:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 4328ms | 806+196 tok (95 cache-hit) | $0.0004 | cum≈$0.450
+- `20:31:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 4687ms | 270+223 tok (68 cache-hit) | $0.0003 | cum≈$0.450
+- `20:31:39` **status** [SCOUT] Skipping 11 blacklisted providers: arxiv, consolidated-institutions, datacite, gdelt-news, global-intelligence, global-orgs, global-science, hf-papers, newsapi, springer, ons-uk
+- `20:31:39` **status** [SCOUT] Skipping 11 empty-result providers: core, crossref, dimensions, exa, harvard-dash, lens, linkup, openalex, semanticscholar, tavily, sec-edgar
+- `20:31:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 4880ms | 269+236 tok (106 cache-hit) | $0.0003 | cum≈$0.450
+- `20:31:39` **status** [GLOBAL-THINKTANKS] Feed ifri-gn failed: HTTP 429 Too Many Requests
+- `20:31:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 8090ms | 271+360 tok (106 cache-hit) | $0.0005 | cum≈$0.451
+- `20:31:39` **status** [GLOBAL-THINKTANKS] Feed eeas failed: HTTP 429 Too Many Requests
+- `20:31:39` **status** [GLOBAL-THINKTANKS] Feed cfr failed: HTTP 429 Too Many Requests
+- `20:31:39` **status** [GLOBAL-THINKTANKS] Feed cnas failed: HTTP 429 Too Many Requests
+- `20:32:39` **status** [GLOBAL-THINKTANKS] Feed odi failed: HTTP 429 Too Many Requests
+- `20:32:39` **status** [GLOBAL-THINKTANKS] Feed itif failed: HTTP 429 Too Many Requests
+- `20:32:39` **status** [GLOBAL-THINKTANKS] Feed semi failed: HTTP 429 Too Many Requests
+- `20:32:39` **status** [GLOBAL-THINKTANKS] Feed bruegel failed: HTTP 429 Too Many Requests
+- `20:32:39` **degraded** [CIRCUIT BREAKER] google-books tripped after 1× 429 — skipping for 60s (trip #1)
+- `20:32:39` **degraded** [SCOUT/GoogleBooks] Error: Circuit breaker tripped for google-books
+- `20:32:39` **degraded** [SCOUT/GoogleBooks] Error: Circuit breaker tripped for google-books (60s remaining)
+- `20:32:39` **degraded** [SCOUT/GoogleBooks] Error: Circuit breaker tripped for google-books (50s remaining)
+- `20:32:39` **degraded** [SCOUT/GoogleBooks] Error: Circuit breaker tripped for google-books (28s remaining)
+- `20:33:39` **radar** [SCOUT] ror-batch: call deadline 90s exceeded — dropping results
+- `20:33:39` **radar** [SCOUT] google-books: call deadline 90s exceeded — dropping results
+- `20:33:39` **radar** [SCOUT] mega-thinktanks: call deadline 90s exceeded — dropping results
+- `20:33:39` **radar** [SCOUT] global-think-tanks: call deadline 90s exceeded — dropping results
+- `20:33:39` **radar** [SCOUT] Per-provider results: _unknown=0, amnesty=90, hcss=3, biorxiv=113, mit-dspace=176, fiia=5, openreview=150, hrw=15
+- `20:33:39` **radar** [SCOUT] Per-provider results: _unknown=0, hcss=3, openreview=135, biorxiv=138, mit-dspace=177, fiia=5
+- `20:33:39` **radar** [SCOUT] mega-stats: call deadline 90s exceeded — dropping results
+- `20:33:39` **radar** [SCOUT] Per-provider results: _unknown=0, biorxiv=70, mit-dspace=90, fiia=5, openreview=45
+- `20:36:39` **status** [GLOBAL-THINKTANKS] Feed carnegie failed: HTTP 429 Too Many Requests
+- `20:36:39` **status** [GLOBAL-THINKTANKS] Feed eu-commission-gn failed: HTTP 429 Too Many Requests
+- `20:39:39` **degraded** [CIRCUIT BREAKER] google-books tripped after 1× 429 — skipping for 120s (trip #2)
+- `20:39:39` **degraded** [SCOUT/GoogleBooks] Error: Circuit breaker tripped for google-books (120s remaining)
+- `20:39:39` **degraded** [SCOUT/GoogleBooks] Error: Circuit breaker tripped for google-books (104s remaining)
+- `20:39:39` **degraded** [CIRCUIT BREAKER] semanticscholar tripped after 1× 429 — skipping for 960s (trip #4)
+- `20:40:39` **radar** [SCOUT] Raw results: 551 sources from 12 query variations (32 providers: amnesty, hrw, foreign-affairs, atlantic-council, crisis-group, heritage, gmf, aspen, csis, hoover, aei, clingendael, freedom-ho
+- `20:40:39` **radar** [SCOUT] Raw results: 458 sources from 12 query variations (6 providers: hcss, openreview, biorxiv, mit-dspace, fiia, elcano)
+- `20:40:39` **radar** [SCOUT] Raw results: 210 sources from 12 query variations (5 providers: biorxiv, mit-dspace, fiia, elcano, openreview)
+- `20:40:39` **degraded** [CIRCUIT BREAKER] crossref tripped after 3× 429 — skipping for 240s (trip #6)
+- `20:40:39` **radar** [SCOUT] Done in 521718ms: 551 raw â†’ 373 dedup â†’ 9 ranked â†’ 9 saved
+- `20:40:39` **radar** [SCOUT] Done in 521814ms: 458 raw â†’ 293 dedup â†’ 10 ranked â†’ 10 saved
+- `20:40:39` **radar** [SCOUT] Done in 521869ms: 210 raw â†’ 122 dedup â†’ 5 ranked â†’ 5 saved
+- `20:40:39` **pipeline** [Pipeline] POST-ANALYST ENRICHMENT: +8 sources from gap-targeted search
+- `20:40:39` **status** [ENHANCED RANK] T8: 20 load-bearing sources (full-text), 32 abstract, 13 skip
+- `20:40:39` **llm** ✅ glm/glm-4.5-air [topic_classification] | 5510ms | 2422+287 tok (65 cache-hit) | $0.0008 | cum≈$0.451
+- `20:40:39` **pipeline** [Pipeline] POST-ANALYST ENRICHMENT: relevance screen dropped 32/39 off-topic additions
+- `20:40:39` **pipeline** [Pipeline] POST-ANALYST ENRICHMENT: appended 7 sources (order preserved), 37 total, quality 99 → 99
+- `20:40:39` **llm** ✅ glm/glm-4.5-air [structural_editor] | 15426ms | 1213+1036 tok (64 cache-hit) | $0.0014 | cum≈$0.453
+- `20:40:39` **pipeline** [Pipeline] STRUCTURAL EDITOR: structure=65/100, arc=false, 3 gaps, 10 sections with issues
+- `20:40:39` **pipeline** [Pipeline] GUARD: validate citations
+- `20:40:39` **pipeline** [Pipeline] CLAIM BINDING: 1/7 causal-chain links cite sources that don't cover their claim (laundering risk) — links: #7@0%
+- `20:41:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 34079ms | 2290+2358 tok (63 cache-hit) | $0.0031 | cum≈$0.456
+- `20:41:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 8720ms | 1341+433 tok (72 cache-hit) | $0.0007 | cum≈$0.457
+- `20:41:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 9892ms | 1656+524 tok (518 cache-hit) | $0.0009 | cum≈$0.458
+- `20:41:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 14431ms | 1583+912 tok (518 cache-hit) | $0.0013 | cum≈$0.459
+- `20:41:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 13407ms | 1587+760 tok (518 cache-hit) | $0.0012 | cum≈$0.460
+- `20:42:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 3705ms | 1131+250 tok (518 cache-hit) | $0.0005 | cum≈$0.461
+- `20:42:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 5748ms | 1160+360 tok (518 cache-hit) | $0.0006 | cum≈$0.461
+- `20:42:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 3769ms | 1614+201 tok (518 cache-hit) | $0.0005 | cum≈$0.462
+- `20:42:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 9659ms | 1406+559 tok (518 cache-hit) | $0.0009 | cum≈$0.463
+- `20:42:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 8368ms | 3128+602 tok (63 cache-hit) | $0.0013 | cum≈$0.464
+- `20:42:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 11061ms | 1821+612 tok (69 cache-hit) | $0.0010 | cum≈$0.465
+- `20:42:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 8544ms | 2070+452 tok (69 cache-hit) | $0.0009 | cum≈$0.466
+- `20:42:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 3927ms | 978+201 tok (69 cache-hit) | $0.0004 | cum≈$0.466
+- `20:42:39` **pipeline** [Pipeline] CRITIC: verdict=repair, score=60, groundedness=89%, 2 contradictions, 2 contested, 5 biases
+- `20:42:39` **pipeline** [Pipeline] CRITIC: repair instructions generated (6 claims to fix)
+- `20:43:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 4210ms | 2673+198 tok (68 cache-hit) | $0.0008 | cum≈$0.480
+- `20:43:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 4484ms | 2667+217 tok (68 cache-hit) | $0.0008 | cum≈$0.481
+- `20:43:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 5247ms | 2744+279 tok (68 cache-hit) | $0.0009 | cum≈$0.482
+- `20:43:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 6272ms | 2693+387 tok (68 cache-hit) | $0.0010 | cum≈$0.483
+- `20:43:39` **pipeline** [Pipeline] CRITIC REPAIR: deferred — defects are evidence-bound (coverageVeto=false, unsupported=8) → gap-fill scout first, one re-analysis on enriched corpus
+- `20:43:39` **llm** ✅ glm/glm-4.5-air [topic_classification] | 1919ms | 312+98 tok (70 cache-hit) | $0.0002 | cum≈$0.483
+- `20:43:39` **pipeline** [Pipeline] CRITIC EVIDENCE TOOL: 3 targeted evidence requests queued from unsupported claims
+- `20:43:39` **llm** ✅ glm/glm-4.5 [elenchus] | 11705ms | 683+533 tok | $0.0016 | cum≈$0.485
+- `20:43:39` **pipeline** [Pipeline] OUTLINE CRITIC: coverage 55/100 — 4 missing dimensions, 3 queries
+- `20:43:39` **pipeline** [Pipeline] BLACKBOARD: 13 gap requests from CRITIC/OUTLINE deferred (insufficient_headroom)
+- `20:43:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 2782ms | 656+126 tok (73 cache-hit) | $0.0003 | cum≈$0.485
+- `20:43:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 2829ms | 656+128 tok (73 cache-hit) | $0.0003 | cum≈$0.485
+- `20:43:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 2884ms | 656+119 tok (72 cache-hit) | $0.0003 | cum≈$0.486
+- `20:43:39` **pipeline** [Pipeline] CROSS-MODEL CONSENSUS: controversial claim verified | verdict: uncertain | agreement: 100%
+- `20:43:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 5092ms | 691+249 tok (70 cache-hit) | $0.0004 | cum≈$0.486
+- `20:43:39` **pipeline** [Pipeline] REFLECTION (analyst): quality=medium, score=65, shouldRetry=true
+- `20:43:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 27623ms | 1527+1808 tok (69 cache-hit) | $0.0023 | cum≈$0.488
+- `20:44:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 34004ms | 1651+2314 tok (88 cache-hit) | $0.0029 | cum≈$0.491
+- `20:44:39` **pipeline** [Pipeline] KNOWLEDGE GRAPH: 32 entities, 29 relations, 5 clusters
+- `20:44:39` **pipeline** [Pipeline] EDITORIAL V2: foresight → debate → devil's advocate → editor → quality gates
+- `20:44:39` **pipeline** [Pipeline] DEBATE: running — signals not aligned (critic=60, panel=55)
+- `20:44:39` **pipeline** [Pipeline] DEBATE: running (meta-analysis suppressed)
+- `20:44:39` **llm** ✅ glm/glm-4.5 [elenchus] | 35407ms | 8687+2126 tok | $0.0099 | cum≈$0.501
+- `20:45:39` **llm** ✅ glm/glm-4.5 [editorial_arbiter] | 15482ms | 1034+771 tok | $0.0023 | cum≈$0.504
+- `20:45:39` **llm** [DEBATE] ✅ Complete: P1 strength=72, P2 strength=48, confidence=72%, cost=$0.0122 | cum≈$0.516
+- `20:45:39` **pipeline** [Pipeline] DEBATE: confidence=72%, steel-man=74
+- `20:45:39` **pipeline** [Pipeline] INFLECTION CHECK: dropped 1 off-topic mechanisms — https://openalex.org/W1533463688: "tcas technology enables uas to meet see and avoid requirements by operating at t"
+- `20:45:39` **pipeline** [Pipeline] INFLECTION CHECK: Chain of 44 mechanisms has no reversing direction — trajectory is purely inertial
+- `20:45:39` **pipeline** [Pipeline] INFLECTION DETAIL: Chain of 44 mechanisms has no reversing direction — trajectory is purely inertial
+- `20:45:39` **llm** ✅ glm/glm-4.5-air [query_reformulation] | 1746ms | 276+88 tok (63 cache-hit) | $0.0002 | cum≈$0.516
+- `20:45:39` **llm** ✅ glm/glm-4.5-air [fact_check] | 5875ms | 409+321 tok (64 cache-hit) | $0.0004 | cum≈$0.516
+- `20:45:39` **status** [HTTP] Retry 1/3 after 839ms: fetch failed
+- `20:45:39` **status** [PredictionMarkets] Metaculus fetch failed (dead for session): HTTP 403 Forbidden
+- `20:45:39` **status** [HTTP] Retry 2/3 after 1964ms: fetch failed
+- `20:45:39` **status** [HTTP] Retry 3/3 after 4522ms: fetch failed
+- `20:45:39` **status** [PredictionMarkets] Polymarket fetch failed (dead for session): fetch failed
+- `20:45:39` **llm** ✅ freepool/cerebras/gpt-oss-120b [fact_check] | 710ms | 2094+612 tok | $0.0000 | cum≈$0.516
+- `20:45:39` **llm** ✅ glm/glm-4.5-air [fact_check] | 4788ms | 2080+305 tok (66 cache-hit) | $0.0008 | cum≈$0.517
+- `20:45:39` **llm** ✅ glm/glm-4.5-air [fact_check] | 6900ms | 2017+446 tok (64 cache-hit) | $0.0009 | cum≈$0.518
+- `20:45:39` **llm** ✅ glm/glm-4.5-air [fact_check] | 7090ms | 2319+380 tok (704 cache-hit) | $0.0009 | cum≈$0.519
+- `20:45:39` **llm** ✅ freepool/nvidia/nvidia/nemotron-3.5-lightning-30b-a3b [fact_check] | 11877ms | 2477+2016 tok | $0.0000 | cum≈$0.519
+- `20:45:39` **llm** ✅ glm/glm-4.5-air [fact_check] | 10320ms | 2432+544 tok (686 cache-hit) | $0.0011 | cum≈$0.520
+- `20:45:39` **llm** ✅ glm/glm-4.5-air [fact_check] | 6950ms | 2216+411 tok (704 cache-hit) | $0.0009 | cum≈$0.521
+- `20:45:39` **llm** ✅ freepool/openrouter/nvidia/nemotron-3.5-lightning:free [fact_check] | 13115ms | 2143+2713 tok | $0.0000 | cum≈$0.521
+- `20:45:39` **llm** ✅ glm/glm-4.5-air [fact_check] | 9937ms | 2329+592 tok (686 cache-hit) | $0.0011 | cum≈$0.522
+- `20:45:39` **llm** ✅ glm/glm-4.5-air [fact_check] | 8527ms | 2246+487 tok (704 cache-hit) | $0.0010 | cum≈$0.523
+- `20:46:39` **llm** ✅ glm/glm-4.5-air [fact_check] | 7867ms | 2316+484 tok (704 cache-hit) | $0.0010 | cum≈$0.524
+- `20:46:39` **llm** ✅ glm/glm-4.5-air [fact_check] | 9810ms | 2374+592 tok (686 cache-hit) | $0.0011 | cum≈$0.525
+- `20:46:39` **llm** ✅ glm/glm-4.5-air [fact_check] | 8271ms | 2316+484 tok (704 cache-hit) | $0.0010 | cum≈$0.526
+- `20:46:39` **llm** ✅ glm/glm-4.5-air [fact_check] | 10132ms | 2374+592 tok (686 cache-hit) | $0.0011 | cum≈$0.527
+- `20:46:39` **status** ↳ freepool/gemini failed: 503 status code (no body)
+- `20:46:39` **llm** ✅ glm/glm-4.5-air [fact_check] | 7776ms | 2316+484 tok (704 cache-hit) | $0.0010 | cum≈$0.528
+- `20:46:39` **llm** ✅ glm/glm-4.5-air [fact_check] | 9688ms | 2374+592 tok (686 cache-hit) | $0.0011 | cum≈$0.529
+- `20:46:39` **llm** ✅ freepool/cohere/command-a-03-2025 [fact_check] | 31421ms | 2310+455 tok | $0.0000 | cum≈$0.529
+- `20:46:39` **llm** ✅ glm/glm-4.5-air [fact_check] | 7687ms | 2316+486 tok (704 cache-hit) | $0.0010 | cum≈$0.530
+- `20:46:39` **llm** ✅ freepool/cohere/command-a-03-2025 [fact_check] | 6873ms | 2310+484 tok | $0.0000 | cum≈$0.530
+- `20:46:39` **status** ↳ freepool/huggingface failed: 400 The requested model 'Qwen/Qwen2.5-7B-Instruct' is not supported by any provider you have enabled.
+- `20:46:39` **llm** ✅ glm/glm-4.5-air [fact_check] | 8392ms | 2374+592 tok (686 cache-hit) | $0.0011 | cum≈$0.531
+- `20:46:39` **llm** ✅ freepool/groq/openai/gpt-oss-20b [fact_check] | 1613ms | 2273+855 tok | $0.0000 | cum≈$0.531
+- `20:46:39` **llm** ✅ glm/glm-4.5-air [fact_check] | 7592ms | 2316+484 tok (704 cache-hit) | $0.0010 | cum≈$0.532
+- `20:46:39` **llm** ✅ glm/glm-4.5-air [fact_check] | 7534ms | 2316+484 tok (704 cache-hit) | $0.0010 | cum≈$0.533
+- `20:46:39` **llm** ✅ glm/glm-4.5-air [fact_check] | 9804ms | 2374+592 tok (686 cache-hit) | $0.0011 | cum≈$0.535
+- `20:46:39` **llm** ✅ glm/glm-4.5-air [fact_check] | 10796ms | 2374+592 tok (686 cache-hit) | $0.0011 | cum≈$0.536
+- `20:47:39` **llm** ✅ glm/glm-4.5-air [fact_check] | 9478ms | 2374+592 tok (686 cache-hit) | $0.0011 | cum≈$0.537
+- `20:47:39` **llm** ✅ freepool/groq/openai/gpt-oss-20b [fact_check] | 60248ms | 2273+824 tok | $0.0000 | cum≈$0.537
+- `20:47:39` **llm** ✅ freepool/cerebras/gpt-oss-120b [fact_check] | 969ms | 2269+1159 tok | $0.0000 | cum≈$0.537
+- `20:47:39` **llm** ✅ freepool/nvidia/nvidia/nemotron-3.5-lightning-30b-a3b [fact_check] | 4989ms | 2429+970 tok | $0.0000 | cum≈$0.537
+- `20:48:39` **llm** ✅ freepool/openrouter/nvidia/nemotron-3.5-lightning:free [fact_check] | 23821ms | 2119+2390 tok | $0.0000 | cum≈$0.537
+- `20:48:39` **pipeline** [Pipeline] QUESTION FORECAST (agentic): p=0.050 iqr=0.06 votes=3 families=3
+- `20:48:39` **pipeline** [Pipeline] FORECAST (agentic): 3 forecasters / unhealthy
+- `20:48:39` **pipeline** [Pipeline] SWARM unhealthy — no election: link 6: 1 valid votes (need 2); link 6: 1 model family (need 2); link 7: 1 valid votes (need 2); link 7: 1 model family (need 2)
+- `20:48:39` **llm** ✅ glm/glm-4.5-air [enrichment_reasoner] | 2904ms | 575+167 tok (65 cache-hit) | $0.0003 | cum≈$0.537
+- `20:48:39` **llm** ✅ glm/glm-4.5 [strategic_analyst] | 15038ms | 882+751 tok | $0.0022 | cum≈$0.539
+- `20:50:39` **llm** ✅ glm/glm-4.5 [editorial_arbiter] | 116379ms | 7638+6836 tok | $0.0196 | cum≈$0.559
+- `20:50:39` **llm** ✅ glm/glm-4.5-air [delphi_round1] | 2804ms | 459+137 tok (66 cache-hit) | $0.0002 | cum≈$0.559
+- `20:50:39` **llm** ✅ glm/glm-4.5-air [cross_impact] | 3808ms | 203+204 tok (66 cache-hit) | $0.0003 | cum≈$0.559
+- `20:50:39` **llm** ✅ glm/glm-4.5-air [delphi_round1] | 4489ms | 283+198 tok (65 cache-hit) | $0.0003 | cum≈$0.560
+- `20:50:39` **llm** ✅ glm/glm-4.5-air [delphi_round1] | 2916ms | 827+137 tok (66 cache-hit) | $0.0003 | cum≈$0.560
+- `20:50:39` **llm** ✅ glm/glm-4.5-air [delphi_round1] | 2917ms | 654+137 tok (66 cache-hit) | $0.0003 | cum≈$0.560
+- `20:50:39` **llm** ✅ glm/glm-4.5-air [delphi_round1] | 3087ms | 837+149 tok (66 cache-hit) | $0.0003 | cum≈$0.560
+- `20:50:39` **llm** ✅ glm/glm-4.5-air [delphi_round1] | 3427ms | 820+148 tok (66 cache-hit) | $0.0003 | cum≈$0.561
+- `20:50:39` **llm** ✅ glm/glm-4.5-air [delphi_round1] | 3478ms | 852+151 tok (66 cache-hit) | $0.0003 | cum≈$0.561
+- `20:50:39` **llm** ✅ glm/glm-4.5-air [delphi_round2] | 3666ms | 812+199 tok (78 cache-hit) | $0.0004 | cum≈$0.561
+- `20:50:39` **llm** ✅ glm/glm-4.5-air [delphi_round2] | 3828ms | 798+210 tok (66 cache-hit) | $0.0004 | cum≈$0.562
+- `20:50:39` **llm** ✅ glm/glm-4.5-air [delphi_round2] | 4117ms | 663+230 tok (75 cache-hit) | $0.0004 | cum≈$0.562
+- `20:50:39` **llm** ✅ glm/glm-4.5-air [delphi_round2] | 4139ms | 785+232 tok (66 cache-hit) | $0.0004 | cum≈$0.563
+- `20:50:39` **llm** ✅ glm/glm-4.5-air [delphi_round2] | 4197ms | 805+236 tok (79 cache-hit) | $0.0004 | cum≈$0.563
+- `20:50:39` **llm** ✅ glm/glm-4.5-air [delphi_round2] | 3803ms | 659+187 tok (79 cache-hit) | $0.0003 | cum≈$0.563
+- `20:50:39` **llm** ✅ glm/glm-4.5-air [delphi_round2] | 4008ms | 805+198 tok (82 cache-hit) | $0.0004 | cum≈$0.564
+- `20:50:39` **llm** ✅ glm/glm-4.5-air [delphi_round2] | 4168ms | 814+207 tok (80 cache-hit) | $0.0004 | cum≈$0.564
+- `20:50:39` **llm** ✅ glm/glm-4.5-air [delphi_round2] | 4263ms | 780+214 tok (83 cache-hit) | $0.0004 | cum≈$0.565
+- `20:50:39` **llm** ✅ glm/glm-4.5-air [delphi_round2] | 5031ms | 791+261 tok (83 cache-hit) | $0.0004 | cum≈$0.565
+- `20:50:39` **llm** ✅ glm/glm-4.5-air [cross_impact] | 10543ms | 442+610 tok (66 cache-hit) | $0.0008 | cum≈$0.566
+- `20:50:39` **pipeline** [Pipeline] ARBITER: confidence=72, scenarios=4
+- `20:51:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 19376ms | 822+1200 tok (63 cache-hit) | $0.0015 | cum≈$0.581
+- `20:51:39` **llm** ✅ glm/glm-4.5 [harvard_council] | 17267ms | 645+842 tok | $0.0022 | cum≈$0.584
+- `20:51:39` **llm** ✅ glm/glm-4.5 [harvard_council] | 19525ms | 645+954 tok | $0.0025 | cum≈$0.586
+- `20:51:39` **llm** ✅ glm/glm-4.5 [harvard_council] | 15765ms | 645+927 tok | $0.0024 | cum≈$0.589
+- `20:52:39` **llm** ✅ glm/glm-4.5 [harvard_council] | 14884ms | 645+862 tok | $0.0023 | cum≈$0.591
+- `20:52:39` **llm** ✅ glm/glm-4.5 [harvard_council] | 18186ms | 645+1037 tok | $0.0027 | cum≈$0.594
+- `20:52:39` **llm** ✅ glm/glm-4.5 [harvard_council] | 15540ms | 645+937 tok | $0.0024 | cum≈$0.596
+- `20:53:39` **llm** ✅ glm/glm-4.5 [harvard_council] | 17990ms | 645+1016 tok | $0.0026 | cum≈$0.599
+- `20:53:39` **llm** ✅ glm/glm-4.5 [harvard_council] | 16048ms | 645+886 tok | $0.0023 | cum≈$0.601
+- `20:53:39` **llm** ✅ glm/glm-4.5 [harvard_council] | 14114ms | 645+814 tok | $0.0022 | cum≈$0.603
+- `20:53:39` **llm** ✅ glm/glm-4.5 [harvard_council] | 20815ms | 645+1065 tok | $0.0027 | cum≈$0.606
+- `20:54:39` **llm** ✅ glm/glm-4.5 [harvard_council] | 16392ms | 645+987 tok | $0.0026 | cum≈$0.608
+- `20:54:39` **llm** ✅ glm/glm-4.5 [harvard_council] | 14965ms | 645+874 tok | $0.0023 | cum≈$0.611
+- `20:54:39` **llm** ✅ glm/glm-4.5 [elenchus] | 20818ms | 268+942 tok | $0.0022 | cum≈$0.613
+- `20:55:39` **llm** ✅ glm/glm-4.5 [analyst_brief] | 18851ms | 178+1320 tok | $0.0030 | cum≈$0.616
+- `20:55:39` **pipeline** [Pipeline] FORESIGHT: 4 scenarios, 300 MC runs, converged=true
+- `20:55:39` **pipeline** [Pipeline] CENTRAL SCENARIO: The Fog Machine; simulation disagreement=true
+- `20:55:39` **llm** ✅ glm/glm-4.5 [elenchus] | 21246ms | 4939+1113 tok | $0.0054 | cum≈$0.621
+- `20:55:39` **llm** ✅ glm/glm-4.5 [elenchus] | 40288ms | 5694+2343 tok | $0.0086 | cum≈$0.630
+- `20:55:39` **llm** ✅ glm/glm-4.5 [elenchus] | 51496ms | 9062+3505 tok | $0.0131 | cum≈$0.643
+- `20:55:39` **fatal** [DEVIL'S ADVOCATE] Verdict: REJECT | Strength: 0/100 | Fatal: 3 | Major: 8
+- `20:55:39` **da** [DEVIL'S ADVOCATE] Verdict: REJECT | Strength: 0/100 | Fatal: 3 | Major: 8
+- `20:55:39` **pipeline** [Pipeline] DEVIL'S ADVOCATE: verdict=reject, strength=0/100, fatal=3, major=8
+- `20:55:39` **fatal** [Pipeline] DEVIL'S ADVOCATE: verdict=reject, strength=0/100, fatal=3, major=8
+- `20:55:39` **da** [Pipeline] DEVIL'S ADVOCATE: verdict=reject, strength=0/100, fatal=3, major=8
+- `20:55:39` **pipeline** [Pipeline] DA TYPED ROUTING: +3 evidence-bound challenge(s) persisted as retry retrieval queries
+- `20:55:39` **pipeline** [Pipeline] DEVIL'S ADVOCATE VETO: verdict=reject, strength=0/100 — analysis is fragile, trust will be capped at 40
+- `20:55:39` **da** [Pipeline] DEVIL'S ADVOCATE VETO: verdict=reject, strength=0/100 — analysis is fragile, trust will be capped at 40
+- `20:55:39` **pipeline** [Pipeline] DA EVIDENCE MISSION: skipped — 8min left < mission estimate; gap queries persisted for the retry instead
+- `20:55:39` **status** [Pipeline] DA EVIDENCE MISSION: skipped — 8min left < mission estimate; gap queries persisted for the retry instead
+- `20:55:39` **pipeline** [Pipeline] DA PRE-RENDER REPAIR: skipped — 8min left, rewrite would overrun the deadline tail
+- `20:55:39` **status** [Pipeline] DA PRE-RENDER REPAIR: skipped — 8min left, rewrite would overrun the deadline tail
+- `20:55:39` **pipeline** [Pipeline] EDITOR: render professional HTML
+- `20:55:39` **pipeline** [Pipeline] EDITOR: position-first template (109KB)
+- `20:55:39` **pipeline** [Pipeline] DA SECTION: rendered adversarial review (fatal=3, major=8)
+- `20:55:39` **fatal** [Pipeline] DA SECTION: rendered adversarial review (fatal=3, major=8)
+- `20:55:39` **pipeline** [Pipeline] CITATION REPAIR: +0 backfilled, +0 injected, 21 numbers sanitized
+- `20:56:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 29850ms | 1240+2000 tok (64 cache-hit) | $0.0024 | cum≈$0.645
+- `20:56:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 7761ms | 715+471 tok (63 cache-hit) | $0.0007 | cum≈$0.646
+- `20:56:39` **degraded** [CIRCUIT BREAKER] searxng tripped after 2 consecutive dead calls — skipping for 30s (trip #1)
+- `20:56:39` **pipeline** [Pipeline] CLAIM GROUNDING: 50 supported, 0 partial, 0 unsupported, 26 uncited → groundedness 100%, 8 removed
+- `20:56:39` **pipeline** [Pipeline] QUANT CHARTS: 3 SVG charts injected into HTML
+- `20:56:39` **pipeline** [Pipeline] COMPUTED EXHIBIT: evidence_base injected into HTML
+- `20:57:39` **pipeline** [Pipeline] MINICHECK published: 12/12 pairs — 4 supported / 0 not / 8 unclear (0% unsupported)
+- `20:57:39` **status** [Pipeline] MINICHECK published: 12/12 pairs — 4 supported / 0 not / 8 unclear (0% unsupported)
+- `20:57:39` **pipeline** [Pipeline] SYMBOLIC VERIFY: 2 passed, 1 failed (score 67%)
+- `20:57:39` **status** [Pipeline] SYMBOLIC VERIFY: 2 passed, 1 failed (score 67%)
+- `20:57:39` **pipeline** [Pipeline] CITATION VERIFIER: NLI semantic check
+- `20:57:39` **pipeline** [Pipeline] CITATION VERIFIER: NLI integrity 100% (0 flagged)
+- `20:57:39` **pipeline** [Pipeline] CITATION VERIFIER: skipping LLM deep-check (integrity 100% >= 85% after active repair)
+- `20:57:39` **status** [Pipeline] CITATION VERIFIER: skipping LLM deep-check (integrity 100% >= 85% after active repair)
+- `20:57:39` **llm** ✅ glm/glm-4.5-air [fact_check] | 4433ms | 992+222 tok (69 cache-hit) | $0.0004 | cum≈$0.647
+- `20:57:39` **fatal** [FACT-CHECKER] Complete: 1 claims, 0 verified, 0 major, 1 fatal → integrity 0%
+- `20:57:39` **pipeline** [Pipeline] FACT-CHECKER: 1 claims, 0 verified, 0 major, 1 fatal → integrity 0%
+- `20:57:39` **fatal** [Pipeline] FACT-CHECKER: 1 claims, 0 verified, 0 major, 1 fatal → integrity 0%
+- `20:57:39` **pipeline** [Pipeline] FACT-CHECKER: 1 FATAL numerical discrepancies detected — repairing/sanitizing HTML
+- `20:57:39` **fatal** [Pipeline] FACT-CHECKER: 1 FATAL numerical discrepancies detected — repairing/sanitizing HTML
+- `20:57:39` **llm** ✅ glm/glm-4.5-air [fact_check] | 2195ms | 398+115 tok (65 cache-hit) | $0.0002 | cum≈$0.647
+- `20:57:39` **pipeline** [Pipeline] FACT-CHECKER REPAIR: 0 applied / 1 skipped [not_found:71%] → fatal 1→1, integrity 0%→0%
+- `20:57:39` **status** [Pipeline] FACT-CHECKER REPAIR: 0 applied / 1 skipped [not_found:71%] → fatal 1→1, integrity 0%→0%
+- `20:57:39` **fatal** [Pipeline] FACT-CHECKER REPAIR: 0 applied / 1 skipped [not_found:71%] → fatal 1→1, integrity 0%→0%
+- `20:57:39` **pipeline** [Pipeline] FACT-CHECKER REPAIR: sanitized 22 suspicious numbers
+- `20:57:39` **pipeline** [Pipeline] FACT-CHECKER RECHECK (post-sanitize): integrity 0% (1 fatal remain)
+- `20:57:39` **fatal** [Pipeline] FACT-CHECKER RECHECK (post-sanitize): integrity 0% (1 fatal remain)
+- `20:57:39` **pipeline** [Pipeline] ORIGINALITY: OK (score 100%, avg overlap 0.0%)
+- `20:57:39` **pipeline** [Pipeline] BIAS DETECTOR: 1 biases detected (risk 20%): selection(low)
+- `20:57:39` **pipeline** [Pipeline] EVIDENCE BANK: all citations banked, utilization 48%
+- `20:57:39` **pipeline** [Pipeline] PROCESS AUDIT: 90/100 (intent ✓, propagation ✓, noise 68%)
+- `20:57:39` **degraded** [CIRCUIT BREAKER] crossref tripped after 3× 429 — skipping for 240s (trip #7)
+- `20:57:39` **pipeline** [Pipeline] SOURCE CHECK: 13 verified, 0 retracted, 0 not found, 0 claim absent → integrity 86%
+- `20:57:39` **pipeline** [Pipeline] URL HEALTH: 9/12 alive, 1 rescued via archive, 2 UNRECOVERABLE
+- `20:57:39` **pipeline** [Pipeline] FACT-CHECK: only 1 claims found — flooring integrity at 70 (was 0)
+- `20:57:39` **pipeline** [Pipeline] TRUST: symbolic veto — 1 arithmetic/temporal errors (score 67%)
+- `20:57:39` **pipeline** [Pipeline] TRUST: devil's advocate veto — MAJOR_REVISION strength < 20
+- `20:57:39` **pipeline** [Pipeline] DETERMINISTIC TRUST: 40/100 — coverage=80%, groundedness=100%, factCheck=70%, nli=100%, sourceCheck=86%, diversity=100, avgQuality=56
+- `20:57:39` **pipeline** [Pipeline] PROVENANCE GRAPH: 103 claims → 50 valid, 0 invalid, 0 stale, 53 needs_review → validity 49%
+- `20:57:39` **pipeline** [Pipeline] METHODOLOGY NOTE: injected (37 sources, 15 providers, 12 cited)
+- `20:57:39` **gate** [ORCHESTRATOR] Step decision (not publish verdict): DEBATE — Trust score 40 below 55. Triggering adversarial debate to strengthen weak points before publication.
+- `20:57:39` **status** [ORCHESTRATOR] Step decision (not publish verdict): DEBATE — Trust score 40 below 55. Triggering adversarial debate to strengthen weak points before publication.
+- `20:57:39` **da** [ORCHESTRATOR] Step decision (not publish verdict): DEBATE — Trust score 40 below 55. Triggering adversarial debate to strengthen weak points before publication.
+- `20:57:39` **pipeline** [Pipeline] EVIDENCE IDS: 12/27 cited, 15 uncited
+- `20:57:39` **pipeline** [Pipeline] PROSE CLEANUP: fixed 277 issues (abbreviations, double spaces, merged words)
+- `20:57:39` **pipeline** [Pipeline] STYLE GATES: 2 violations (G1-G10)
+- `20:57:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 2701ms | 3391+105 tok (66 cache-hit) | $0.0008 | cum≈$0.648
+- `20:57:39` **pipeline** [Pipeline] COPY EDITOR: 1 edits applied (1 rejected) → violations 2 → 0
+- `20:57:39` **pipeline** [Pipeline] NUMERICAL GATE: 5 unsourced numbers (first 5: 80%, 000%, 5%, 0.34, 0.66)
+- `20:57:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 19702ms | 4775+1174 tok (66 cache-hit) | $0.0022 | cum≈$0.650
+- `20:57:39` **pipeline** [Pipeline] SIGNAL SWEEP: 4 resolved, 0 failed, 16 open — substance_weak=ok, substance_weak=ok, substance_weak=ok, substance_weak=ok
+- `20:57:39` **status** [Pipeline] SIGNAL SWEEP: 4 resolved, 0 failed, 16 open — substance_weak=ok, substance_weak=ok, substance_weak=ok, substance_weak=ok
+- `20:57:39` **pipeline** [Pipeline] QUALITY LOOP: skipped — deficit is veto-bound (optimistic trust 40 < 55 even at full coverage/grounding): symbolic veto — 1 arithmetic/temporal errors (score 67%); devil's advocate veto — MAJOR_REVISION strength < 20
+- `20:57:39` **status** [Pipeline] QUALITY LOOP: skipped — deficit is veto-bound (optimistic trust 40 < 55 even at full coverage/grounding): symbolic veto — 1 arithmetic/temporal errors (score 67%); devil's advocate veto — MAJOR_REVISION strength < 20
+- `20:57:39` **da** [Pipeline] QUALITY LOOP: skipped — deficit is veto-bound (optimistic trust 40 < 55 even at full coverage/grounding): symbolic veto — 1 arithmetic/temporal errors (score 67%); devil's advocate veto — MAJOR_REVISION strength < 20
+- `20:57:39` **pipeline** [Pipeline] SELF-CORRECT SUMMARY: 3 stages, 0 retries, 0 cascades, avg drift=0.996, 1/3 clean
+- `21:00:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 143286ms | 2024+8000 tok (5 cache-hit) | $0.0092 | cum≈$0.660
+- `21:00:39` **pipeline** [Pipeline] HERO IMAGE: generated and injected into HTML
+- `21:00:39` **pipeline** [Pipeline] PUBLISHER: save brief
+- `21:00:39` **status** [Pipeline] PUBLISHER: save brief
+- `21:00:39` **pipeline** [Pipeline] KNOWLEDGE GRAPH: extracting concepts
+- `21:00:39` **pipeline** [Pipeline] EPISODIC MEMORY: episode stored for brief cmwy1dl3w02l1r2pt39n7th8t
+- `21:00:39` **pipeline** [Pipeline] CAUSAL LINKS: persisted 7 links for brief cmwy1dl3w02l1r2pt39n7th8t
+- `21:00:39` **pipeline** [Pipeline] PREDICTIONS: registered 4 predictions for brief cmwy1dl3w02l1r2pt39n7th8t
+- `21:00:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 13686ms | 1711+821 tok (66 cache-hit) | $0.0012 | cum≈$0.661
+- `21:00:39` **llm** [KNOWLEDGE] ✅ Extracted 10 concepts, 5 relations, refusedEmbeddings=0, cost=$0.0012 | cum≈$0.662
+- `21:00:39` **pipeline** [Pipeline] KNOWLEDGE GRAPH: 10 concepts, 5 relations
+- `21:01:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 14822ms | 776+782 tok (70 cache-hit) | $0.0010 | cum≈$0.663
+- `21:01:39` **degraded** [CIRCUIT BREAKER] searxng tripped after 2 consecutive dead calls — skipping for 60s (trip #2)
+- `21:01:39` **pipeline** [Pipeline] CENTRAL SCENARIO: block re-asserted verbatim from persisted decision (post-render drift repaired)
+- `21:01:39` **pipeline** [Pipeline] EVAL FRESHNESS: all evaluations match current artifacts (analysis v2, html v6)
+- `21:01:39` **pipeline** [Pipeline] DONE: brief cmwy1dl3w02l1r2pt39n7th8t | run 55b4d992-d874-4f74-9a56-5a239028a006 | $0.2780 | 3696406ms | 3 orchestrator decisions
+- `21:01:39` **llm** ✅ glm/glm-4.5-air [topic_classification] | 4343ms | 665+248 tok (63 cache-hit) | $0.0004 | cum≈$1.220
+- `21:01:39` **llm** ✅ glm/glm-4.5-air [topic_classification] | 4489ms | 665+189 tok (66 cache-hit) | $0.0003 | cum≈$1.221
+- `21:01:39` **pipeline** [Pipeline] LEARNING LOOP: extracted 3 lessons from this run
+- `21:01:39` **pipeline** [SemanticEngine] Cohere embed fallback failed: runPipeline(brief) scope closed
+- `21:01:39` **status** [SemanticEngine] Cohere embed fallback failed: runPipeline(brief) scope closed
+- `21:01:39` **degraded** [SemanticEngine] No embedding backend available — returning zero vector. Semantic search will be degraded.
+- `21:01:39` **llm** ✅ glm/glm-4.5-air [topic_classification] | 5518ms | 510+241 tok (66 cache-hit) | $0.0004 | cum≈$1.221
+- `21:01:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 14466ms | 4745+807 tok (271 cache-hit) | $0.0018 | cum≈$1.223
+- `21:01:39` **llm** ✅ glm/glm-4.5-air [fact_check] | 6680ms | 3039+342 tok (66 cache-hit) | $0.0010 | cum≈$1.224
+- `21:01:39` **status** [InquiryOrchestrator] BINARY JUDGE (glm/glm vs producer ?): 0/8 — failed: falsifiable_thesis, scenario_probability, required_elements, ranked_sources, counter_evidence, conclusions_bounded, decision_ready, format_style
+- `21:01:39` **gate** [InquiryOrchestrator] Gate: decision=hold | Readiness: ok=false | trust=40 quality=55 coverage=91%
+- `21:01:39` **status** [InquiryOrchestrator] Persisting publication: status=held trust=40 quality=55 dbStatus=HELD
+- `21:01:39` **status** [InquiryOrchestrator] EXPERIENCE BANK: post-gate extraction queued (held)
+- `21:01:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2097ms | 530+84 tok (64 cache-hit) | $0.0002 | cum≈$1.224
+- `21:01:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2484ms | 925+108 tok (313 cache-hit) | $0.0003 | cum≈$1.224
+- `21:01:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 9424ms | 844+529 tok (69 cache-hit) | $0.0008 | cum≈$1.225
+- `21:01:39` **status** [GLOBAL-THINKTANKS] Feed chatham-house failed: HTTP 429 Too Many Requests
+- `21:01:39` **status** [GLOBAL-THINKTANKS] Feed ceps failed: HTTP 429 Too Many Requests
+- `21:01:39` **status** [GLOBAL-THINKTANKS] Feed transparency failed: HTTP 429 Too Many Requests
+- `21:01:39` **status** [GLOBAL-THINKTANKS] Feed rand failed: HTTP 429 Too Many Requests
+- `21:01:39` **status** [GLOBAL-THINKTANKS] Feed foe failed: HTTP 429 Too Many Requests
+- `21:01:39` **status** [GLOBAL-THINKTANKS] Feed ecfr failed: HTTP 429 Too Many Requests
+- `21:01:39` **status** [GLOBAL-THINKTANKS] Feed eu-commission failed: Request timeout after 15000ms
+- `21:01:39` **pipeline** [Pipeline] PRE-FLIGHT: ⚠️ Suspended providers: anthropic, deepseek, google, openai, kimi — will skip automatically
+- `21:01:39` **status** [Pipeline] PRE-FLIGHT: ⚠️ Suspended providers: anthropic, deepseek, google, openai, kimi — will skip automatically
+- `21:01:39` **pipeline** [Pipeline] PRE-FLIGHT: ✅ 2 providers alive: glm, freepool (suspended: anthropic, deepseek, google, openai, kimi)
+- `21:01:39` **status** [PROVIDER HEALTH] Skipping 13 unhealthy providers: crossref, openalex, core, dimensions, lens, google-books, global-think-tanks, tavily, exa, linkup, mega-thinktanks, jstor, internet-archive
+- `21:01:39` **pipeline** [Pipeline] PROVIDER HEALTH: 13 providers skipped (circuit open)
+- `21:01:39` **status** [Pipeline] PROVIDER HEALTH: 13 providers skipped (circuit open)
+- `21:01:39` **pipeline** [Pipeline] COMPLEXITY ROUTING: moderate query (score=3) — 12 providers, 30/provider
+- `21:01:39` **pipeline** [Pipeline] DURABLE EXECUTION: initialized (durable:memo:v2:bf683c4fa9f69a39cbc133eaa861f1613dcd44199e803f09400176af05c28db0)
+- `21:01:39` **pipeline** [Pipeline] SCOUT: query="How do budgetary decisions reflect competing visions of European integration and sovereignty, and what are their implications for EU strategic autonomy?" (12 providers, 30/provider)
+- `21:02:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 8170ms | 477+387 tok (66 cache-hit) | $0.0005 | cum≈$1.226
+- `21:02:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3223ms | 793+145 tok (68 cache-hit) | $0.0003 | cum≈$1.226
+- `21:02:39` **status** [SCOUT] Skipping 5 empty-result providers: crossref, exa, linkup, openalex, tavily
+- `21:02:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3238ms | 790+146 tok (68 cache-hit) | $0.0003 | cum≈$1.226
+- `21:02:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3274ms | 794+148 tok (68 cache-hit) | $0.0003 | cum≈$1.227
+- `21:02:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3272ms | 791+149 tok (68 cache-hit) | $0.0003 | cum≈$1.227
+- `21:02:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3382ms | 793+156 tok (68 cache-hit) | $0.0003 | cum≈$1.227
+- `21:02:39` **radar** [SCOUT] Per-provider results: europepmc=32
+- `21:02:39` **radar** [SCOUT] Raw results: 32 sources from 3 query variations (1 providers: europepmc)
+- `21:02:39` **degraded** [CIRCUIT BREAKER] crossref tripped after 3× 429 — skipping for 240s (trip #8)
+- `21:02:39` **radar** [SCOUT] Per-provider results: europepmc=70
+- `21:02:39` **radar** [SCOUT] Raw results: 70 sources from 3 query variations (1 providers: europepmc)
+- `21:02:39` **radar** [SCOUT] Relevance filter too strict even at 0.10 (0 results), keeping top 50/51 by score
+- `21:02:39` **radar** [SCOUT] Done in 11764ms: 70 raw â†’ 51 dedup â†’ 50 ranked â†’ 50 saved
+- `21:02:39` **pipeline** [Pipeline] DEEP PLANNER: node n2 "What are the key mechanisms through which budgetary decision" → 50 sources
+- `21:02:39` **radar** [SCOUT] Relevance filter too strict even at 0.10 (0 results), keeping top 29/29 by score
+- `21:02:39` **radar** [SCOUT] Done in 12794ms: 32 raw â†’ 29 dedup â†’ 29 ranked â†’ 29 saved
+- `21:02:39` **pipeline** [Pipeline] DEEP PLANNER: node n3 "How do member states' budgetary preferences correlate with t" → 29 sources
+- `21:02:39` **radar** [SCOUT] Per-provider results: europepmc=14
+- `21:02:39` **radar** [SCOUT] Per-provider results: _unknown=0, europepmc=45
+- `21:02:39` **radar** [SCOUT] Raw results: 14 sources from 3 query variations (1 providers: europepmc)
+- `21:02:39` **radar** [SCOUT] Raw results: 48 sources from 3 query variations (2 providers: europepmc, isidore)
+- `21:02:39` **radar** [SCOUT] Relevance filter too strict even at 0.10 (0 results), keeping top 12/12 by score
+- `21:02:39` **radar** [SCOUT] Done in 16343ms: 14 raw â†’ 12 dedup â†’ 12 ranked â†’ 12 saved
+- `21:02:39` **pipeline** [Pipeline] DEEP PLANNER: node n4 "What counter-arguments exist regarding the relationship betw" → 12 sources
+- `21:02:39` **radar** [SCOUT] Relevance filter too strict even at 0.10 (0 results), keeping top 47/47 by score
+- `21:02:39` **radar** [SCOUT] Done in 19354ms: 48 raw â†’ 47 dedup â†’ 47 ranked â†’ 47 saved
+- `21:02:39` **pipeline** [Pipeline] DEEP PLANNER: node n1 "How have budgetary allocations in the EU evolved historicall" → 47 sources
+- `21:02:39` **status** [REALTIME] GDELT conflict failed: Request timeout after 10000ms
+- `21:02:39` **degraded** [CIRCUIT BREAKER] semanticscholar tripped after 1× 429 — skipping for 960s (trip #5)
+- `21:02:39` **radar** [SCOUT] Raw results: 100 sources from 3 query variations (4 providers: europepmc, zbmath, arxiv, dblp)
+- `21:02:39` **radar** [SCOUT] Relevance filter too strict even at 0.10 (0 results), keeping top 50/92 by score
+- `21:02:39` **radar** [SCOUT] Done in 47325ms: 100 raw â†’ 92 dedup â†’ 50 ranked â†’ 50 saved
+- `21:02:39` **pipeline** [Pipeline] DEEP PLANNER: node n5 "What quantitative bounds can be established for the impact o" → 50 sources
+- `21:03:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 18518ms | 2170+949 tok (5 cache-hit) | $0.0015 | cum≈$1.229
+- `21:03:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2918ms | 783+112 tok (91 cache-hit) | $0.0003 | cum≈$1.229
+- `21:03:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 4294ms | 245+197 tok (68 cache-hit) | $0.0003 | cum≈$1.229
+- `21:03:39` **status** [SCOUT] Skipping 4 empty-result providers: crossref, openalex, semanticscholar, eur-lex
+- `21:03:39` **status** [FEED-ENGINE] Host circuit open: ec.europa.eu (≥2 fails) — skipping for 15min
+- `21:03:39` **status** ↳ freepool/gemini failed: Request was aborted.
+- `21:03:39` **llm** ✅ freepool/cohere/command-a-03-2025 [meta_analysis] | 94724ms | 1013+244 tok | $0.0000 | cum≈$1.229
+- `21:03:39` **pipeline** [Pipeline] CONTEXT PRIMER: 0 concepts, 0 prior briefs, 1 trend breaks
+- `21:04:39` **radar** [SCOUT] Per-provider results: _unknown=0, ons-uk=48, openalex=48
+- `21:04:39` **status** [HTTP] Retry 1/2 after 1205ms: fetch failed
+- `21:04:39` **status** [HTTP] Retry 2/2 after 2231ms: fetch failed
+- `21:04:39` **radar** [SCOUT] Raw results: 124 sources from 12 query variations (5 providers: ons-uk, openalex, sociology, isidore, eric)
+- `21:04:39` **radar** [SCOUT] Relevance filter too strict even at 0.10 (2 results), keeping top 50/75 by score
+- `21:04:39` **status** [Unpaywall] Lookup failed for 10.13025/23030: HTTP 404 Not Found
+- `21:04:39` **status** [Unpaywall] Lookup failed for 10.18449/2019rp04: HTTP 404 Not Found
+- `21:04:39` **radar** [SCOUT] Done in 63685ms: 124 raw â†’ 75 dedup â†’ 50 ranked â†’ 50 saved
+- `21:04:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2982ms | 782+146 tok (92 cache-hit) | $0.0003 | cum≈$1.230
+- `21:04:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 4153ms | 244+191 tok (82 cache-hit) | $0.0003 | cum≈$1.230
+- `21:04:39` **status** [SCOUT] Skipping 6 empty-result providers: crossref, openalex, semanticscholar, mega-eu, eur-lex, data-europa
+- `21:04:39` **radar** [SCOUT] Per-provider results: europepmc=36, ecb=26, treasury-fiscal=20, eurostat=20, frankfurter=5, swp=8, _unknown=0
+- `21:04:39` **radar** [SCOUT] Raw results: 115 sources from 10 query variations (6 providers: europepmc, ecb, treasury-fiscal, eurostat, frankfurter, swp)
+- `21:04:39` **radar** [SCOUT] Done in 25388ms: 115 raw â†’ 78 dedup â†’ 3 ranked â†’ 3 saved
+- `21:04:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3943ms | 784+138 tok (92 cache-hit) | $0.0003 | cum≈$1.230
+- `21:04:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 4034ms | 246+192 tok (82 cache-hit) | $0.0003 | cum≈$1.230
+- `21:04:39` **radar** [SCOUT] Per-provider results: europepmc=27, ecb=18, _unknown=0, treasury-fiscal=16, eurostat=20, frankfurter=6, swp=8
+- `21:04:39` **radar** [SCOUT] Raw results: 95 sources from 11 query variations (6 providers: europepmc, ecb, swp, treasury-fiscal, eurostat, frankfurter)
+- `21:05:39` **radar** [SCOUT] Done in 25987ms: 95 raw â†’ 66 dedup â†’ 3 ranked â†’ 3 saved
+- `21:05:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2577ms | 785+146 tok (94 cache-hit) | $0.0003 | cum≈$1.231
+- `21:05:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 4601ms | 247+236 tok (84 cache-hit) | $0.0003 | cum≈$1.231
+- `21:05:39` **radar** [SCOUT] Per-provider results: europepmc=33, ecb=16, eurostat=22, frankfurter=8, ons-uk=48, swp=13, _unknown=0
+- `21:05:39` **status** [HTTP] Retry 1/2 after 1226ms: fetch failed
+- `21:05:39` **status** [HTTP] Retry 2/2 after 1567ms: fetch failed
+- `21:05:39` **radar** [SCOUT] Raw results: 169 sources from 12 query variations (9 providers: europepmc, ecb, swp, eurostat, frankfurter, ons-uk, sociology, isidore, eric)
+- `21:05:39` **radar** [SCOUT] Relevance filter too strict even at 0.10 (0 results), keeping top 50/109 by score
+- `21:05:39` **status** [Unpaywall] Lookup failed for 10.71548/17780: HTTP 404 Not Found
+- `21:05:39` **radar** [SCOUT] Done in 32299ms: 169 raw â†’ 109 dedup â†’ 50 ranked â†’ 50 saved
+- `21:05:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2712ms | 783+131 tok (94 cache-hit) | $0.0003 | cum≈$1.231
+- `21:05:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 4993ms | 245+219 tok (84 cache-hit) | $0.0003 | cum≈$1.232
+- `21:05:39` **status** [SCOUT] Skipping 6 empty-result providers: openalex, semanticscholar, mega-eu, eur-lex, data-europa, crossref
+- `21:05:39` **radar** [SCOUT] Per-provider results: arxiv=180, _unknown=0, mit-dspace=180, ons-uk=96, openalex=180, inria=21
+- `21:05:39` **status** [HTTP] Retry 1/2 after 1088ms: fetch failed
+- `21:05:39` **status** [HTTP] Retry 2/2 after 2353ms: fetch failed
+- `21:05:39` **radar** [SCOUT] Raw results: 681 sources from 12 query variations (8 providers: arxiv, mit-dspace, ons-uk, openalex, inria, sociology, isidore, eric)
+- `21:06:39` **radar** [SCOUT] Relevance filter too strict even at 0.10 (1 results), keeping top 50/525 by score
+- `21:06:39` **radar** [SCOUT] Done in 78956ms: 681 raw â†’ 525 dedup â†’ 50 ranked â†’ 50 saved
+- `21:06:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3202ms | 785+143 tok (94 cache-hit) | $0.0003 | cum≈$1.232
+- `21:07:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 4798ms | 247+205 tok (84 cache-hit) | $0.0003 | cum≈$1.232
+- `21:07:39` **status** [SCOUT] Skipping 5 empty-result providers: openalex, mega-eu, eur-lex, data-europa, crossref
+- `21:07:39` **status** [HTTP] Retry 1/2 after 1231ms: fetch failed
+- `21:07:39` **status** [HTTP] Retry 2/2 after 1516ms: fetch failed
+- `21:07:39` **radar** [SCOUT] Per-provider results: _unknown=0, imf=60
+- `21:07:39` **status** [HTTP] Retry 1/2 after 772ms: fetch failed
+- `21:07:39` **status** [HTTP] Retry 2/2 after 2498ms: fetch failed
+- `21:07:39` **radar** [SCOUT] Raw results: 66 sources from 12 query variations (2 providers: imf, isidore)
+- `21:07:39` **radar** [SCOUT] Relevance filter too strict even at 0.10 (0 results), keeping top 11/11 by score
+- `21:07:39` **radar** [SCOUT] Done in 14244ms: 66 raw â†’ 11 dedup â†’ 11 ranked â†’ 11 saved
+- `21:07:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2718ms | 785+123 tok (92 cache-hit) | $0.0003 | cum≈$1.233
+- `21:07:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 5088ms | 247+205 tok (82 cache-hit) | $0.0003 | cum≈$1.233
+- `21:07:39` **status** [SCOUT] Skipping 8 empty-result providers: base, crossref, jstor, openalex, mega-eu, eur-lex, sec-edgar, data-europa
+- `21:07:39` **radar** [SCOUT] Per-provider results: ons-uk=96
+- `21:07:39` **radar** [SCOUT] Raw results: 96 sources from 12 query variations (1 providers: ons-uk)
+- `21:07:39` **radar** [SCOUT] Done in 8259ms: 96 raw â†’ 8 dedup â†’ 8 ranked â†’ 8 saved
+- `21:07:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2862ms | 784+136 tok (91 cache-hit) | $0.0003 | cum≈$1.233
+- `21:07:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 4919ms | 246+203 tok (82 cache-hit) | $0.0003 | cum≈$1.233
+- `21:07:39` **status** [SCOUT] Skipping 5 empty-result providers: crossref, internet-archive, jstor, openalex, history
+- `21:07:39` **radar** [SCOUT] Per-provider results: _unknown=0, imf=24
+- `21:07:39` **radar** [SCOUT] Raw results: 27 sources from 12 query variations (2 providers: imf, isidore)
+- `21:07:39` **radar** [SCOUT] Done in 8638ms: 27 raw â†’ 5 dedup â†’ 5 ranked â†’ 5 saved
+- `21:07:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3170ms | 788+147 tok (92 cache-hit) | $0.0003 | cum≈$1.234
+- `21:07:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 6446ms | 250+277 tok (82 cache-hit) | $0.0004 | cum≈$1.234
+- `21:07:39` **status** [SCOUT] Skipping 8 empty-result providers: crossref, internet-archive, jstor, openalex, mega-eu, eur-lex, data-europa, history
+- `21:08:39` **radar** [SCOUT] Per-provider results: europepmc=5, _unknown=0, ecb-press=5, frankfurter=9, fed=5
+- `21:08:39` **status** [HTTP] Retry 1/2 after 1138ms: fetch failed
+- `21:08:39` **status** [HTTP] Retry 2/2 after 1809ms: fetch failed
+- `21:08:39` **radar** [SCOUT] Raw results: 24 sources from 12 query variations (4 providers: europepmc, ecb-press, frankfurter, fed)
+- `21:08:39` **radar** [SCOUT] Done in 63620ms: 24 raw â†’ 10 dedup â†’ 10 ranked â†’ 10 saved
+- `21:08:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2899ms | 787+149 tok (92 cache-hit) | $0.0003 | cum≈$1.234
+- `21:08:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 4858ms | 249+283 tok (82 cache-hit) | $0.0004 | cum≈$1.235
+- `21:08:39` **status** [SCOUT] Skipping 9 empty-result providers: crossref, internet-archive, jstor, openalex, mega-eu, eur-lex, data-europa, europepmc, eurostat
+- `21:10:39` **radar** [SCOUT] mega-central-banks: call deadline 90s exceeded — dropping results
+- `21:10:39` **radar** [SCOUT] worldbank: call deadline 90s exceeded — dropping results
+- `21:10:39` **radar** [SCOUT] mega-un: call deadline 90s exceeded — dropping results
+- `21:10:39` **radar** [SCOUT] Per-provider results: _unknown=0, fed=4
+- `21:10:39` **radar** [SCOUT] Raw results: 14 sources from 12 query variations (2 providers: fed, isidore)
+- `21:10:39` **radar** [SCOUT] Relevance filter too strict even at 0.10 (0 results), keeping top 13/13 by score
+- `21:10:39` **radar** [SCOUT] Done in 132379ms: 14 raw â†’ 13 dedup â†’ 13 ranked â†’ 13 saved
+- `21:10:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2862ms | 785+137 tok (92 cache-hit) | $0.0003 | cum≈$1.235
+- `21:10:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 5406ms | 247+265 tok (82 cache-hit) | $0.0003 | cum≈$1.235
+- `21:11:39` **degraded** [CIRCUIT BREAKER] gdelt-news tripped after 4 consecutive dead calls — skipping for 360s (trip #4)
+- `21:11:39` **degraded** [SCOUT/GDELT] Error: Circuit breaker tripped for gdelt-news (341s remaining)
+- `21:11:39` **degraded** [SCOUT/GDELT] Error: Circuit breaker tripped for gdelt-news (337s remaining)
+- `21:11:39` **degraded** [SCOUT/GDELT] Error: Circuit breaker tripped for gdelt-news (333s remaining)
+- `21:12:39` **degraded** [SCOUT/GDELT] Error: Circuit breaker tripped for gdelt-news (321s remaining)
+- `21:12:39` **radar** [SCOUT] Per-provider results: _unknown=0, emergingeurope=6, frankfurter=12, ons-uk=24, bbc=4, guardian=3
+- `21:12:39` **radar** [SCOUT] Raw results: 49 sources from 12 query variations (5 providers: emergingeurope, frankfurter, ons-uk, bbc, guardian)
+- `21:12:39` **radar** [SCOUT] Done in 98463ms: 49 raw â†’ 11 dedup â†’ 11 ranked â†’ 11 saved
+- `21:12:39` **radar** [IntelligentScout] Done: 150 sources, diversity=87%, consensus=18%, scenarioRichness=80%, 571657ms
+- `21:12:39` **pipeline** [Pipeline] INTELLIGENT SCOUT: +147 eclectic sources (150 from 9 lenses, diversity=87%, scenarioRichness=80%)
+- `21:12:39` **pipeline** [Pipeline] INTELLIGENT SCOUT lenses: core(73), contrarian(41), cross_domain(4), historical(24), weak_signal(0), scenario(8), provocative(0), ontological(0), dissident(0)
+- `21:12:39` **pipeline** [Pipeline] CITATION GRAPH: +0 sources (0 hubs, 0 bridges, 0 clusters)
+- `21:12:39` **pipeline** [Pipeline] INDEX: 316 sources
+- `21:13:39` **status** ORCID lookup failed for 0009-0001-1856-9786: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0001-9557-6704: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0003-3717-7590: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0001-8910-6060: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0001-5329-4426: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-4276-1807: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0009-0004-7556-5572: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0009-0004-3167-5497: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0001-8815-4693: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0003-3474-0579: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-8552-1272: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-4423-5202: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0009-0000-2724-1398: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0003-0347-6672: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0003-4811-6224: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0003-0471-0053: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0003-0465-4709: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0003-0092-8717: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0009-0009-2424-0483: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0001-8417-7783: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-9347-8884: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0001-7187-2234: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-1297-2056: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-5827-996X: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-7743-2587: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0001-6636-3793: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0003-0160-3674: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-7217-4961: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0003-0785-3340: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0001-9647-4785: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0009-0008-2384-6611: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0003-1996-8786: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0009-0004-4563-2420: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-8814-1021: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0001-7977-3601: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-2375-2593: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0001-5604-9389: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0001-9518-3089: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-3882-0587: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-6142-5622: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0009-0003-8708-1260: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-3416-2230: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0001-7798-4560: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0009-0008-3008-300X: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0003-4385-5773: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0009-0008-7203-461X: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-1494-4518: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0009-0000-0421-184X: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0009-0002-9205-1552: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-7192-5751: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-4974-4508: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0003-0712-8499: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-5783-3586: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0003-1085-9495: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0001-8039-5070: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-0333-9670: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-0214-5305: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0001-7983-3360: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-7057-3264: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0001-5609-3806: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0009-0008-1013-7306: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0003-0435-9064: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0009-0009-5956-885X: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0003-1762-316X: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-3925-8688: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0009-0004-1480-4488: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-0849-1727: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0001-5606-9507: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-8335-6402: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0001-7722-7383: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0001-8667-3561: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-7385-9989: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0009-0002-3741-6918: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-6625-2273: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0009-0006-3595-6303: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-8312-8178: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-1425-9705: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0001-7256-6204: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-8732-8193: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0003-1711-0284: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0003-4633-4420: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0001-5570-8581: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0009-0007-3216-2337: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0003-1219-0465: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-2669-4691: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-7167-9642: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-3696-873X: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-3690-666X: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0001-9859-9127: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-6504-6400: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-7173-7363: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0001-7408-5332: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-3161-2240: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-5998-3000: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-8752-6464: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0001-7299-6554: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0001-7491-9093: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0003-3669-9397: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0009-0008-2336-1040: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0009-0002-2262-2655: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-5142-0385: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0001-6987-6041: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0003-1760-2342: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0009-0007-5575-9865: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0001-7906-0038: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0003-1828-0920: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-1997-1689: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-0709-6119: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0001-9854-0790: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0003-3323-2492: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-0668-607X: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-4567-1524: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-1315-9200: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0009-0004-7808-2701: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0003-1947-046X: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-2975-1858: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0003-1027-944X: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-4658-1483: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0003-2413-7047: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-4051-8117: HttpError: Budget lane 'scout' exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-4199-4959: HttpError: Request budget exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-5388-8459: HttpError: Request budget exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0001-6256-5013: HttpError: Request budget exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0009-0002-7691-9526: HttpError: Request budget exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-3330-9392: HttpError: Request budget exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0003-3989-1157: HttpError: Request budget exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0003-3858-1915: HttpError: Request budget exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-2372-1885: HttpError: Request budget exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-4399-2711: HttpError: Request budget exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0009-0008-1830-7285: HttpError: Request budget exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-7568-9119: HttpError: Request budget exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0009-0003-9461-9831: HttpError: Request budget exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0001-9567-139X: HttpError: Request budget exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-0143-5255: HttpError: Request budget exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-1654-6804: HttpError: Request budget exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0003-4851-3983: HttpError: Request budget exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-0868-262X: HttpError: Request budget exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0002-2285-6593: HttpError: Request budget exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0001-5646-0207: HttpError: Request budget exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0009-0006-3453-5347: HttpError: Request budget exhausted for upstream orcid
+- `21:13:39` **status** ORCID lookup failed for 0000-0001-8446-1709: HttpError: Request budget exhausted for upstream orcid
+- `21:13:39` **pipeline** [Pipeline] EMBED: 275 new, 41 cached
+- `21:13:39` **pipeline** [Pipeline] RANK: scoring candidates from 316 SCOUT sources (ceiling 100)
+- `21:13:39` **status** [ENHANCED RANK] T8: 15 load-bearing sources (full-text), 24 abstract, 9 skip
+- `21:13:39` **pipeline** [Pipeline] PERTINENCE SELECTION: kept 48/48 candidates (bar=55.0, top=100.0, cutoff score=100.0)
+- `21:13:39` **pipeline** [Pipeline] SOURCE QUALITY: re-ranked 48 by composite (relevance 60% + quality 40%)
+- `21:13:39` **pipeline** [Pipeline] QUALITY TAIL TRIM: dropped 9 sources <40/100 quality — 39 remain (avg improves)
+- `21:13:39` **llm** ✅ glm/glm-4.5-air [topic_classification] | 4727ms | 2110+287 tok (65 cache-hit) | $0.0007 | cum≈$1.236
+- `21:13:39` **pipeline** [Pipeline] RELEVANCE SCREEN: dropped 15 off-topic + 10 tangential sources — 14 proceed to reader
+- `21:13:39` **llm** ✅ glm/glm-4.5-air [enrichment_reasoner] | 6571ms | 1181+368 tok (64 cache-hit) | $0.0006 | cum≈$1.237
+- `21:13:39` **pipeline** [Pipeline] ENRICHMENT: 4 gaps identified — searching with 4 targeted queries
+- `21:13:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2609ms | 785+113 tok (92 cache-hit) | $0.0003 | cum≈$1.237
+- `21:13:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3096ms | 787+138 tok (92 cache-hit) | $0.0003 | cum≈$1.237
+- `21:13:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3243ms | 788+149 tok (92 cache-hit) | $0.0003 | cum≈$1.238
+- `21:13:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 4351ms | 247+196 tok (82 cache-hit) | $0.0003 | cum≈$1.238
+- `21:13:39` **status** [SCOUT] Skipping 2 blacklisted providers: gdelt-news, mega-press
+- `21:13:39` **status** [SCOUT] Skipping 7 empty-result providers: mega-eu, eur-lex, data-europa, europepmc, eurostat, openalex, crossref
+- `21:13:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 4148ms | 250+194 tok (82 cache-hit) | $0.0003 | cum≈$1.238
+- `21:13:39` **status** [SCOUT] Skipping 7 empty-result providers: mega-eu, mega-thinktanks, treasury-fiscal, eur-lex, data-europa, openalex, crossref
+- `21:13:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 4859ms | 249+233 tok (82 cache-hit) | $0.0003 | cum≈$1.239
+- `21:13:39` **status** [SCOUT] Skipping 5 empty-result providers: mega-eu, eur-lex, data-europa, openalex, crossref
+- `21:15:39` **radar** [SCOUT] mega-civil-society: call deadline 90s exceeded — dropping results
+- `21:15:39` **radar** [SCOUT] hathitrust: call deadline 90s exceeded — dropping results
+- `21:15:39` **radar** [SCOUT] open-library: call deadline 90s exceeded — dropping results
+- `21:15:39` **radar** [SCOUT] Per-provider results: cnrs=60, bellingcat=2, who=9, nasa=15, _unknown=0, frankfurter=6, ons-uk=24, open-library=5, newsapi=10, openalex=20
+- `21:15:39` **radar** [SCOUT] Raw results: 151 sources from 12 query variations (25 providers: cnrs, imf, oecd, swp, nber, worldbank, ecb, who-direct, inrae, eth-zurich, insee, un, nih, cea, undp, bellingcat, who, nasa, op
+- `21:15:39` **radar** [SCOUT] jina-search: call deadline 90s exceeded — dropping results
+- `21:15:39` **radar** [SCOUT] Per-provider results: _unknown=0
+- `21:15:39` **radar** [SCOUT] Raw results: 0 sources from 11 query variations (0 providers: )
+- `21:15:39` **radar** [SCOUT] Done in 97488ms: 0 raw â†’ 0 dedup â†’ 0 ranked â†’ 0 saved
+- `21:15:39` **radar** [SCOUT] Raw results: 0 sources from 12 query variations (0 providers: )
+- `21:15:39` **radar** [SCOUT] Done in 98095ms: 0 raw â†’ 0 dedup â†’ 0 ranked â†’ 0 saved
+- `21:16:39` **status** [GLOBAL-SCIENCE] Feed anthropic failed: HTTP 429 Too Many Requests
+- `21:16:39` **status** [GLOBAL-INTELLIGENCE] Feed frontex failed: HTTP 429 Too Many Requests
+- `21:16:39` **status** [GLOBAL-INTELLIGENCE] Feed iiss failed: HTTP 429 Too Many Requests
+- `21:16:39` **status** [GLOBAL-INTELLIGENCE] Feed opcw failed: HTTP 429 Too Many Requests
+- `21:16:39` **status** [GLOBAL-ORGS] Feed wto failed: HTTP 429 Too Many Requests
+- `21:16:39` **status** [GLOBAL-ORGS] Feed unep failed: HTTP 429 Too Many Requests
+- `21:16:39` **status** [GLOBAL-ORGS] Feed itu failed: HTTP 429 Too Many Requests
+- `21:21:39` **status** [GLOBAL-ORGS] Feed un failed: HTTP 429 Too Many Requests
+- `21:21:39` **status** [GLOBAL-ORGS] Feed undp failed: HTTP 429 Too Many Requests
+- `21:21:39` **status** [GLOBAL-ORGS] Feed unctad failed: HTTP 429 Too Many Requests
+- `21:21:39` **status** [GLOBAL-INTELLIGENCE] Feed sipri failed: HTTP 429 Too Many Requests
+- `21:21:39` **status** [GLOBAL-INTELLIGENCE] Feed icc failed: HTTP 429 Too Many Requests
+- `21:26:39` **status** [JINA-SEARCH] failed: HTTP 402 Payment Required
+- `21:26:39` **status** [JINA-SEARCH] failed: Circuit breaker tripped for jina-search (86400s remaining)
+- `21:26:39` **degraded** [JINA-SEARCH] failed: Circuit breaker tripped for jina-search (86400s remaining)
+- `21:26:39` **status** [JINA-SEARCH] failed: Circuit breaker tripped for jina-search (86399s remaining)
+- `21:26:39` **degraded** [JINA-SEARCH] failed: Circuit breaker tripped for jina-search (86399s remaining)
+- `21:26:39` **status** [JINA-SEARCH] failed: Circuit breaker tripped for jina-search (86398s remaining)
+- `21:26:39` **degraded** [JINA-SEARCH] failed: Circuit breaker tripped for jina-search (86398s remaining)
+- `21:26:39` **degraded** [CIRCUIT BREAKER] openalex tripped after 3× 429 — skipping for 10s (trip #1)
+- `21:26:39` **status** [OpenAlex] Search failed: Circuit breaker tripped for openalex
+- `21:26:39` **degraded** [OpenAlex] Search failed: Circuit breaker tripped for openalex
+- `21:26:39` **status** [OpenAlex] Search failed: Circuit breaker tripped for openalex (10s remaining)
+- `21:26:39` **degraded** [OpenAlex] Search failed: Circuit breaker tripped for openalex (10s remaining)
+- `21:26:39` **status** [OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+- `21:26:39` **degraded** [OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+- `21:26:39` **degraded** [CIRCUIT BREAKER] crossref tripped after 3× 429 — skipping for 240s (trip #9)
+- `21:26:39` **degraded** [SCOUT/HathiTrust] Error: Circuit breaker tripped for crossref
+- `21:26:39` **degraded** [SCOUT/HathiTrust] Error: Circuit breaker tripped for crossref (240s remaining)
+- `21:26:39` **radar** [SCOUT] Relevance filter too strict even at 0.10 (0 results), keeping top 50/107 by score
+- `21:26:39` **status** [SCOUT/HathiTrust] Error: Circuit breaker tripped for crossref — skipping queued call
+- `21:26:39` **degraded** [SCOUT/HathiTrust] Error: Circuit breaker tripped for crossref — skipping queued call
+- `21:26:39` **radar** [SCOUT] Done in 747591ms: 151 raw â†’ 107 dedup â†’ 50 ranked â†’ 50 saved
+- `21:26:39` **pipeline** [Pipeline] ENRICHMENT: +50 new sources from targeted queries — re-ranking
+- `21:26:39` **status** [ENHANCED RANK] T8: 22 load-bearing sources (full-text), 35 abstract, 14 skip
+- `21:26:39` **llm** ✅ glm/glm-4.5-air [topic_classification] | 3640ms | 1741+140 tok (65 cache-hit) | $0.0005 | cum≈$1.239
+- `21:26:39` **pipeline** [Pipeline] LATE RELEVANCE SCREEN: dropped 21/33 low-relevance late additions — 26 proceed to reader
+- `21:26:39` **llm** ✅ glm/glm-4.5-air [topic_classification] | 5983ms | 5242+271 tok (4 cache-hit) | $0.0013 | cum≈$1.240
+- `21:26:39` **pipeline** [Pipeline] FOUNDATIONAL INJECTION: prepared 3 seminal works from political-economy KB (will inject after rank)
+- `21:26:39` **pipeline** [Pipeline] FOUNDATIONAL INJECTION: +3 seminal works injected into topSources (now 29 total)
+- `21:26:39` **pipeline** [Pipeline] DOMAIN: political-economy (confidence: 0.9, cross=true)
+- `21:26:39` **pipeline** [Pipeline] COLLISION: Budgetary Sovereignty × Strategic Autonomy × Implementation Capacity
+- `21:26:39` **pipeline** [Pipeline] COMPLEXITY GATE: meta-analysis skipped (domain "political-economy" not quantitative-study oriented)
+- `21:26:39` **status** [Pipeline] COMPLEXITY GATE: meta-analysis skipped (domain "political-economy" not quantitative-study oriented)
+- `21:26:39` **llm** ✅ glm/glm-4.5-air [casting] | 3744ms | 416+187 tok (63 cache-hit) | $0.0003 | cum≈$1.241
+- `21:26:39` **pipeline** [Pipeline] CASTING: 2 lenses — Budgetary Sovereignty × Strategic Autonomy × Implementation Capacity collision thesis
+- `21:26:39` **pipeline** [Pipeline] LAS GATE: pool=29, providers=14, debate=true, meta=false, DA=true, foresight_eligible=true
+- `21:26:39` **pipeline** [Pipeline] BRANCH COVERAGE: 0 strong, 3 weak, 2 unsupported
+- `21:26:39` **pipeline** [Pipeline] READER V3: deep extraction from 29 sources (domain: political-economy)
+- `21:26:39` **status** [AGENT MEMORY] Rejected lesson (relevance 0.13 < 0.25): "The agent failed to provide sufficient citations for its claims, particularly re..."
+- `21:26:39` **status** [AGENT MEMORY] Rejected lesson (relevance 0.08 < 0.25): "The agent failed to extract sufficient citations from the source material, resul..."
+- `21:26:39` **status** [AGENT MEMORY] Rejected lesson (relevance 0.08 < 0.25): "The agent failed to extract sufficient evidence on structured consensus methods ..."
+- `21:26:39` **quant** [QUANT] No relevant primary-data fetchers for this query
+- `21:26:39` **status** [OpenAlex] Search failed: HTTP 429 Too Many Requests
+- `21:26:39` **llm** ✅ glm/glm-4.5-air [topic_classification] | 17432ms | 444+702 tok (66 cache-hit) | $0.0009 | cum≈$1.242
+- `21:26:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 14443ms | 1453+961 tok (4 cache-hit) | $0.0013 | cum≈$1.243
+- `21:26:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 17067ms | 1333+948 tok (85 cache-hit) | $0.0013 | cum≈$1.244
+- `21:26:39` **status** [Reader V3] PDF extraction failed: Request failed with status code 404
+- `21:26:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 26746ms | 2984+1513 tok (64 cache-hit) | $0.0023 | cum≈$1.246
+- `21:27:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 20388ms | 4075+1427 tok (5 cache-hit) | $0.0024 | cum≈$1.249
+- `21:27:39` **status** [Reader V3] PDF extraction failed: Invalid PDF structure.
+- `21:27:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 12248ms | 1322+739 tok (86 cache-hit) | $0.0011 | cum≈$1.250
+- `21:27:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 14591ms | 1363+867 tok (85 cache-hit) | $0.0012 | cum≈$1.251
+- `21:27:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 25167ms | 3517+1461 tok (5 cache-hit) | $0.0023 | cum≈$1.253
+- `21:27:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 9949ms | 1329+687 tok (85 cache-hit) | $0.0010 | cum≈$1.254
+- `21:27:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 24222ms | 3715+1534 tok (85 cache-hit) | $0.0024 | cum≈$1.257
+- `21:28:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 29592ms | 4054+1906 tok (86 cache-hit) | $0.0029 | cum≈$1.260
+- `21:28:39` **status** [Reader V3] PDF extraction failed: Request failed with status code 405
+- `21:28:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 19698ms | 2816+1196 tok (69 cache-hit) | $0.0019 | cum≈$1.262
+- `21:28:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 19035ms | 1686+1158 tok (85 cache-hit) | $0.0016 | cum≈$1.263
+- `21:28:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 11520ms | 1371+700 tok (85 cache-hit) | $0.0010 | cum≈$1.264
+- `21:28:39` **status** ❌ glm failed for task "reader_v3": 400 System detected potentially unsafe or sensitive content in input or generation. Please avoid using prompts that may generate sensitive content. Thank you for your cooperation.
+- `21:28:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 26370ms | 3657+1612 tok (85 cache-hit) | $0.0025 | cum≈$1.267
+- `21:28:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 13000ms | 1320+796 tok (86 cache-hit) | $0.0011 | cum≈$1.268
+- `21:28:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 14483ms | 2038+870 tok (85 cache-hit) | $0.0014 | cum≈$1.269
+- `21:28:39` **status** [Reader V3] PDF extraction attempt 1 failed (Request failed with status code 500), retrying in 2098ms...
+- `21:28:39` **status** [Reader V3] PDF extraction attempt 2 failed (Request failed with status code 500), retrying in 4218ms...
+- `21:28:39` **status** [Reader V3] PDF extraction failed: Request failed with status code 500 (after 3 attempts)
+- `21:28:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 17036ms | 2614+977 tok (85 cache-hit) | $0.0016 | cum≈$1.271
+- `21:28:39` **llm** ✅ freepool/cohere/command-a-03-2025 [reader_v3] | 30835ms | 3860+1425 tok | $0.0000 | cum≈$1.271
+- `21:28:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 21166ms | 3245+1144 tok (86 cache-hit) | $0.0019 | cum≈$1.273
+- `21:29:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 12216ms | 1353+858 tok (85 cache-hit) | $0.0012 | cum≈$1.274
+- `21:29:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 3331ms | 1466+169 tok (85 cache-hit) | $0.0005 | cum≈$1.274
+- `21:29:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 11491ms | 1300+631 tok (86 cache-hit) | $0.0010 | cum≈$1.275
+- `21:29:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 14694ms | 1305+837 tok (85 cache-hit) | $0.0012 | cum≈$1.277
+- `21:29:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 18578ms | 2770+1037 tok (85 cache-hit) | $0.0017 | cum≈$1.278
+- `21:29:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 13343ms | 1378+744 tok (85 cache-hit) | $0.0011 | cum≈$1.279
+- `21:30:39` **pipeline** [Pipeline] MINICHECK shadow: 20 pairs — 16 supported / 0 not / 4 unclear (76419ms)
+- `21:30:39` **pipeline** [Pipeline] EVIDENCE BANK: 95 entries across 24 sources
+- `21:30:39` **gate** [ORCHESTRATOR] Step decision (not publish verdict): PROCEED — 25/26 sources have abstracts (96%). Sufficient for analysis.
+- `21:30:39` **status** [ORCHESTRATOR] Step decision (not publish verdict): PROCEED — 25/26 sources have abstracts (96%). Sufficient for analysis.
+- `21:30:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 2351ms | 258+125 tok (5 cache-hit) | $0.0002 | cum≈$1.280
+- `21:30:39` **llm** ✅ glm/glm-4.5 [elenchus] | 10664ms | 4905+1074 tok | $0.0053 | cum≈$1.285
+- `21:31:39` **llm** ✅ glm/glm-4.5 [elenchus] | 7428ms | 4579+499 tok | $0.0038 | cum≈$1.289
+- `21:31:39` **pipeline** [Pipeline] DPP SYNTHESIS: 20/244 points (diversity=100%)
+- `21:31:39` **llm** ✅ glm/glm-4.5-air [enrichment_reasoner] | 4162ms | 3572+171 tok (5 cache-hit) | $0.0009 | cum≈$1.290
+- `21:31:39` **status** [AGENT MEMORY] Rejected lesson (relevance 0.15 < 0.25): "The agent failed to provide adequate citations for claims about drone attacks af..."
+- `21:31:39` **pipeline** [Pipeline] EXPERIENCE BANK: 3 learned guideline(s) injected
+- `21:31:39` **degraded** [CIRCUIT BREAKER] openalex tripped after 3× 429 — skipping for 20s (trip #2)
+- `21:32:39` **llm** ✅ glm/glm-4.5 [harvard_council] | 58356ms | 4284+4000 tok | $0.0114 | cum≈$1.301
+- `21:32:39` **pipeline** [Pipeline] DOMAIN EXPERT: policy lens injected (confidence 42, 8 findings, $0.0114)
+- `21:33:39` **llm** ✅ glm/glm-4.5 [analyst_brief] | 72842ms | 28043+7623 tok | $0.0336 | cum≈$1.346
+- `21:33:39` **llm** ✅ glm/glm-4.5 [elenchus] | 8312ms | 1660+565 tok | $0.0022 | cum≈$1.348
+- `21:34:39` **llm** ✅ glm/glm-4.5 [analyst_brief] | 49862ms | 30792+5154 tok (25344 cache-hit) | $0.0298 | cum≈$1.378
+- `21:34:39` **llm** ✅ glm/glm-4.5 [elenchus] | 7743ms | 730+385 tok | $0.0013 | cum≈$1.379
+- `21:34:39` **fatal** [Analyst V3] PREMORTEM: 5 fatal objections captured ($0.0013)
+- `21:35:39` **llm** ✅ glm/glm-4.5 [analyst_brief] | 85113ms | 39652+8000 tok (25600 cache-hit) | $0.0414 | cum≈$1.422
+- `21:35:39` **llm** ✅ glm/glm-4.5 [elenchus] | 1979ms | 858+66 tok | $0.0007 | cum≈$1.423
+- `21:35:39` **pipeline** [Pipeline] DIAGNOSTIC: chain=13, findings=0, verdict=2737ch, citDensity=2.2/1K
+- `21:35:39` **pipeline** [Pipeline] REPAIR BUDGET: capped at 2 — only 2 LLM provider(s) alive (glm, freepool), no failover headroom
+- `21:36:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 4230ms | 641+277 tok (64 cache-hit) | $0.0004 | cum≈$1.532
+- `21:36:39` **llm** ✅ glm/glm-4.5 [elenchus] | 7378ms | 701+412 tok | $0.0013 | cum≈$1.533
+- `21:36:39` **pipeline** [Pipeline] OUTLINE CRITIC (early): coverage 55/100 — 3 missing dimensions
+- `21:37:39` **llm** ✅ glm/glm-4.5 [analyst_brief] | 57502ms | 26781+6156 tok (8448 cache-hit) | $0.0296 | cum≈$1.563
+- `21:37:39` **llm** ✅ glm/glm-4.5 [elenchus] | 7312ms | 1657+468 tok | $0.0020 | cum≈$1.565
+- `21:38:39` **llm** ✅ glm/glm-4.5 [analyst_brief] | 47108ms | 28824+4577 tok (24064 cache-hit) | $0.0274 | cum≈$1.592
+- `21:38:39` **llm** ✅ glm/glm-4.5 [elenchus] | 7138ms | 724+348 tok | $0.0012 | cum≈$1.594
+- `21:38:39` **fatal** [Analyst V3] PREMORTEM: 5 fatal objections captured ($0.0012)
+- `21:39:39` **llm** ✅ glm/glm-4.5 [analyst_brief] | 96708ms | 36946+7780 tok (24320 cache-hit) | $0.0393 | cum≈$1.634
+- `21:39:39` **llm** ✅ glm/glm-4.5 [elenchus] | 2582ms | 1051+88 tok (256 cache-hit) | $0.0008 | cum≈$1.635
+- `21:39:39` **gate** [Analyst V3] INLINE THESIS GATE: verdict exceeds bound thesis ("The verdict introduces multiple claims broader than the thesis — including historical causal narratives (EDC failure, in") — narrowing in-place
+- `21:39:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 3071ms | 901+174 tok (64 cache-hit) | $0.0004 | cum≈$1.635
+- `21:39:39` **status** ❌ glm failed for task "elenchus": glm/glm-4.5 returned unparseable JSON (len=256, finish=stop, out=61tok) — head: " {"adhered": true, "false, "reason": "The verdict repeats the bound thesis verbatim and its forward-looking projection is explicitly labelled ('we project'), ca" … tail: "ard-looking pr
+- `21:39:39` **status** ↳ freepool/huggingface failed: 402 "Purchase pre-paid credits to continue using Inference Providers. Alternatively, subscribe to PRO to get monthly included credits."
+- `21:39:39` **llm** ✅ freepool/groq/openai/gpt-oss-120b [elenchus] | 4251ms | 565+404 tok | $0.0000 | cum≈$1.635
+- `21:39:39` **gate** [Analyst V3] INLINE THESIS GATE: narrowed verdict still breaches — pipeline repair path will handle
+- `21:40:39` **llm** ✅ glm/glm-4.5 [elenchus] | 8374ms | 748+440 tok | $0.0014 | cum≈$1.737
+- `21:40:39` **pipeline** [Pipeline] OUTLINE CRITIC (early): coverage 55→72/100 — rewrite adopted
+- `21:40:39` **llm** ✅ glm/glm-4.5 [elenchus] | 2383ms | 1051+88 tok (1024 cache-hit) | $0.0008 | cum≈$1.738
+- `21:40:39` **pipeline** [Pipeline] THESIS BINDING (post-analyst): verdict exceeds bound hypothesis — The verdict introduces multiple claims broader than the thesis — including historical causal narratives (EDC failure, integration origins), assessments of NGEU as a fiscal l
+- `21:40:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 1433ms | 910+68 tok (88 cache-hit) | $0.0003 | cum≈$1.739
+- `21:40:39` **pipeline** [Pipeline] THESIS BINDING: verdict narrowed in-place ($0.0003) — re-verifying adherence
+- `21:40:39` **llm** ✅ glm/glm-4.5 [elenchus] | 1573ms | 426+45 tok (256 cache-hit) | $0.0004 | cum≈$1.739
+- `21:40:39` **pipeline** [Pipeline] THESIS BINDING (adherence-verdict-narrowing): verdict within bound hypothesis "T1"
+- `21:40:39` **pipeline** [Pipeline] BRANCH CITATIONS: 2/5 branches uncited — targeted gap requests queued
+- `21:40:39` **pipeline** [Pipeline] EVIDENCE-INDEPENDENCE: 23/23 effective clusters (0 near-dup pairs, maxSim=0.531) — independent
+- `21:40:39` **pipeline** [Pipeline] REQUIRED ELEMENTS: 4/6 present — missing: quantitative core (real series with numbers); actor map (incentives, binding vs non-binding commitments)
+- `21:40:39` **quant** [Pipeline] REQUIRED ELEMENTS: 4/6 present — missing: quantitative core (real series with numbers); actor map (incentives, binding vs non-binding commitments)
+- `21:40:39` **pipeline** [Pipeline] RESEARCH GAPS: 2 typed gaps identified
+- `21:40:39` **quant** - [NOT_REACHED] Required element missing — needs quantitative series, figures with units and per
+- `21:40:39` **pipeline** [Pipeline] POST-ANALYST ENRICHMENT: 2 critical gaps — attempting targeted search
+- `21:40:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3411ms | 807+165 tok (91 cache-hit) | $0.0003 | cum≈$1.740
+- `21:40:39` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3465ms | 809+168 tok (91 cache-hit) | $0.0003 | cum≈$1.740
+- `21:40:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 5038ms | 272+272 tok (68 cache-hit) | $0.0004 | cum≈$1.740
+- `21:40:39` **status** [SCOUT] Skipping 11 blacklisted providers: consolidated-institutions, gdelt-news, global-intelligence, global-orgs, global-science, hathitrust, mega-civil-society, mega-press, newsapi, open-library, ons-uk
+- `21:40:39` **status** [SCOUT] Skipping 11 empty-result providers: crossref, google-books, linkup, mega-eu, openalex, tavily, eur-lex, data-europa, europepmc, treasury-fiscal, eurostat
+- `21:40:39` **status** [SCOUT/Springer] Direct API error: Circuit breaker tripped for springer — skipping queued call — falling back to OpenAlex
+- `21:40:39` **degraded** [SCOUT/Springer] Direct API error: Circuit breaker tripped for springer — skipping queued call — falling back to OpenAlex
+- `21:40:39` **degraded** [CIRCUIT BREAKER] openalex tripped after 3× 429 — skipping for 40s (trip #3)
+- `21:40:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 5475ms | 270+289 tok (68 cache-hit) | $0.0004 | cum≈$1.741
+- `21:40:39` **degraded** [CIRCUIT BREAKER] crossref tripped after 3× 429 — skipping for 240s (trip #10)
+- `21:40:39` **radar** [SCOUT] Per-provider results: _unknown=0, frankfurter=7, springer=45, datacite=13
+- `21:40:39` **radar** [SCOUT] Raw results: 65 sources from 12 query variations (3 providers: frankfurter, springer, datacite)
+- `21:40:39` **status** [Unpaywall] Lookup failed for 10.60692/4mned-23c21: HTTP 404 Not Found
+- `21:40:39` **radar** [SCOUT] Done in 12507ms: 65 raw â†’ 52 dedup â†’ 7 ranked â†’ 7 saved
+- `21:40:39` **radar** [SCOUT] Per-provider results: _unknown=0, frankfurter=4, springer=15, datacite=13
+- `21:40:39` **degraded** [CIRCUIT BREAKER] semanticscholar tripped after 1× 429 — skipping for 960s (trip #6)
+- `21:40:39` **radar** [SCOUT] Raw results: 42 sources from 12 query variations (4 providers: frankfurter, springer, datacite, arxiv)
+- `21:40:39` **radar** [SCOUT] Done in 33113ms: 42 raw â†’ 31 dedup â†’ 6 ranked â†’ 6 saved
+- `21:40:39` **pipeline** [Pipeline] POST-ANALYST ENRICHMENT: +7 sources from gap-targeted search
+- `21:40:39` **llm** ✅ glm/glm-4.5-air [topic_classification] | 6712ms | 2723+364 tok (66 cache-hit) | $0.0009 | cum≈$1.742
+- `21:40:39` **pipeline** [Pipeline] POST-ANALYST ENRICHMENT: relevance screen dropped 41/50 off-topic additions
+- `21:40:39` **pipeline** [Pipeline] POST-ANALYST ENRICHMENT: appended 9 sources (order preserved), 38 total, quality 98 → 99
+- `21:41:39` **llm** ✅ glm/glm-4.5-air [structural_editor] | 14714ms | 1806+1042 tok (69 cache-hit) | $0.0015 | cum≈$1.743
+- `21:41:39` **pipeline** [Pipeline] STRUCTURAL EDITOR: structure=75/100, arc=true, 2 gaps, 10 sections with issues
+- `21:41:39` **pipeline** [Pipeline] CLAIM BINDING: 11 links verified against cited sources (all bound)
+- `21:41:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 37605ms | 2743+2238 tok (69 cache-hit) | $0.0030 | cum≈$1.746
+- `21:41:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 7267ms | 1555+388 tok (72 cache-hit) | $0.0007 | cum≈$1.747
+- `21:42:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 18720ms | 1905+1119 tok (518 cache-hit) | $0.0016 | cum≈$1.748
+- `21:42:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 8513ms | 1706+458 tok (518 cache-hit) | $0.0008 | cum≈$1.749
+- `21:42:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 8458ms | 1685+481 tok (518 cache-hit) | $0.0009 | cum≈$1.750
+- `21:42:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 9683ms | 1949+611 tok (518 cache-hit) | $0.0011 | cum≈$1.751
+- `21:42:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 11595ms | 1620+588 tok (518 cache-hit) | $0.0010 | cum≈$1.752
+- `21:43:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 10691ms | 1111+553 tok (518 cache-hit) | $0.0008 | cum≈$1.753
+- `21:43:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 8785ms | 4384+518 tok (5 cache-hit) | $0.0014 | cum≈$1.754
+- `21:43:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 15352ms | 1652+832 tok (69 cache-hit) | $0.0012 | cum≈$1.756
+- `21:43:39` **llm** ✅ freepool/groq/openai/gpt-oss-120b [reader_v3] | 1233ms | 474+387 tok | $0.0000 | cum≈$1.756
+- `21:43:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 8450ms | 2017+467 tok (69 cache-hit) | $0.0009 | cum≈$1.756
+- `21:43:39` **fatal** [Critic] 1 severe contradiction(s): 1 adjudicable (≥1 side grounded), 0 fatal-unresolvable (thesis-bearing), 0 off-thesis (repairable)
+- `21:43:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 4141ms | 1034+234 tok (69 cache-hit) | $0.0005 | cum≈$1.757
+- `21:43:39` **pipeline** [Pipeline] CRITIC: verdict=repair, score=41, groundedness=82%, 5 contradictions, 1 contested, 4 biases
+- `21:43:39` **pipeline** [Pipeline] CRITIC: repair instructions generated (2 claims to fix)
+- `21:43:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 4454ms | 2727+221 tok (4 cache-hit) | $0.0008 | cum≈$1.772
+- `21:43:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 4728ms | 2721+206 tok (68 cache-hit) | $0.0008 | cum≈$1.773
+- `21:43:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 6777ms | 2831+339 tok (63 cache-hit) | $0.0009 | cum≈$1.773
+- `21:43:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 7871ms | 2747+383 tok (68 cache-hit) | $0.0010 | cum≈$1.774
+- `21:43:39` **pipeline** [Pipeline] CRITIC REPAIR: deferred — defects are evidence-bound (coverageVeto=false, unsupported=6) → gap-fill scout first, one re-analysis on enriched corpus
+- `21:43:39` **llm** ✅ glm/glm-4.5-air [topic_classification] | 1716ms | 310+80 tok (70 cache-hit) | $0.0002 | cum≈$1.775
+- `21:44:39` **llm** ✅ glm/glm-4.5 [elenchus] | 8556ms | 747+436 tok | $0.0014 | cum≈$1.776
+- `21:44:39` **pipeline** [Pipeline] OUTLINE CRITIC: coverage 58/100 — 2 missing dimensions, 3 queries
+- `21:44:39` **pipeline** [Pipeline] BLACKBOARD: processing 13 gap requests from CRITIC/OUTLINE
+- `21:44:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 4265ms | 253+223 tok (82 cache-hit) | $0.0003 | cum≈$1.776
+- `21:44:39` **status** [SCOUT] Skipping 1 blacklisted providers: ons-uk
+- `21:44:39` **status** [SCOUT] Skipping 7 empty-result providers: crossref, europepmc, semanticscholar, mega-eu, eur-lex, data-europa, openalex
+- `21:44:39` **radar** [SCOUT] Per-provider results: none
+- `21:44:39` **radar** [SCOUT] Done in 4297ms: 0 raw â†’ 0 dedup â†’ 0 ranked â†’ 0 saved
+- `21:44:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 4390ms | 257+231 tok (83 cache-hit) | $0.0003 | cum≈$1.777
+- `21:44:39` **status** [SCOUT] Skipping 9 empty-result providers: crossref, europepmc, semanticscholar, mega-eu, treasury-fiscal, eur-lex, data-europa, history, openalex
+- `21:44:39` **radar** [SCOUT] Raw results: 3 sources from 12 query variations (1 providers: isidore)
+- `21:44:39` **radar** [SCOUT] Done in 4868ms: 3 raw â†’ 2 dedup â†’ 2 ranked â†’ 2 saved
+- `21:44:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 2665ms | 616+104 tok (73 cache-hit) | $0.0002 | cum≈$1.777
+- `21:44:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 2707ms | 616+105 tok (72 cache-hit) | $0.0002 | cum≈$1.777
+- `21:44:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 2900ms | 616+117 tok (73 cache-hit) | $0.0003 | cum≈$1.777
+- `21:44:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 5631ms | 662+280 tok (70 cache-hit) | $0.0004 | cum≈$1.778
+- `21:44:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 48011ms | 1532+2876 tok (69 cache-hit) | $0.0035 | cum≈$1.781
+- `21:45:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 49503ms | 1580+3000 tok (88 cache-hit) | $0.0036 | cum≈$1.785
+- `21:45:39` **pipeline** [Pipeline] KNOWLEDGE GRAPH: 41 entities, 45 relations, 3 clusters
+- `21:45:39` **pipeline** [Pipeline] DEBATE: running — signals not aligned (critic=41, panel=64)
+- `21:46:39` **llm** ✅ glm/glm-4.5 [elenchus] | 21119ms | 8153+1564 tok | $0.0083 | cum≈$1.793
+- `21:46:39` **llm** ✅ glm/glm-4.5 [editorial_arbiter] | 14553ms | 945+709 tok | $0.0021 | cum≈$1.795
+- `21:46:39` **llm** [DEBATE] ✅ Complete: P1 strength=72, P2 strength=48, confidence=68%, cost=$0.0105 | cum≈$1.806
+- `21:46:39` **pipeline** [Pipeline] DEBATE: confidence=68%, steel-man=71
+- `21:46:39` **pipeline** [Pipeline] INFLECTION CHECK: dropped 4 off-topic mechanisms — arxiv:1806.07830v1: "high public debt increases sovereign yield spreads leading to higher real intere" | dblp:W3124995562: "'fit' with legacies preferences and discourses influence prefere
+- `21:46:39` **pipeline** [Pipeline] INFLECTION CHECK: Chain of 43 mechanisms has no reversing direction — trajectory is purely inertial
+- `21:46:39` **pipeline** [Pipeline] INFLECTION DETAIL: Chain of 43 mechanisms has no reversing direction — trajectory is purely inertial
+- `21:46:39` **pipeline** [Pipeline] ARBITER: degraded mode — weak upstream quality signals, running on mid-tier model
+- `21:46:39` **degraded** [Pipeline] ARBITER: degraded mode — weak upstream quality signals, running on mid-tier model
+- `21:46:39` **llm** ✅ glm/glm-4.5-air [enrichment_reasoner] | 3431ms | 592+180 tok (64 cache-hit) | $0.0003 | cum≈$1.806
+- `21:46:39` **llm** ✅ glm/glm-4.5 [strategic_analyst] | 12989ms | 899+743 tok | $0.0022 | cum≈$1.808
+- `21:48:39` **llm** ✅ glm/glm-4.5 [strategic_analyst] | 119228ms | 7869+7887 tok | $0.0221 | cum≈$1.830
+- `21:48:39` **llm** ✅ glm/glm-4.5-air [delphi_round1] | 4883ms | 498+142 tok (66 cache-hit) | $0.0003 | cum≈$1.831
+- `21:48:39` **llm** ✅ glm/glm-4.5-air [delphi_round1] | 5316ms | 345+171 tok (66 cache-hit) | $0.0003 | cum≈$1.831
+- `21:48:39` **llm** ✅ glm/glm-4.5-air [cross_impact] | 5888ms | 260+209 tok (66 cache-hit) | $0.0003 | cum≈$1.831
+- `21:48:39` **llm** ✅ glm/glm-4.5-air [delphi_round1] | 2641ms | 869+117 tok (66 cache-hit) | $0.0003 | cum≈$1.832
+- `21:48:39` **llm** ✅ glm/glm-4.5-air [delphi_round1] | 2852ms | 693+132 tok (66 cache-hit) | $0.0003 | cum≈$1.832
+- `21:48:39` **llm** ✅ glm/glm-4.5-air [delphi_round1] | 2864ms | 856+133 tok (66 cache-hit) | $0.0003 | cum≈$1.832
+- `21:48:39` **llm** ✅ glm/glm-4.5-air [delphi_round1] | 3119ms | 859+150 tok (66 cache-hit) | $0.0003 | cum≈$1.832
+- `21:48:39` **llm** ✅ glm/glm-4.5-air [delphi_round1] | 3827ms | 882+160 tok (65 cache-hit) | $0.0004 | cum≈$1.833
+- `21:48:39` **llm** ✅ glm/glm-4.5-air [delphi_round2] | 3751ms | 808+177 tok (66 cache-hit) | $0.0004 | cum≈$1.833
+- `21:48:39` **llm** ✅ glm/glm-4.5-air [delphi_round2] | 3952ms | 798+189 tok (79 cache-hit) | $0.0004 | cum≈$1.834
+- `21:48:39` **llm** ✅ glm/glm-4.5-air [delphi_round2] | 4092ms | 787+197 tok (78 cache-hit) | $0.0004 | cum≈$1.834
+- `21:48:39` **llm** ✅ glm/glm-4.5-air [delphi_round2] | 4253ms | 675+208 tok (75 cache-hit) | $0.0004 | cum≈$1.834
+- `21:48:39` **llm** ✅ glm/glm-4.5-air [delphi_round2] | 4559ms | 804+228 tok (76 cache-hit) | $0.0004 | cum≈$1.835
+- `21:48:39` **llm** ✅ glm/glm-4.5-air [delphi_round2] | 3938ms | 669+181 tok (79 cache-hit) | $0.0003 | cum≈$1.835
+- `21:48:39` **llm** ✅ glm/glm-4.5-air [delphi_round2] | 4148ms | 792+196 tok (82 cache-hit) | $0.0004 | cum≈$1.836
+- `21:48:39` **llm** ✅ glm/glm-4.5-air [delphi_round2] | 4180ms | 816+199 tok (83 cache-hit) | $0.0004 | cum≈$1.836
+- `21:48:39` **llm** ✅ glm/glm-4.5-air [delphi_round2] | 4488ms | 792+219 tok (83 cache-hit) | $0.0004 | cum≈$1.836
+- `21:48:39` **llm** ✅ glm/glm-4.5-air [delphi_round2] | 4537ms | 793+223 tok (80 cache-hit) | $0.0004 | cum≈$1.837
+- `21:49:39` **llm** ✅ glm/glm-4.5-air [cross_impact] | 9772ms | 487+632 tok (66 cache-hit) | $0.0008 | cum≈$1.838
+- `21:49:39` **pipeline** [Pipeline] ARBITER: confidence=68, scenarios=4
+- `21:49:39` **llm** ✅ glm/glm-4.5-air [reader_v3] | 20923ms | 827+1200 tok (63 cache-hit) | $0.0015 | cum≈$1.853
+- `21:49:39` **llm** ✅ glm/glm-4.5 [harvard_council] | 10845ms | 598+718 tok | $0.0019 | cum≈$1.855
+- `21:49:39` **llm** ✅ glm/glm-4.5 [harvard_council] | 12931ms | 598+839 tok | $0.0022 | cum≈$1.857
+- `21:50:39` **llm** ✅ glm/glm-4.5 [harvard_council] | 11655ms | 598+769 tok | $0.0021 | cum≈$1.859
+- `21:50:39` **llm** ✅ glm/glm-4.5 [harvard_council] | 16421ms | 598+890 tok | $0.0023 | cum≈$1.861
+- `21:50:39` **llm** ✅ glm/glm-4.5 [harvard_council] | 14182ms | 598+812 tok | $0.0021 | cum≈$1.863
+- `21:50:39` **llm** ✅ glm/glm-4.5 [harvard_council] | 16047ms | 598+801 tok | $0.0021 | cum≈$1.866
+- `21:51:39` **llm** ✅ glm/glm-4.5 [harvard_council] | 15742ms | 598+874 tok | $0.0023 | cum≈$1.868
+- `21:51:39` **llm** ✅ glm/glm-4.5 [harvard_council] | 12722ms | 598+735 tok | $0.0020 | cum≈$1.870
+- `21:51:39` **llm** ✅ glm/glm-4.5 [harvard_council] | 17507ms | 598+813 tok | $0.0021 | cum≈$1.872
+- `21:51:39` **llm** ✅ glm/glm-4.5 [harvard_council] | 15826ms | 598+821 tok | $0.0022 | cum≈$1.874
+- `21:52:39` **llm** ✅ glm/glm-4.5 [harvard_council] | 16042ms | 598+798 tok | $0.0021 | cum≈$1.876
+- `21:52:39` **llm** ✅ glm/glm-4.5 [harvard_council] | 17579ms | 598+865 tok | $0.0023 | cum≈$1.879
+- `21:52:39` **llm** ✅ glm/glm-4.5 [elenchus] | 16385ms | 279+692 tok | $0.0017 | cum≈$1.880
+- `21:53:39` **llm** ✅ glm/glm-4.5 [analyst_brief] | 24224ms | 180+1429 tok | $0.0033 | cum≈$1.884
+- `21:53:39` **pipeline** [Pipeline] CENTRAL SCENARIO: The Maginot Line; simulation disagreement=false
+- `21:53:39` **llm** ✅ glm/glm-4.5 [elenchus] | 31180ms | 5212+1500 tok | $0.0064 | cum≈$1.890
+- `21:53:39` **llm** ✅ glm/glm-4.5 [elenchus] | 47111ms | 12954+2551 tok | $0.0134 | cum≈$1.903
+- `21:53:39` **llm** ✅ glm/glm-4.5 [elenchus] | 52217ms | 6814+2596 tok | $0.0098 | cum≈$1.913
+- `21:53:39` **fatal** [DEVIL'S ADVOCATE] Verdict: REVISE | Strength: 36/100 | Fatal: 0 | Major: 7
+- `21:53:39` **da** [DEVIL'S ADVOCATE] Verdict: REVISE | Strength: 36/100 | Fatal: 0 | Major: 7
+- `21:53:39` **pipeline** [Pipeline] DEVIL'S ADVOCATE: verdict=revise, strength=36/100, fatal=0, major=7
+- `21:53:39` **fatal** [Pipeline] DEVIL'S ADVOCATE: verdict=revise, strength=36/100, fatal=0, major=7
+- `21:53:39` **da** [Pipeline] DEVIL'S ADVOCATE: verdict=revise, strength=36/100, fatal=0, major=7
+- `21:54:39` **llm** ✅ glm/glm-4.5-air [topic_classification] | 1111ms | 353+49 tok (63 cache-hit) | $0.0001 | cum≈$1.913
+- `21:54:39` **fatal** [BLACKBOARD] Source gap requested by DEVILS_ADVOCATE: "present evidence for NGEU sovereignty countermovements..." — Adversarial fatal challenge: The cascade violation between Links 9→10→11 is the single most damaging argument. Link 9 infers a 'pattern' from one case (NGEU), Link 10 builds a qua
+- `21:54:39` **fatal** [BLACKBOARD] Source gap requested by DEVILS_ADVOCATE: "cascade violation in future extrapolations..." — Adversarial fatal challenge: The cascade violation between Links 9→10→11 is the single most damaging argument. Link 9 infers a 'pattern' from one case (NGEU), Link 10 builds a qua
+- `21:54:39` **fatal** [BLACKBOARD] Source gap requested by DEVILS_ADVOCATE: "causal mechanisms NGEU defense spending comparison..." — Adversarial fatal challenge: The cascade violation between Links 9→10→11 is the single most damaging argument. Link 9 infers a 'pattern' from one case (NGEU), Link 10 builds a qua
+- `21:54:39` **pipeline** [Pipeline] DA EVIDENCE MISSION: 3 retrieval queries from adversarial challenges
+- `21:54:39` **pipeline** [Pipeline] BLACKBOARD: processing 16 gap requests from DEVILS_ADVOCATE
+- `21:56:39` **llm** ✅ glm/glm-4.5 [analyst_brief] | 122125ms | 28110+7669 tok (8192 cache-hit) | $0.0337 | cum≈$1.947
+- `21:56:39` **llm** ✅ glm/glm-4.5 [elenchus] | 10829ms | 1701+570 tok | $0.0023 | cum≈$1.949
+- `21:57:40` **llm** ✅ glm/glm-4.5 [analyst_brief] | 81906ms | 30955+5235 tok (25600 cache-hit) | $0.0301 | cum≈$1.979
+- `21:57:40` **llm** ✅ glm/glm-4.5 [elenchus] | 9753ms | 729+363 tok | $0.0012 | cum≈$1.981
+- `21:59:40` **llm** ✅ glm/glm-4.5 [analyst_brief] | 120175ms | 39962+7910 tok (25600 cache-hit) | $0.0414 | cum≈$2.023
+- `21:59:40` **llm** ✅ glm/glm-4.5 [elenchus] | 2782ms | 879+70 tok | $0.0007 | cum≈$2.024
+- `22:00:40` **llm** ✅ glm/glm-4.5 [elenchus] | 19006ms | 5194+849 tok | $0.0050 | cum≈$2.138
+- `22:00:40` **llm** ✅ glm/glm-4.5 [elenchus] | 48928ms | 6732+2179 tok | $0.0088 | cum≈$2.147
+- `22:00:40` **llm** ✅ glm/glm-4.5 [elenchus] | 56638ms | 12088+3432 tok (2560 cache-hit) | $0.0148 | cum≈$2.162
+- `22:00:40` **fatal** [DEVIL'S ADVOCATE] Verdict: REVISE | Strength: 20/100 | Fatal: 0 | Major: 9
+- `22:00:40` **da** [DEVIL'S ADVOCATE] Verdict: REVISE | Strength: 20/100 | Fatal: 0 | Major: 9
+- `22:00:40` **pipeline** [Pipeline] DA PRE-RENDER REPAIR: rewrite not better (20) — original kept
+- `22:00:40` **pipeline** [Pipeline] EDITOR: position-first template (142KB)
+- `22:00:40` **pipeline** [Pipeline] DA SECTION: rendered adversarial review (fatal=0, major=7)
+- `22:00:40` **fatal** [Pipeline] DA SECTION: rendered adversarial review (fatal=0, major=7)
+- `22:00:40` **pipeline** [Pipeline] CITATION REPAIR: +0 backfilled, +0 injected, 39 numbers sanitized
+- `22:01:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 39223ms | 1267+2000 tok (63 cache-hit) | $0.0025 | cum≈$2.164
+- `22:01:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 8123ms | 799+492 tok (70 cache-hit) | $0.0007 | cum≈$2.165
+- `22:01:40` **degraded** [CIRCUIT BREAKER] searxng tripped after 2 consecutive dead calls — skipping for 120s (trip #3)
+- `22:01:40` **pipeline** [Pipeline] CLAIM GROUNDING: 116 supported, 0 partial, 0 unsupported, 29 uncited → groundedness 100%, 17 removed
+- `22:02:40` **llm** ✅ freepool/cerebras/gpt-oss-120b [fact_check] | 869ms | 1369+1286 tok | $0.0000 | cum≈$2.166
+- `22:03:40` **status** ↳ freepool/nvidia failed: freepool/nvidia returned empty content
+- `22:05:40` **status** ↳ freepool/openrouter failed: freepool/openrouter returned empty content
+- `22:06:40` **llm** ✅ freepool/cohere/command-a-03-2025 [fact_check] | 211101ms | 3142+1286 tok | $0.0000 | cum≈$2.166
+- `22:06:40` **fatal** [FACT-CHECKER] Complete: 21 claims, 41 verified, 5 major, 0 fatal → integrity 92%
+- `22:06:40` **pipeline** [Pipeline] FACT-CHECKER: 21 claims, 41 verified, 5 major, 0 fatal → integrity 92%
+- `22:06:40` **fatal** [Pipeline] FACT-CHECKER: 21 claims, 41 verified, 5 major, 0 fatal → integrity 92%
+- `22:06:40` **pipeline** [Pipeline] ORIGINALITY: OK (score 100%, avg overlap 0.1%)
+- `22:06:40` **pipeline** [Pipeline] EVIDENCE BANK: 3 citations to unextracted sources (risk low), utilization 96%
+- `22:06:40` **pipeline** [Pipeline] PROCESS AUDIT: 100/100 (intent ✓, propagation ✓, noise 32%)
+- `22:06:40` **degraded** [CIRCUIT BREAKER] crossref tripped after 3× 429 — skipping for 240s (trip #11)
+- `22:06:40` **pipeline** [Pipeline] SOURCE CHECK: 6 verified, 0 retracted, 0 not found, 0 claim absent → integrity 72%
+- `22:06:40` **pipeline** [Pipeline] URL HEALTH: 12/23 alive, 1 rescued via archive, 10 UNRECOVERABLE
+- `22:06:40` **pipeline** [Pipeline] TRUST: critic penalty — score 41/100, -7%
+- `22:06:40` **pipeline** [Pipeline] DETERMINISTIC TRUST: 80/100 — coverage=100%, groundedness=100%, factCheck=92%, nli=100%, sourceCheck=72%, diversity=100, avgQuality=58
+- `22:06:40` **pipeline** [Pipeline] PROVENANCE GRAPH: 169 claims → 115 valid, 0 invalid, 0 stale, 54 needs_review → validity 68%
+- `22:06:40` **pipeline** [Pipeline] METHODOLOGY NOTE: injected (38 sources, 17 providers, 26 cited)
+- `22:06:40` **gate** [ORCHESTRATOR] Step decision (not publish verdict): PROCEED — Trust score 80 meets threshold. Ready for publication.
+- `22:06:40` **status** [ORCHESTRATOR] Step decision (not publish verdict): PROCEED — Trust score 80 meets threshold. Ready for publication.
+- `22:06:40` **pipeline** [Pipeline] EVIDENCE IDS: 23/26 cited, 3 uncited
+- `22:06:40` **pipeline** [Pipeline] PROSE CLEANUP: fixed 219 issues (abbreviations, double spaces, merged words)
+- `22:06:40` **pipeline** [Pipeline] NUMERICAL GATE: 12 unsourced numbers (first 5: 10%, 10%, 10%, 2.5%, 15%)
+- `22:06:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 14829ms | 4714+806 tok (5 cache-hit) | $0.0018 | cum≈$2.168
+- `22:07:40` **llm** ✅ glm/glm-4.5 [elenchus] | 31328ms | 8440+1500 tok | $0.0084 | cum≈$2.176
+- `22:07:40` **llm** ✅ glm/glm-4.5 [elenchus] | 39805ms | 19824+2282 tok (2560 cache-hit) | $0.0169 | cum≈$2.193
+- `22:07:40` **llm** ✅ glm/glm-4.5 [elenchus] | 40962ms | 11303+2341 tok | $0.0119 | cum≈$2.205
+- `22:07:40` **fatal** [DEVIL'S ADVOCATE] Verdict: REVISE | Strength: 16/100 | Fatal: 0 | Major: 10
+- `22:07:40` **da** [DEVIL'S ADVOCATE] Verdict: REVISE | Strength: 16/100 | Fatal: 0 | Major: 10
+- `22:07:40` **pipeline** [Pipeline] DA RE-CHECK: strength 36→16/100, fatal 0→0 — veto STANDS (publishability 16 < 40 gate bar)
+- `22:07:40` **status** [Pipeline] DA RE-CHECK: strength 36→16/100, fatal 0→0 — veto STANDS (publishability 16 < 40 gate bar)
+- `22:07:40` **fatal** [Pipeline] DA RE-CHECK: strength 36→16/100, fatal 0→0 — veto STANDS (publishability 16 < 40 gate bar)
+- `22:07:40` **pipeline** [Pipeline] SELF-CORRECT SUMMARY: 3 stages, 1 retries, 0 cascades, avg drift=0.996, 0/3 clean
+- `22:07:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 11566ms | 2075+898 tok (5 cache-hit) | $0.0014 | cum≈$2.206
+- `22:07:40` **pipeline** [Pipeline] PREDICTIONS: registered 3 predictions for brief cmwy3s7ae04vir2pte2g4k2nv
+- `22:07:40` **pipeline** [Pipeline] EPISODIC MEMORY: episode stored for brief cmwy3s7ae04vir2pte2g4k2nv
+- `22:07:40` **pipeline** [Pipeline] CAUSAL LINKS: persisted 11 links for brief cmwy3s7ae04vir2pte2g4k2nv
+- `22:08:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 11531ms | 1715+586 tok (65 cache-hit) | $0.0010 | cum≈$2.207
+- `22:08:40` **llm** [KNOWLEDGE] ✅ Extracted 7 concepts, 6 relations, refusedEmbeddings=0, cost=$0.0010 | cum≈$2.208
+- `22:08:40` **pipeline** [Pipeline] KNOWLEDGE GRAPH: 7 concepts, 6 relations
+- `22:08:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 8864ms | 817+516 tok (64 cache-hit) | $0.0007 | cum≈$2.209
+- `22:08:40` **degraded** [CIRCUIT BREAKER] searxng tripped after 2 consecutive dead calls — skipping for 240s (trip #4)
+- `22:08:40` **pipeline** [Pipeline] INTEGRITY RE-VERIFY: trust 80 → 40 on final artifact
+- `22:08:40` **pipeline** [Pipeline] EVAL FRESHNESS: all evaluations match current artifacts (analysis v3, html v5)
+- `22:08:40` **pipeline** [Pipeline] DONE: brief cmwy3s7ae04vir2pte2g4k2nv | run 11d3ca07-658a-4a36-a0ea-a553cce602eb | $0.3290 | 3984765ms | 3 orchestrator decisions
+- `22:08:40` **status** [Langfuse] Score flush failed: 400
+- `22:08:40` **llm** ✅ glm/glm-4.5-air [query_reformulation] | 2499ms | 272+103 tok (64 cache-hit) | $0.0002 | cum≈$2.868
+- `22:08:40` **llm** ✅ glm/glm-4.5-air [topic_classification] | 4689ms | 667+206 tok (66 cache-hit) | $0.0004 | cum≈$2.868
+- `22:08:40` **pipeline** [SemanticEngine] Cohere embed fallback failed: runPipeline(memo) scope closed
+- `22:08:40` **status** [SemanticEngine] Cohere embed fallback failed: runPipeline(memo) scope closed
+- `22:08:40` **llm** ✅ glm/glm-4.5-air [fact_check] | 1338ms | 438+45 tok (64 cache-hit) | $0.0001 | cum≈$2.868
+- `22:08:40` **question** [InquiryOrchestrator] QUESTION CHECK: substituted=false — The note takes a clear position on how budgetary decisions reflect competing visions of integration and sovereignty, and
+- `22:08:40` **llm** ✅ glm/glm-4.5-air [topic_classification] | 6100ms | 667+289 tok (66 cache-hit) | $0.0005 | cum≈$2.869
+- `22:08:40` **llm** ✅ glm/glm-4.5-air [topic_classification] | 6279ms | 502+251 tok (66 cache-hit) | $0.0004 | cum≈$2.869
+- `22:08:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 15484ms | 4677+705 tok (271 cache-hit) | $0.0017 | cum≈$2.871
+- `22:10:40` **llm** ✅ freepool/cohere/command-a-03-2025 [fact_check] | 108611ms | 3140+442 tok | $0.0000 | cum≈$2.871
+- `22:10:40` **status** [InquiryOrchestrator] BINARY JUDGE (freepool/freepool vs producer glm): 5/8 — failed: required_elements, counter_evidence, format_style
+- `22:10:40` **gate** [InquiryOrchestrator] Gate: decision=hold | Readiness: ok=false | trust=40 quality=59 coverage=93%
+- `22:10:40` **status** [InquiryOrchestrator] Persisting publication: status=held trust=40 quality=59 dbStatus=HELD
+- `22:10:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2384ms | 1477+92 tok (64 cache-hit) | $0.0004 | cum≈$2.871
+- `22:10:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 1967ms | 489+84 tok (250 cache-hit) | $0.0002 | cum≈$2.871
+- `22:10:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2085ms | 898+94 tok (250 cache-hit) | $0.0003 | cum≈$2.872
+- `22:10:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 10347ms | 829+559 tok (63 cache-hit) | $0.0008 | cum≈$2.873
+- `22:11:40` **status** [PROVIDER HEALTH] Skipping 11 unhealthy providers: semanticscholar, openalex, crossref, core, harvard-dash, dimensions, lens, datacite, tavily, exa, linkup
+- `22:11:40` **pipeline** [Pipeline] PROVIDER HEALTH: 11 providers skipped (circuit open)
+- `22:11:40` **status** [Pipeline] PROVIDER HEALTH: 11 providers skipped (circuit open)
+- `22:11:40` **pipeline** [Pipeline] COMPLEXITY ROUTING: moderate query (score=3) — 14 providers, 15/provider
+- `22:11:40` **pipeline** [Pipeline] SCOUT: query="How do regulatory gaps and governance failures contribute to industrial disasters in developing economies, and what accountability mechanisms exist?" (14 providers, 15/provider)
+- `22:11:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 7896ms | 474+383 tok (66 cache-hit) | $0.0005 | cum≈$2.873
+- `22:11:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3586ms | 793+158 tok (68 cache-hit) | $0.0003 | cum≈$2.873
+- `22:11:40` **status** [SCOUT] Skipping 4 empty-result providers: crossref, europepmc, linkup, openalex
+- `22:11:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3603ms | 790+159 tok (68 cache-hit) | $0.0003 | cum≈$2.874
+- `22:11:40` **status** [SCOUT] Skipping 7 empty-result providers: crossref, europepmc, exa, linkup, openalex, semanticscholar, tavily
+- `22:11:40` **radar** [SCOUT] Raw results: 0 sources from 3 query variations (0 providers: )
+- `22:11:40` **radar** [SCOUT] Done in 3637ms: 0 raw â†’ 0 dedup â†’ 0 ranked â†’ 0 saved
+- `22:11:40` **pipeline** [Pipeline] DEEP PLANNER: node n4 "What counter-arguments exist regarding the relationship betw" → 0 sources
+- `22:11:40` **degraded** [CIRCUIT BREAKER] openalex tripped after 3× 429 — skipping for 80s (trip #4)
+- `22:11:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3685ms | 793+164 tok (68 cache-hit) | $0.0003 | cum≈$2.874
+- `22:11:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3715ms | 792+166 tok (68 cache-hit) | $0.0003 | cum≈$2.874
+- `22:11:40` **status** [SCOUT] Skipping 5 empty-result providers: crossref, europepmc, linkup, openalex, semanticscholar
+- `22:11:40` **status** [HTTP] Retry 1/2 after 954ms: fetch failed
+- `22:11:40` **radar** [SCOUT] Done in 3727ms: 0 raw â†’ 0 dedup â†’ 0 ranked â†’ 0 saved
+- `22:11:40` **pipeline** [Pipeline] DEEP PLANNER: node n2 "How do these regulatory gaps and governance failures specifi" → 0 sources
+- `22:11:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3913ms | 795+173 tok (68 cache-hit) | $0.0003 | cum≈$2.875
+- `22:11:40` **status** [HTTP] Retry 2/2 after 2182ms: fetch failed
+- `22:11:40` **radar** [SCOUT] Per-provider results: _unknown=0, worldbank=38
+- `22:11:40` **radar** [SCOUT] Raw results: 38 sources from 3 query variations (1 providers: worldbank)
+- `22:11:40` **radar** [SCOUT] Relevance filter too strict even at 0.10 (0 results), keeping top 37/37 by score
+- `22:11:40` **radar** [SCOUT] Done in 5309ms: 38 raw â†’ 37 dedup â†’ 37 ranked â†’ 37 saved
+- `22:11:40` **pipeline** [Pipeline] DEEP PLANNER: node n5 "What accountability mechanisms exist in developing economies" → 37 sources
+- `22:11:40` **radar** [SCOUT] Per-provider results: imf=15, worldbank=33
+- `22:11:40` **radar** [SCOUT] Raw results: 48 sources from 3 query variations (2 providers: imf, worldbank)
+- `22:11:40` **radar** [SCOUT] Per-provider results: _unknown=0, imf=15, worldbank=15
+- `22:11:40` **radar** [SCOUT] Done in 7114ms: 48 raw â†’ 37 dedup â†’ 37 ranked â†’ 37 saved
+- `22:11:40` **pipeline** [Pipeline] DEEP PLANNER: node n1 "What are the primary regulatory gaps and governance failures" → 37 sources
+- `22:11:40` **degraded** [CIRCUIT BREAKER] semanticscholar tripped after 1× 429 — skipping for 960s (trip #7)
+- `22:11:40` **radar** [SCOUT] Raw results: 40 sources from 3 query variations (3 providers: imf, worldbank, arxiv)
+- `22:11:40` **radar** [SCOUT] Relevance filter too strict even at 0.10 (0 results), keeping top 28/28 by score
+- `22:11:40` **radar** [SCOUT] Done in 18634ms: 40 raw â†’ 28 dedup â†’ 28 ranked â†’ 28 saved
+- `22:11:40` **pipeline** [Pipeline] DEEP PLANNER: node n3 "What quantitative evidence exists on the correlation between" → 28 sources
+- `22:11:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3407ms | 797+162 tok (105 cache-hit) | $0.0003 | cum≈$2.875
+- `22:11:40` **radar** [SCOUT] Done in 3420ms: 0 raw â†’ 0 dedup â†’ 0 ranked â†’ 0 saved
+- `22:11:40` **pipeline** [Pipeline] DEEP PLANNER: node n4 expanded → +0 sources
+- `22:11:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3540ms | 796+170 tok (107 cache-hit) | $0.0003 | cum≈$2.875
+- `22:11:40` **radar** [SCOUT] Done in 3560ms: 0 raw â†’ 0 dedup â†’ 0 ranked â†’ 0 saved
+- `22:11:40` **pipeline** [Pipeline] DEEP PLANNER: node n2 expanded → +0 sources
+- `22:11:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3835ms | 429+191 tok (63 cache-hit) | $0.0003 | cum≈$2.875
+- `22:11:40` **pipeline** [Pipeline] DEEP PLANNER REPLAN: 3 follow-up nodes for 2 thin/failed
+- `22:11:40` **status** [Pipeline] DEEP PLANNER REPLAN: 3 follow-up nodes for 2 thin/failed
+- `22:11:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3536ms | 799+170 tok (92 cache-hit) | $0.0003 | cum≈$2.876
+- `22:11:40` **status** [SCOUT] Skipping 6 empty-result providers: crossref, europepmc, exa, linkup, openalex, tavily
+- `22:11:40` **radar** [SCOUT] Done in 3541ms: 0 raw â†’ 0 dedup â†’ 0 ranked â†’ 0 saved
+- `22:11:40` **pipeline** [Pipeline] DEEP PLANNER REPLAN: r8 "What alternative explanations exist for industrial disasters" → 0 sources
+- `22:11:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3551ms | 798+171 tok (92 cache-hit) | $0.0003 | cum≈$2.876
+- `22:11:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3646ms | 803+175 tok (93 cache-hit) | $0.0004 | cum≈$2.876
+- `22:11:40` **radar** [SCOUT] Raw results: 1 sources from 3 query variations (1 providers: isidore)
+- `22:11:40` **radar** [SCOUT] Done in 3853ms: 0 raw â†’ 0 dedup â†’ 0 ranked â†’ 0 saved
+- `22:11:40` **pipeline** [Pipeline] DEEP PLANNER REPLAN: r7 "How do political economy factors, such as corruption and reg" → 0 sources
+- `22:11:40` **radar** [SCOUT] Done in 3856ms: 1 raw â†’ 1 dedup â†’ 1 ranked â†’ 1 saved
+- `22:11:40` **pipeline** [Pipeline] DEEP PLANNER REPLAN: r6 "What specific organizational and operational failures within" → 1 sources
+- `22:12:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 19503ms | 2167+975 tok (74 cache-hit) | $0.0015 | cum≈$2.878
+- `22:12:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2543ms | 784+148 tok (91 cache-hit) | $0.0003 | cum≈$2.878
+- `22:12:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 4269ms | 246+207 tok (82 cache-hit) | $0.0003 | cum≈$2.879
+- `22:12:40` **status** [SCOUT] Skipping 3 empty-result providers: crossref, openalex, semanticscholar
+- `22:12:40` **status** [HDX] failed: Unexpected end of JSON input
+- `22:12:40` **degraded** [CIRCUIT BREAKER] pubmed tripped after 3× 429 — skipping for 30s (trip #1)
+- `22:12:40` **status** [PubMed] Search failed: Circuit breaker tripped for pubmed
+- `22:12:40` **degraded** [PubMed] Search failed: Circuit breaker tripped for pubmed
+- `22:12:40` **radar** [SCOUT] Per-provider results: _unknown=0, hdx=28, federal-register=40
+- `22:12:40` **radar** [SCOUT] Raw results: 68 sources from 12 query variations (2 providers: hdx, federal-register)
+- `22:12:40` **radar** [SCOUT] Relevance filter too strict even at 0.10 (0 results), keeping top 48/48 by score
+- `22:12:40` **radar** [SCOUT] Done in 24008ms: 68 raw â†’ 48 dedup â†’ 48 ranked â†’ 48 saved
+- `22:12:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2977ms | 784+148 tok (91 cache-hit) | $0.0003 | cum≈$2.879
+- `22:12:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 4544ms | 247+226 tok (82 cache-hit) | $0.0003 | cum≈$2.879
+- `22:12:40` **status** [SCOUT] Skipping 5 empty-result providers: crossref, openalex, semanticscholar, pubmed, mega-un
+- `22:12:40` **radar** [SCOUT] Per-provider results: arxiv=24, _unknown=0
+- `22:12:40` **degraded** [CIRCUIT BREAKER] openalex tripped after 3× 429 — skipping for 80s (trip #5)
+- `22:12:40` **radar** [SCOUT] Raw results: 24 sources from 12 query variations (1 providers: arxiv)
+- `22:12:40` **radar** [SCOUT] Relevance filter too strict even at 0.10 (0 results), keeping top 21/21 by score
+- `22:12:40` **radar** [SCOUT] Done in 11429ms: 24 raw â†’ 21 dedup â†’ 21 ranked â†’ 21 saved
+- `22:12:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3214ms | 785+150 tok (92 cache-hit) | $0.0003 | cum≈$2.880
+- `22:12:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 3962ms | 247+206 tok (82 cache-hit) | $0.0003 | cum≈$2.880
+- `22:12:40` **llm** ✅ freepool/cohere/command-a-03-2025 [meta_analysis] | 95359ms | 1039+274 tok | $0.0000 | cum≈$2.880
+- `22:12:40` **radar** [SCOUT] Per-provider results: _unknown=0, federal-register=41
+- `22:12:40` **radar** [SCOUT] Raw results: 41 sources from 12 query variations (1 providers: federal-register)
+- `22:12:40` **radar** [SCOUT] Done in 11110ms: 41 raw â†’ 26 dedup â†’ 3 ranked â†’ 3 saved
+- `22:12:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3015ms | 784+146 tok (92 cache-hit) | $0.0003 | cum≈$2.880
+- `22:13:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 5123ms | 246+290 tok (82 cache-hit) | $0.0004 | cum≈$2.881
+- `22:13:40` **status** [SCOUT] Skipping 7 empty-result providers: crossref, openalex, semanticscholar, pubmed, mega-un, sec-edgar, hdx
+- `22:13:40` **status** [FEED-ENGINE] Host circuit open: www.msf.org (≥2 fails) — skipping for 15min
+- `22:13:40` **radar** [SCOUT] Per-provider results: _unknown=0, imf=48, federal-register=16
+- `22:13:40` **radar** [SCOUT] Raw results: 73 sources from 12 query variations (3 providers: imf, federal-register, isidore)
+- `22:13:40` **radar** [SCOUT] Relevance filter too strict even at 0.10 (0 results), keeping top 25/25 by score
+- `22:13:40` **radar** [SCOUT] Done in 61150ms: 73 raw â†’ 25 dedup â†’ 25 ranked â†’ 25 saved
+- `22:13:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3077ms | 785+147 tok (94 cache-hit) | $0.0003 | cum≈$2.881
+- `22:14:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 5135ms | 247+290 tok (84 cache-hit) | $0.0004 | cum≈$2.881
+- `22:14:40` **status** [SCOUT] Skipping 6 empty-result providers: openalex, semanticscholar, pubmed, federal-register, hdx, crossref
+- `22:14:40` **degraded** [CIRCUIT BREAKER] openalex tripped after 3× 429 — skipping for 80s (trip #6)
+- `22:14:40` **radar** [SCOUT] Done in 8490ms: 0 raw â†’ 0 dedup â†’ 0 ranked â†’ 0 saved
+- `22:14:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3096ms | 787+161 tok (94 cache-hit) | $0.0003 | cum≈$2.882
+- `22:14:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 4303ms | 249+224 tok (84 cache-hit) | $0.0003 | cum≈$2.882
+- `22:14:40` **status** [SCOUT] Skipping 5 empty-result providers: openalex, pubmed, federal-register, hdx, crossref
+- `22:14:40` **radar** [SCOUT] Raw results: 60 sources from 12 query variations (1 providers: imf)
+- `22:14:40` **radar** [SCOUT] Done in 7529ms: 60 raw â†’ 5 dedup â†’ 5 ranked â†’ 5 saved
+- `22:14:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2849ms | 785+144 tok (95 cache-hit) | $0.0003 | cum≈$2.882
+- `22:14:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 3702ms | 247+202 tok (85 cache-hit) | $0.0003 | cum≈$2.882
+- `22:14:40` **status** [SCOUT] Skipping 8 empty-result providers: base, crossref, jstor, openalex, pubmed, political-science, federal-register, hdx
+- `22:14:40` **radar** [SCOUT] Done in 6579ms: 0 raw â†’ 0 dedup â†’ 0 ranked â†’ 0 saved
+- `22:14:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2965ms | 786+149 tok (95 cache-hit) | $0.0003 | cum≈$2.883
+- `22:14:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 4256ms | 248+220 tok (85 cache-hit) | $0.0003 | cum≈$2.883
+- `22:14:40` **status** [SCOUT] Skipping 8 empty-result providers: crossref, internet-archive, jstor, openalex, pubmed, federal-register, hdx, history
+- `22:14:40` **radar** [SCOUT] Raw results: 10 sources from 12 query variations (1 providers: isidore)
+- `22:14:40` **radar** [SCOUT] Done in 8459ms: 10 raw â†’ 8 dedup â†’ 8 ranked â†’ 8 saved
+- `22:14:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3384ms | 788+169 tok (92 cache-hit) | $0.0003 | cum≈$2.883
+- `22:14:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 5255ms | 250+297 tok (82 cache-hit) | $0.0004 | cum≈$2.884
+- `22:14:40` **status** [SCOUT] Skipping 7 empty-result providers: crossref, internet-archive, jstor, openalex, pubmed, political-science, federal-register
+- `22:14:40` **radar** [SCOUT] Per-provider results: arxiv=8, _unknown=0, mit-dspace=9
+- `22:14:40` **radar** [SCOUT] Raw results: 19 sources from 12 query variations (3 providers: arxiv, mit-dspace, isidore)
+- `22:14:40` **radar** [SCOUT] Relevance filter too strict even at 0.10 (1 results), keeping top 14/14 by score
+- `22:14:40` **radar** [SCOUT] Done in 12320ms: 19 raw â†’ 14 dedup â†’ 14 ranked â†’ 14 saved
+- `22:14:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3251ms | 785+163 tok (94 cache-hit) | $0.0003 | cum≈$2.884
+- `22:14:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 5395ms | 247+291 tok (84 cache-hit) | $0.0004 | cum≈$2.884
+- `22:14:40` **status** [SCOUT] Skipping 9 empty-result providers: crossref, internet-archive, jstor, openalex, federal-register, pubmed, mega-eu, eur-lex, history
+- `22:14:40` **radar** [SCOUT] Per-provider results: _unknown=0, ons-uk=24
+- `22:14:40` **radar** [SCOUT] Raw results: 34 sources from 12 query variations (2 providers: ons-uk, isidore)
+- `22:14:40` **radar** [SCOUT] Done in 10480ms: 34 raw â†’ 11 dedup â†’ 11 ranked â†’ 11 saved
+- `22:14:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2738ms | 784+135 tok (92 cache-hit) | $0.0003 | cum≈$2.885
+- `22:14:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 4979ms | 246+287 tok (82 cache-hit) | $0.0004 | cum≈$2.885
+- `22:14:40` **status** [SCOUT] Skipping 8 empty-result providers: crossref, internet-archive, jstor, openalex, pubmed, mega-un, federal-register, hdx
+- `22:14:40` **radar** [SCOUT] Raw results: 1 sources from 12 query variations (1 providers: isidore)
+- `22:14:40` **radar** [SCOUT] Done in 8056ms: 1 raw â†’ 1 dedup â†’ 1 ranked â†’ 1 saved
+- `22:15:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2552ms | 785+149 tok (92 cache-hit) | $0.0003 | cum≈$2.885
+- `22:15:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 3094ms | 247+200 tok (82 cache-hit) | $0.0003 | cum≈$2.886
+- `22:15:40` **status** [SCOUT] Skipping 5 empty-result providers: crossref, openalex, pubmed, federal-register, hdx
+- `22:15:40` **status** [preprints.org] Search failed: HTTP 404 Not Found
+- `22:15:40` **degraded** [CIRCUIT BREAKER] arxiv tripped after 2× 429 — skipping for 30s (trip #2)
+- `22:15:40` **radar** [SCOUT] Per-provider results: _unknown=0, openreview=33, osf=33, arxiv=30, hal=3
+- `22:15:40` **radar** [SCOUT] Raw results: 98 sources from 11 query variations (4 providers: openreview, osf, arxiv, hal)
+- `22:15:40` **degraded** [CIRCUIT BREAKER] crossref tripped after 3× 429 — skipping for 240s (trip #12)
+- `22:15:40` **status** [Unpaywall] Lookup failed for 10.5281/zenodo.8331653: HTTP 404 Not Found
+- `22:15:40` **radar** [SCOUT] Done in 21186ms: 98 raw â†’ 73 dedup â†’ 8 ranked â†’ 8 saved
+- `22:15:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2963ms | 785+143 tok (92 cache-hit) | $0.0003 | cum≈$2.886
+- `22:15:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 5528ms | 247+305 tok (82 cache-hit) | $0.0004 | cum≈$2.886
+- `22:15:40` **status** [SCOUT] Skipping 7 empty-result providers: crossref, hal, openalex, pubmed, semanticscholar, mega-un, federal-register
+- `22:15:40` **status** [arXiv] Search failed: Circuit breaker tripped for arxiv — skipping queued call
+- `22:15:40` **degraded** [arXiv] Search failed: Circuit breaker tripped for arxiv — skipping queued call
+- `22:15:40` **degraded** [CIRCUIT BREAKER] openalex tripped after 3× 429 — skipping for 80s (trip #7)
+- `22:15:40` **radar** [SCOUT] Per-provider results: _unknown=0, openreview=12
+- `22:15:40` **radar** [SCOUT] Raw results: 12 sources from 12 query variations (1 providers: openreview)
+- `22:15:40` **radar** [SCOUT] Done in 10667ms: 12 raw â†’ 7 dedup â†’ 7 ranked â†’ 7 saved
+- `22:15:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2761ms | 786+158 tok (92 cache-hit) | $0.0003 | cum≈$2.887
+- `22:15:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 4832ms | 248+306 tok (82 cache-hit) | $0.0004 | cum≈$2.887
+- `22:15:40` **status** [SCOUT] Skipping 6 empty-result providers: arxiv, crossref, hal, openalex, pubmed, federal-register
+- `22:15:40` **radar** [SCOUT] Done in 7891ms: 0 raw â†’ 0 dedup â†’ 0 ranked â†’ 0 saved
+- `22:15:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2754ms | 784+153 tok (92 cache-hit) | $0.0003 | cum≈$2.887
+- `22:15:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 3558ms | 246+195 tok (82 cache-hit) | $0.0003 | cum≈$2.888
+- `22:15:40` **status** [SCOUT] Skipping 9 empty-result providers: arxiv, crossref, hal, openalex, openreview, pubmed, political-science, federal-register, hdx
+- `22:15:40` **radar** [SCOUT] Per-provider results: _unknown=0, ilostat=6
+- `22:15:40` **radar** [SCOUT] Raw results: 8 sources from 12 query variations (2 providers: ilostat, isidore)
+- `22:15:40` **radar** [SCOUT] Done in 6786ms: 8 raw â†’ 7 dedup â†’ 7 ranked â†’ 7 saved
+- `22:15:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2583ms | 784+149 tok (92 cache-hit) | $0.0003 | cum≈$2.888
+- `22:15:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 4465ms | 246+260 tok (82 cache-hit) | $0.0003 | cum≈$2.888
+- `22:15:40` **status** [SCOUT] Skipping 6 empty-result providers: crossref, hal, openalex, pubmed, federal-register, hdx
+- `22:16:40` **radar** [SCOUT] Per-provider results: _unknown=0, bbc=5, emergingeurope=6, guardian=2
+- `22:16:40` **radar** [SCOUT] Raw results: 13 sources from 12 query variations (3 providers: bbc, emergingeurope, guardian)
+- `22:16:40` **radar** [SCOUT] Done in 61420ms: 13 raw â†’ 10 dedup â†’ 10 ranked â†’ 10 saved
+- `22:16:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2936ms | 784+139 tok (92 cache-hit) | $0.0003 | cum≈$2.889
+- `22:16:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 3895ms | 246+195 tok (82 cache-hit) | $0.0003 | cum≈$2.889
+- `22:16:40` **degraded** [CIRCUIT BREAKER] openalex tripped after 3× 429 — skipping for 80s (trip #8)
+- `22:16:40` **status** [WHO-GHO] Search failed: Circuit breaker tripped for openalex
+- `22:16:40` **degraded** [WHO-GHO] Search failed: Circuit breaker tripped for openalex
+- `22:16:40` **status** [OpenAlex] Search failed: Circuit breaker tripped for openalex (80s remaining)
+- `22:16:40` **degraded** [OpenAlex] Search failed: Circuit breaker tripped for openalex (80s remaining)
+- `22:16:40` **status** [WHO-GHO] Search failed: Circuit breaker tripped for openalex (80s remaining)
+- `22:16:40` **degraded** [WHO-GHO] Search failed: Circuit breaker tripped for openalex (80s remaining)
+- `22:16:40` **status** [WHO-IRIS] Failed: HTTP 403 Forbidden
+- `22:16:40` **radar** [SCOUT] Done in 9335ms: 0 raw â†’ 0 dedup â†’ 0 ranked â†’ 0 saved
+- `22:16:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3046ms | 785+143 tok (95 cache-hit) | $0.0003 | cum≈$2.889
+- `22:17:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 3930ms | 247+203 tok (85 cache-hit) | $0.0003 | cum≈$2.890
+- `22:17:40` **status** [SCOUT] Skipping 7 empty-result providers: crossref, hal, openalex, pubmed, mega-thinktanks, federal-register, hdx
+- `22:17:40` **status** [JINA-SEARCH] failed: Circuit breaker tripped for jina-search — skipping queued call
+- `22:17:40` **degraded** [JINA-SEARCH] failed: Circuit breaker tripped for jina-search — skipping queued call
+- `22:17:40` **radar** [SCOUT] Done in 7065ms: 0 raw â†’ 0 dedup â†’ 0 ranked â†’ 0 saved
+- `22:17:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2974ms | 785+149 tok (92 cache-hit) | $0.0003 | cum≈$2.890
+- `22:17:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 4502ms | 247+266 tok (82 cache-hit) | $0.0003 | cum≈$2.890
+- `22:17:40` **status** [SCOUT] Skipping 7 empty-result providers: crossref, hal, openalex, pubmed, mega-un, federal-register, hdx
+- `22:17:40` **radar** [SCOUT] Done in 7512ms: 0 raw â†’ 0 dedup â†’ 0 ranked â†’ 0 saved
+- `22:17:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3068ms | 789+151 tok (91 cache-hit) | $0.0003 | cum≈$2.890
+- `22:17:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 4006ms | 252+208 tok (82 cache-hit) | $0.0003 | cum≈$2.891
+- `22:17:40` **status** [SCOUT] Skipping 9 empty-result providers: crossref, hal, openalex, pubmed, mega-eu, federal-register, eur-lex, sec-edgar, data-europa
+- `22:17:40` **radar** [SCOUT] Done in 7105ms: 0 raw â†’ 0 dedup â†’ 0 ranked â†’ 0 saved
+- `22:17:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2865ms | 784+145 tok (92 cache-hit) | $0.0003 | cum≈$2.891
+- `22:17:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 3813ms | 246+198 tok (82 cache-hit) | $0.0003 | cum≈$2.891
+- `22:17:40` **status** [SCOUT] Skipping 9 empty-result providers: crossref, hal, jstor, openalex, persee, pubmed, mega-un, federal-register, hdx
+- `22:17:40` **radar** [SCOUT] Done in 6728ms: 0 raw â†’ 0 dedup â†’ 0 ranked â†’ 0 saved
+- `22:17:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2888ms | 786+143 tok (92 cache-hit) | $0.0003 | cum≈$2.892
+- `22:17:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 3482ms | 248+186 tok (82 cache-hit) | $0.0003 | cum≈$2.892
+- `22:17:40` **status** [SCOUT] Skipping 7 empty-result providers: crossref, hal, jstor, openalex, persee, pubmed, federal-register
+- `22:17:40` **status** [WIKIDATA] failed: HTTP 429 Too Many Requests (Retry-After 49s exceeds cap)
+- `22:17:40` **radar** [SCOUT] Done in 7260ms: 0 raw â†’ 0 dedup â†’ 0 ranked â†’ 0 saved
+- `22:17:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2795ms | 784+147 tok (95 cache-hit) | $0.0003 | cum≈$2.892
+- `22:17:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 3422ms | 246+199 tok (85 cache-hit) | $0.0003 | cum≈$2.893
+- `22:17:40` **status** [SCOUT] Skipping 8 empty-result providers: crossref, hal, jstor, openalex, persee, pubmed, federal-register, hdx
+- `22:17:40` **radar** [SCOUT] Raw results: 0 sources from 10 query variations (0 providers: )
+- `22:17:40` **radar** [SCOUT] Done in 6285ms: 0 raw â†’ 0 dedup â†’ 0 ranked â†’ 0 saved
+- `22:17:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2649ms | 784+135 tok (92 cache-hit) | $0.0003 | cum≈$2.893
+- `22:17:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 3853ms | 246+200 tok (82 cache-hit) | $0.0003 | cum≈$2.893
+- `22:17:40` **status** [SCOUT] Skipping 8 empty-result providers: crossref, hal, jstor, openalex, persee, pubmed, mega-un, federal-register
+- `22:17:40` **radar** [SCOUT] Per-provider results: _unknown=0, ilostat=2
+- `22:17:40` **radar** [SCOUT] Raw results: 3 sources from 12 query variations (2 providers: ilostat, isidore)
+- `22:17:40` **radar** [SCOUT] Done in 6799ms: 3 raw â†’ 3 dedup â†’ 3 ranked â†’ 3 saved
+- `22:17:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3216ms | 788+168 tok (92 cache-hit) | $0.0003 | cum≈$2.893
+- `22:17:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 3785ms | 250+204 tok (82 cache-hit) | $0.0003 | cum≈$2.894
+- `22:17:40` **status** [SCOUT] Skipping 12 empty-result providers: crossref, hal, jstor, openalex, persee, pubmed, mega-eu, federal-register, eur-lex, mega-development, data-europa, hdx
+- `22:17:40` **radar** [SCOUT] Raw results: 26 sources from 12 query variations (2 providers: imf, isidore)
+- `22:17:40` **radar** [SCOUT] Done in 7480ms: 26 raw â†’ 4 dedup â†’ 4 ranked â†’ 4 saved
+- `22:17:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2940ms | 784+146 tok (95 cache-hit) | $0.0003 | cum≈$2.894
+- `22:17:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 3520ms | 246+196 tok (85 cache-hit) | $0.0003 | cum≈$2.894
+- `22:17:40` **status** [SCOUT] Skipping 8 empty-result providers: crossref, hal, internet-archive, openalex, pubmed, federal-register, mega-development, hdx
+- `22:18:40` **status** [HTTP] Retry 1/2 after 1091ms: fetch failed
+- `22:18:40` **status** [HTTP] Retry 1/2 after 1177ms: fetch failed
+- `22:18:40` **status** [HTTP] Retry 1/2 after 1063ms: fetch failed
+- `22:18:40` **status** [HTTP] Retry 2/2 after 2238ms: fetch failed
+- `22:18:40` **status** [HTTP] Retry 2/2 after 2094ms: fetch failed
+- `22:18:40` **status** [HTTP] Retry 2/2 after 2021ms: fetch failed
+- `22:18:40` **status** [SCOUT/Acrimed] Error: fetch failed
+- `22:18:40` **status** [HTTP] Retry 1/2 after 1081ms: fetch failed
+- `22:18:40` **status** [SCOUT/Africa Is a Country] Error: fetch failed
+- `22:18:40` **status** [SCOUT/RT Arabic] Error: fetch failed
+- `22:18:40` **status** [HTTP] Retry 2/2 after 2138ms: fetch failed
+- `22:18:40` **radar** [SCOUT] Per-provider results: _unknown=0, imf=24, independent-media=24
+- `22:18:40` **degraded** [CIRCUIT BREAKER] openalex tripped after 3× 429 — skipping for 80s (trip #9)
+- `22:18:40` **radar** [SCOUT] Raw results: 50 sources from 12 query variations (3 providers: imf, independent-media, isidore)
+- `22:18:40` **radar** [SCOUT] Relevance filter too strict even at 0.10 (0 results), keeping top 16/16 by score
+- `22:18:40` **radar** [SCOUT] Done in 42376ms: 50 raw â†’ 16 dedup â†’ 16 ranked â†’ 16 saved
+- `22:18:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2638ms | 786+148 tok (92 cache-hit) | $0.0003 | cum≈$2.895
+- `22:18:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 3522ms | 248+198 tok (82 cache-hit) | $0.0003 | cum≈$2.895
+- `22:18:40` **status** [SCOUT] Skipping 8 empty-result providers: crossref, hal, internet-archive, openalex, pubmed, arxiv, mega-un, federal-register
+- `22:18:40` **radar** [SCOUT] Per-provider results: _unknown=0, mit-dspace=24
+- `22:18:40` **radar** [SCOUT] Raw results: 24 sources from 12 query variations (1 providers: mit-dspace)
+- `22:18:40` **radar** [SCOUT] Relevance filter too strict even at 0.10 (0 results), keeping top 22/22 by score
+- `22:18:40` **radar** [SCOUT] Done in 7201ms: 24 raw â†’ 22 dedup â†’ 22 ranked â†’ 22 saved
+- `22:18:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3138ms | 784+144 tok (91 cache-hit) | $0.0003 | cum≈$2.895
+- `22:18:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 5264ms | 246+270 tok (82 cache-hit) | $0.0003 | cum≈$2.896
+- `22:18:40` **status** [SCOUT] Skipping 6 empty-result providers: crossref, hal, internet-archive, openalex, pubmed, federal-register
+- `22:18:40` **radar** [SCOUT] Done in 8450ms: 0 raw â†’ 0 dedup â†’ 0 ranked â†’ 0 saved
+- `22:18:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3065ms | 784+149 tok (92 cache-hit) | $0.0003 | cum≈$2.896
+- `22:18:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 3990ms | 246+206 tok (82 cache-hit) | $0.0003 | cum≈$2.896
+- `22:18:40` **status** [SCOUT] Skipping 8 empty-result providers: crossref, hal, internet-archive, openalex, pubmed, mega-un, federal-register, hdx
+- `22:18:40` **radar** [SCOUT] Done in 7120ms: 0 raw â†’ 0 dedup â†’ 0 ranked â†’ 0 saved
+- `22:19:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3029ms | 783+146 tok (91 cache-hit) | $0.0003 | cum≈$2.896
+- `22:19:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 5148ms | 246+266 tok (82 cache-hit) | $0.0003 | cum≈$2.897
+- `22:19:40` **status** [SCOUT] Skipping 9 empty-result providers: crossref, hal, internet-archive, openalex, pubmed, mega-un, federal-register, hdx, jina-search
+- `22:19:40` **radar** [SCOUT] Per-provider results: _unknown=0, osm-taginfo=12
+- `22:19:40` **radar** [SCOUT] Raw results: 12 sources from 12 query variations (1 providers: osm-taginfo)
+- `22:19:40` **radar** [SCOUT] Done in 8489ms: 12 raw â†’ 2 dedup â†’ 2 ranked â†’ 2 saved
+- `22:19:40` **radar** [IntelligentScout] Done: 157 sources, diversity=90%, consensus=100%, scenarioRichness=48%, 438002ms
+- `22:19:40` **pipeline** [Pipeline] INTELLIGENT SCOUT: +150 eclectic sources (157 from 9 lenses, diversity=90%, scenarioRichness=48%)
+- `22:19:40` **pipeline** [Pipeline] INTELLIGENT SCOUT lenses: core(81), contrarian(0), cross_domain(0), historical(14), weak_signal(19), scenario(1), provocative(10), ontological(0), dissident(32)
+- `22:19:40` **pipeline** [Pipeline] INDEX: 246 sources
+- `22:19:40` **pipeline** [Pipeline] EMBED: 194 new, 52 cached
+- `22:19:40` **pipeline** [Pipeline] RANK: scoring candidates from 246 SCOUT sources (ceiling 100)
+- `22:19:40` **status** [ENHANCED RANK] T8: 16 load-bearing sources (full-text), 25 abstract, 10 skip
+- `22:19:40` **pipeline** [Pipeline] PERTINENCE SELECTION: kept 51/51 candidates (bar=55.0, top=100.0, cutoff score=100.0)
+- `22:19:40` **pipeline** [Pipeline] SOURCE QUALITY: re-ranked 51 by composite (relevance 60% + quality 40%)
+- `22:19:40` **pipeline** [Pipeline] QUALITY TAIL TRIM: dropped 22 sources <40/100 quality — 29 remain (avg improves)
+- `22:19:40` **llm** ✅ glm/glm-4.5-air [topic_classification] | 4214ms | 1617+217 tok (66 cache-hit) | $0.0006 | cum≈$2.897
+- `22:19:40` **pipeline** [Pipeline] RELEVANCE SCREEN: dropped 22 off-topic sources — 7 proceed to reader
+- `22:19:40` **llm** ✅ glm/glm-4.5-air [enrichment_reasoner] | 7447ms | 1074+351 tok (66 cache-hit) | $0.0006 | cum≈$2.898
+- `22:19:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3224ms | 786+148 tok (92 cache-hit) | $0.0003 | cum≈$2.898
+- `22:19:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3272ms | 786+152 tok (91 cache-hit) | $0.0003 | cum≈$2.899
+- `22:19:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3490ms | 789+165 tok (92 cache-hit) | $0.0003 | cum≈$2.899
+- `22:19:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 3775ms | 248+191 tok (82 cache-hit) | $0.0003 | cum≈$2.899
+- `22:19:40` **status** [SCOUT] Skipping 7 empty-result providers: arxiv, openreview, pubmed, federal-register, hdx, openalex, crossref
+- `22:19:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 4008ms | 249+198 tok (82 cache-hit) | $0.0003 | cum≈$2.899
+- `22:19:40` **status** [SCOUT] Skipping 7 empty-result providers: arxiv, openreview, openalex, crossref, pubmed, mega-un, political-science
+- `22:19:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 5364ms | 251+288 tok (82 cache-hit) | $0.0004 | cum≈$2.900
+- `22:19:40` **status** [SCOUT] Skipping 9 empty-result providers: arxiv, consolidated-institutions, openreview, pubmed, mega-thinktanks, federal-register, openalex, jina-search, crossref
+- `22:19:40` **fatal** [GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: ""informal sector workplace fatalities" AND "regulatory captu..."
+- `22:19:40` **fatal** [GLOBAL-ORGS] Searching 25 international org feeds for: ""informal sector workplace fatalities" AND "regulatory captu..."
+- `22:19:40` **fatal** [GLOBAL-THINKTANKS] Searching 75 think tank feeds for: ""informal sector workplace fatalities" AND "regulatory captu..."
+- `22:19:40` **fatal** [GLOBAL-SCIENCE] Searching 21 science/tech feeds for: ""informal sector workplace fatalities" AND "regulatory captu..."
+- `22:19:40` **fatal** [bioRxiv] Searching for: ""informal sector workplace fatalities" AND "regulatory capture" AND developing economies"
+- `22:19:40` **fatal** [MIT-DSpace] Searching for: ""informal sector workplace fatalities" AND "regulatory capture" AND developing economies"
+- `22:21:40` **status** [GLOBAL-INTELLIGENCE] Feed ctbto failed: HTTP 429 Too Many Requests
+- `22:21:40` **degraded** [CIRCUIT BREAKER] gdelt-news tripped after 4 consecutive dead calls — skipping for 360s (trip #5)
+- `22:21:40` **status** [GLOBAL-ORGS] Feed wipo failed: HTTP 429 Too Many Requests
+- `22:21:40` **radar** [SCOUT] gdelt-news: call deadline 90s exceeded — dropping results
+- `22:21:40` **radar** [SCOUT] Per-provider results: _unknown=0, who=12, amnesty=80, nasa=19, biorxiv=133, mit-dspace=180, springer=20, hf-papers=53, bellingcat=1, newsapi=1, hrw=160
+- `22:21:40` **radar** [SCOUT] Raw results: 657 sources from 12 query variations (42 providers: who, amnesty, hrw, foreign-affairs, atlantic-council, crisis-group, heritage, gmf, aspen, csis, aei, freedom-house, foreign-pol
+- `22:21:40` **radar** [SCOUT] Per-provider results: _unknown=0, who=3, amnesty=200, nasa=6, biorxiv=123, mit-dspace=180, hrw=40
+- `22:21:40` **radar** [SCOUT] Raw results: 547 sources from 12 query variations (41 providers: who, amnesty, hrw, atlantic-council, crisis-group, heritage, gmf, aspen, csis, hoover, aei, freedom-house, stimson, economist, 
+- `22:21:40` **radar** [SCOUT] Per-provider results: _unknown=0, hrw=220, biorxiv=120, mit-dspace=60
+- `22:21:40` **radar** [SCOUT] Raw results: 399 sources from 12 query variations (32 providers: hrw, atlantic-council, crisis-group, heritage, gmf, aspen, csis, aei, clingendael, freedom-house, stimson, foreign-policy, econ
+- `22:21:40` **status** [GLOBAL-INTELLIGENCE] Feed gchq failed: HTTP 429 Too Many Requests
+- `22:21:40` **status** [GLOBAL-ORGS] Feed unhcr failed: HTTP 429 Too Many Requests
+- `22:26:40` **status** [GLOBAL-ORGS] Feed ilo failed: HTTP 429 Too Many Requests
+- `22:26:40` **status** [GLOBAL-SCIENCE] Feed acm failed: HTTP 429 Too Many Requests
+- `22:26:40` **status** [GLOBAL-ORGS] Feed iom failed: HTTP 429 Too Many Requests
+- `22:30:40` **degraded** [CIRCUIT BREAKER] crossref tripped after 3× 429 — skipping for 240s (trip #13)
+- `22:30:40` **status** [SCOUT/Springer] Crossref fallback also failed: Circuit breaker tripped for crossref (239s remaining)
+- `22:30:40` **degraded** [SCOUT/Springer] Crossref fallback also failed: Circuit breaker tripped for crossref (239s remaining)
+- `22:30:40` **status** [SCOUT/Springer] Crossref fallback also failed: Circuit breaker tripped for crossref (238s remaining)
+- `22:30:40` **degraded** [SCOUT/Springer] Crossref fallback also failed: Circuit breaker tripped for crossref (238s remaining)
+- `22:30:40` **status** [SCOUT/Springer] Crossref fallback also failed: Circuit breaker tripped for crossref (237s remaining)
+- `22:30:40` **degraded** [SCOUT/Springer] Crossref fallback also failed: Circuit breaker tripped for crossref (237s remaining)
+- `22:30:40` **status** [SCOUT/Springer] Crossref fallback also failed: Circuit breaker tripped for crossref (236s remaining)
+- `22:30:40` **degraded** [SCOUT/Springer] Crossref fallback also failed: Circuit breaker tripped for crossref (236s remaining)
+- `22:30:40` **status** [SCOUT/Springer] Crossref fallback also failed: Circuit breaker tripped for crossref (235s remaining)
+- `22:30:40` **degraded** [SCOUT/Springer] Crossref fallback also failed: Circuit breaker tripped for crossref (235s remaining)
+- `22:30:40` **status** [SCOUT/Springer] Crossref fallback also failed: Circuit breaker tripped for crossref (234s remaining)
+- `22:30:40` **degraded** [SCOUT/Springer] Crossref fallback also failed: Circuit breaker tripped for crossref (234s remaining)
+- `22:30:40` **status** [SCOUT/Springer] Crossref fallback also failed: Circuit breaker tripped for crossref (233s remaining)
+- `22:30:40` **degraded** [SCOUT/Springer] Crossref fallback also failed: Circuit breaker tripped for crossref (233s remaining)
+- `22:30:40` **degraded** [CIRCUIT BREAKER] newsapi tripped after 2× 429 — skipping for 60s (trip #1)
+- `22:30:40` **degraded** [SCOUT/NewsAPI] GET error: Circuit breaker tripped for newsapi
+- `22:30:40` **status** [SCOUT/Springer] Crossref fallback also failed: Circuit breaker tripped for crossref (232s remaining)
+- `22:30:40` **degraded** [SCOUT/Springer] Crossref fallback also failed: Circuit breaker tripped for crossref (232s remaining)
+- `22:30:40` **degraded** [SCOUT/NewsAPI] GET error: Circuit breaker tripped for newsapi (60s remaining)
+- `22:30:40` **status** [SCOUT/Springer] Crossref fallback also failed: Circuit breaker tripped for crossref (231s remaining)
+- `22:30:40` **degraded** [SCOUT/Springer] Crossref fallback also failed: Circuit breaker tripped for crossref (231s remaining)
+- `22:30:40` **degraded** [SCOUT/NewsAPI] GET error: Circuit breaker tripped for newsapi (58s remaining)
+- `22:30:40` **status** [SCOUT/Springer] Crossref fallback also failed: Circuit breaker tripped for crossref (229s remaining)
+- `22:30:40` **degraded** [SCOUT/Springer] Crossref fallback also failed: Circuit breaker tripped for crossref (229s remaining)
+- `22:30:40` **degraded** [SCOUT/NewsAPI] GET error: Circuit breaker tripped for newsapi (56s remaining)
+- `22:30:40` **status** [SCOUT/Springer] Crossref fallback also failed: Circuit breaker tripped for crossref (227s remaining)
+- `22:30:40` **degraded** [SCOUT/Springer] Crossref fallback also failed: Circuit breaker tripped for crossref (227s remaining)
+- `22:30:40` **degraded** [SCOUT/NewsAPI] GET error: Circuit breaker tripped for newsapi (54s remaining)
+- `22:30:40` **status** [SCOUT/Springer] Crossref fallback also failed: Circuit breaker tripped for crossref (225s remaining)
+- `22:30:40` **degraded** [SCOUT/Springer] Crossref fallback also failed: Circuit breaker tripped for crossref (225s remaining)
+- `22:30:40` **degraded** [SCOUT/NewsAPI] GET error: Circuit breaker tripped for newsapi (53s remaining)
+- `22:30:40` **degraded** [CIRCUIT BREAKER] gdelt-news tripped after 4 consecutive dead calls — skipping for 360s (trip #6)
+- `22:30:40` **degraded** [SCOUT/GDELT] Error: Circuit breaker tripped for gdelt-news (360s remaining)
+- `22:30:40` **status** [SCOUT/Springer] Crossref fallback also failed: Circuit breaker tripped for crossref (223s remaining)
+- `22:30:40` **degraded** [SCOUT/Springer] Crossref fallback also failed: Circuit breaker tripped for crossref (223s remaining)
+- `22:30:40` **radar** [SCOUT] Relevance filter too strict even at 0.10 (0 results), keeping top 50/159 by score
+- `22:30:40` **radar** [SCOUT] Relevance filter too strict even at 0.10 (0 results), keeping top 50/323 by score
+- `22:30:40` **radar** [SCOUT] Done in 652519ms: 399 raw â†’ 159 dedup â†’ 50 ranked â†’ 50 saved
+- `22:30:40` **radar** [SCOUT] Done in 652747ms: 547 raw â†’ 323 dedup â†’ 50 ranked â†’ 50 saved
+- `22:30:40` **radar** [SCOUT] Relevance filter too strict even at 0.10 (0 results), keeping top 50/373 by score
+- `22:30:40` **radar** [SCOUT] Done in 654385ms: 657 raw â†’ 373 dedup â†’ 50 ranked â†’ 50 saved
+- `22:30:40` **pipeline** [Pipeline] ENRICHMENT: +95 new sources from targeted queries — re-ranking
+- `22:30:40` **status** [ENHANCED RANK] T8: 17 load-bearing sources (full-text), 28 abstract, 11 skip
+- `22:30:40` **status** [ENHANCED RANK] T8: 18 load-bearing sources (full-text), 29 abstract, 11 skip
+- `22:30:40` **pipeline** [Pipeline] SNOWBALL: +8 sources via citation traversal (1 seeds, 8 candidates)
+- `22:30:40` **llm** ✅ glm/glm-4.5-air [topic_classification] | 5531ms | 2040+280 tok (162 cache-hit) | $0.0007 | cum≈$2.901
+- `22:30:40` **pipeline** [Pipeline] LATE RELEVANCE SCREEN: dropped 24/38 low-relevance late additions — 20 proceed to reader
+- `22:30:40` **llm** ✅ glm/glm-4.5-air [topic_classification] | 5914ms | 5239+260 tok (65 cache-hit) | $0.0013 | cum≈$2.902
+- `22:30:40` **pipeline** [Pipeline] FOUNDATIONAL INJECTION: prepared 3 seminal works from policy KB (will inject after rank)
+- `22:30:40` **pipeline** [Pipeline] FOUNDATIONAL INJECTION: +3 seminal works injected into topSources (now 23 total)
+- `22:30:40` **pipeline** [Pipeline] DOMAIN: policy (confidence: 0.9, cross=true)
+- `22:30:40` **pipeline** [Pipeline] COLLISION: Regulatory Frameworks × Institutional Capacity × Accountability Mechanisms
+- `22:30:40` **pipeline** [Pipeline] COMPLEXITY GATE: meta-analysis skipped (domain "policy" not quantitative-study oriented)
+- `22:30:40` **status** [Pipeline] COMPLEXITY GATE: meta-analysis skipped (domain "policy" not quantitative-study oriented)
+- `22:30:40` **llm** ✅ glm/glm-4.5-air [casting] | 5102ms | 407+261 tok (67 cache-hit) | $0.0004 | cum≈$2.902
+- `22:30:40` **pipeline** [Pipeline] CASTING: 3 lenses — Regulatory Frameworks × Institutional Capacity × Accountability Mechanisms collision on how governance failures enable industrial disasters in developing economies
+- `22:30:40` **pipeline** [Pipeline] LAS GATE: pool=23, providers=8, debate=true, meta=false, DA=true, foresight_eligible=true
+- `22:30:40` **pipeline** [Pipeline] BRANCH COVERAGE: 0 strong, 3 weak, 3 unsupported
+- `22:30:40` **pipeline** [Pipeline] REFUSAL: corpus_core_evidence_pre_reader: 7 core sources (need 8), 23 ranked sources (need 8) — refusing before reader spend
+- `22:30:40` **status** [Langfuse] Score flush error: Error: runAndPublishInquiry scope closed
+- `22:31:40` **status** [ThinkTank] SKIPPED low-surface topic (1 relevant hits < 4): "How do climate-induced environmental disasters intersect with political conflict"
+- `22:31:40` **degraded** [CIRCUIT BREAKER] openalex tripped after 3× 429 — skipping for 80s (trip #10)
+- `22:31:40` **status** [ThinkTank] SKIPPED low-surface topic (3 relevant hits < 4): "How do institutional power dynamics and regulatory failures enable abuse in psyc"
+- `22:31:40` **status** [PROVIDER HEALTH] Skipping 21 unhealthy providers: crossref, openalex, consolidated-institutions, core, eur-lex, dimensions, lens, google-books, data-europa, gdelt-news, newsapi, global-intelligence, global-orgs, global-science, tavily, exa, linkup, mega-eu, mega-un, mega-thinktanks, jstor
+- `22:31:40` **pipeline** [Pipeline] PROVIDER HEALTH: 21 providers skipped (circuit open)
+- `22:31:40` **status** [Pipeline] PROVIDER HEALTH: 21 providers skipped (circuit open)
+- `22:31:40` **pipeline** [Pipeline] COMPLEXITY ROUTING: moderate query (score=3) — 4 providers, 50/provider
+- `22:31:40` **pipeline** [Pipeline] SCOUT: query="How does the rise of far-right parties in Southern Europe challenge the traditional left-right political paradigm and what are the implications for European integration?" (4 providers, 50/provider)
+- `22:31:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 7036ms | 480+362 tok (67 cache-hit) | $0.0005 | cum≈$2.905
+- `22:31:40` **llm** ✅ freepool/cohere/command-a-03-2025 [meta_analysis] | 4439ms | 980+265 tok | $0.0000 | cum≈$2.905
+- `22:31:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3408ms | 789+146 tok (94 cache-hit) | $0.0003 | cum≈$2.905
+- `22:31:40` **radar** [SCOUT] Done in 3416ms: 0 raw â†’ 0 dedup â†’ 0 ranked â†’ 0 saved
+- `22:31:40` **pipeline** [Pipeline] DEEP PLANNER: node n5 "What are the implications of far-right influence on European" → 0 sources
+- `22:31:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3424ms | 788+147 tok (92 cache-hit) | $0.0003 | cum≈$2.905
+- `22:31:40` **radar** [SCOUT] Done in 3427ms: 0 raw â†’ 0 dedup â†’ 0 ranked â†’ 0 saved
+- `22:31:40` **pipeline** [Pipeline] DEEP PLANNER: node n3 "What mechanisms explain the rise of far-right parties in Sou" → 0 sources
+- `22:31:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3439ms | 790+148 tok (91 cache-hit) | $0.0003 | cum≈$2.906
+- `22:31:40` **radar** [SCOUT] Done in 3443ms: 0 raw â†’ 0 dedup â†’ 0 ranked â†’ 0 saved
+- `22:31:40` **pipeline** [Pipeline] DEEP PLANNER: node n4 "How do far-right parties in Southern Europe position themsel" → 0 sources
+- `22:31:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3682ms | 794+163 tok (94 cache-hit) | $0.0003 | cum≈$2.906
+- `22:31:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3884ms | 791+177 tok (91 cache-hit) | $0.0004 | cum≈$2.906
+- `22:31:40` **radar** [SCOUT] Raw results: 10 sources from 3 query variations (1 providers: isidore)
+- `22:31:40` **radar** [SCOUT] Done in 4334ms: 10 raw â†’ 9 dedup â†’ 9 ranked â†’ 9 saved
+- `22:31:40` **pipeline** [Pipeline] DEEP PLANNER: node n1 "What are the key ideological differences between traditional" → 9 sources
+- `22:31:40` **radar** [SCOUT] Done in 4856ms: 0 raw â†’ 0 dedup â†’ 0 ranked â†’ 0 saved
+- `22:31:40` **pipeline** [Pipeline] DEEP PLANNER: node n2 "How have far-right parties in Southern Europe gained elector" → 0 sources
+- `22:31:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3723ms | 797+151 tok (104 cache-hit) | $0.0003 | cum≈$2.907
+- `22:31:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3727ms | 794+151 tok (105 cache-hit) | $0.0003 | cum≈$2.907
+- `22:31:40` **radar** [SCOUT] Done in 3731ms: 0 raw â†’ 0 dedup â†’ 0 ranked â†’ 0 saved
+- `22:31:40` **radar** [SCOUT] Done in 3732ms: 0 raw â†’ 0 dedup â†’ 0 ranked â†’ 0 saved
+- `22:31:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3862ms | 796+158 tok (103 cache-hit) | $0.0003 | cum≈$2.907
+- `22:31:40` **radar** [SCOUT] Done in 3870ms: 0 raw â†’ 0 dedup â†’ 0 ranked â†’ 0 saved
+- `22:31:40` **pipeline** [Pipeline] DEEP PLANNER: node n3 expanded → +0 sources
+- `22:31:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3415ms | 460+170 tok (68 cache-hit) | $0.0003 | cum≈$2.907
+- `22:31:40` **pipeline** [Pipeline] DEEP PLANNER REPLAN: 3 follow-up nodes for 4 thin/failed
+- `22:31:40` **status** [Pipeline] DEEP PLANNER REPLAN: 3 follow-up nodes for 4 thin/failed
+- `22:31:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3692ms | 802+174 tok (92 cache-hit) | $0.0004 | cum≈$2.908
+- `22:31:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3708ms | 802+175 tok (99 cache-hit) | $0.0004 | cum≈$2.908
+- `22:31:40` **radar** [SCOUT] Done in 3711ms: 0 raw â†’ 0 dedup â†’ 0 ranked â†’ 0 saved
+- `22:31:40` **pipeline** [Pipeline] DEEP PLANNER REPLAN: r7 "How do far-right parties in Southern Europe frame their posi" → 0 sources
+- `22:31:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3747ms | 798+178 tok (92 cache-hit) | $0.0004 | cum≈$2.909
+- `22:31:40` **radar** [SCOUT] Done in 3757ms: 0 raw â†’ 0 dedup â†’ 0 ranked â†’ 0 saved
+- `22:31:40` **pipeline** [Pipeline] DEEP PLANNER REPLAN: r6 "What specific socio-economic factors correlate with the elec" → 0 sources
+- `22:31:40` **degraded** [CIRCUIT BREAKER] semanticscholar tripped after 1× 429 — skipping for 960s (trip #8)
+- `22:31:40` **radar** [SCOUT] Raw results: 6 sources from 3 query variations (1 providers: isidore)
+- `22:31:40` **radar** [SCOUT] Done in 4259ms: 6 raw â†’ 5 dedup â†’ 5 ranked â†’ 5 saved
+- `22:31:40` **pipeline** [Pipeline] DEEP PLANNER REPLAN: r8 "What concrete policy changes have been implemented in Southe" → 5 sources
+- `22:32:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 18251ms | 2173+1105 tok (320 cache-hit) | $0.0017 | cum≈$2.910
+- `22:32:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3173ms | 790+155 tok (91 cache-hit) | $0.0003 | cum≈$2.911
+- `22:32:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 5929ms | 252+333 tok (82 cache-hit) | $0.0004 | cum≈$2.911
+- `22:32:40` **status** [SCOUT] Skipping 8 empty-result providers: crossref, openalex, semanticscholar, mega-eu, eur-lex, data-europa, europepmc, eurostat
+- `22:32:40` **status** [SBDB] failed: HTTP 400 Bad Request
+- `22:32:40` **radar** [SCOUT] Per-provider results: _unknown=0, frankfurter=11
+- `22:32:40` **radar** [SCOUT] Raw results: 11 sources from 12 query variations (1 providers: frankfurter)
+- `22:32:40` **radar** [SCOUT] Done in 10314ms: 11 raw â†’ 1 dedup â†’ 1 ranked â†’ 1 saved
+- `22:32:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2971ms | 784+144 tok (92 cache-hit) | $0.0003 | cum≈$2.911
+- `22:32:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 5786ms | 246+322 tok (82 cache-hit) | $0.0004 | cum≈$2.912
+- `22:32:40` **radar** [SCOUT] Per-provider results: _unknown=0, frankfurter=11, ons-uk=48
+- `22:32:40` **radar** [SCOUT] Raw results: 59 sources from 12 query variations (2 providers: frankfurter, ons-uk)
+- `22:32:40` **radar** [SCOUT] Done in 9196ms: 59 raw â†’ 5 dedup â†’ 5 ranked â†’ 5 saved
+- `22:32:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2757ms | 785+139 tok (92 cache-hit) | $0.0003 | cum≈$2.912
+- `22:32:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 4175ms | 247+264 tok (82 cache-hit) | $0.0003 | cum≈$2.912
+- `22:32:40` **radar** [SCOUT] Per-provider results: _unknown=0, frankfurter=9
+- `22:32:40` **radar** [SCOUT] Raw results: 9 sources from 12 query variations (1 providers: frankfurter)
+- `22:32:40` **radar** [SCOUT] Done in 7051ms: 9 raw â†’ 1 dedup â†’ 1 ranked â†’ 1 saved
+- `22:32:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3045ms | 788+162 tok (92 cache-hit) | $0.0003 | cum≈$2.913
+- `22:32:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 3990ms | 250+242 tok (82 cache-hit) | $0.0003 | cum≈$2.913
+- `22:32:40` **radar** [SCOUT] Per-provider results: _unknown=0, frankfurter=7
+- `22:32:40` **radar** [SCOUT] Raw results: 7 sources from 12 query variations (1 providers: frankfurter)
+- `22:32:40` **radar** [SCOUT] Done in 7130ms: 7 raw â†’ 1 dedup â†’ 1 ranked â†’ 1 saved
+- `22:32:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2575ms | 790+145 tok (96 cache-hit) | $0.0003 | cum≈$2.913
+- `22:32:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 4083ms | 252+247 tok (86 cache-hit) | $0.0003 | cum≈$2.914
+- `22:32:40` **status** [SCOUT] Skipping 8 empty-result providers: openalex, semanticscholar, mega-eu, eur-lex, data-europa, europepmc, eurostat, crossref
+- `22:32:40` **degraded** [CIRCUIT BREAKER] openalex tripped after 3× 429 — skipping for 80s (trip #11)
+- `22:32:40` **radar** [SCOUT] Per-provider results: _unknown=0, frankfurter=12
+- `22:32:40` **radar** [SCOUT] Raw results: 12 sources from 12 query variations (1 providers: frankfurter)
+- `22:32:40` **radar** [SCOUT] Done in 6920ms: 12 raw â†’ 1 dedup â†’ 1 ranked â†’ 1 saved
+- `22:32:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2779ms | 787+149 tok (92 cache-hit) | $0.0003 | cum≈$2.914
+- `22:32:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 4162ms | 249+248 tok (82 cache-hit) | $0.0003 | cum≈$2.914
+- `22:32:40` **status** [SCOUT] Skipping 8 empty-result providers: openalex, semanticscholar, mega-eu, eur-lex, data-europa, europepmc, mega-thinktanks, eurostat
+- `22:33:40` **radar** [SCOUT] Per-provider results: _unknown=0, mit-dspace=24, ons-uk=24
+- `22:33:40` **radar** [SCOUT] Raw results: 48 sources from 12 query variations (2 providers: mit-dspace, ons-uk)
+- `22:33:40` **radar** [SCOUT] Done in 7859ms: 48 raw â†’ 24 dedup â†’ 0 ranked â†’ 0 saved
+- `22:33:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2980ms | 789+158 tok (94 cache-hit) | $0.0003 | cum≈$2.914
+- `22:33:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 4279ms | 251+269 tok (84 cache-hit) | $0.0003 | cum≈$2.915
+- `22:33:40` **status** [SCOUT] Skipping 8 empty-result providers: openalex, semanticscholar, mega-eu, eur-lex, data-europa, arxiv, europepmc, eurostat
+- `22:33:40` **radar** [SCOUT] Per-provider results: _unknown=0, mit-dspace=8
+- `22:33:40` **radar** [SCOUT] Raw results: 8 sources from 12 query variations (1 providers: mit-dspace)
+- `22:33:40` **radar** [SCOUT] Done in 7637ms: 8 raw â†’ 8 dedup â†’ 8 ranked â†’ 8 saved
+- `22:33:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2720ms | 788+150 tok (92 cache-hit) | $0.0003 | cum≈$2.915
+- `22:33:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 3848ms | 250+215 tok (82 cache-hit) | $0.0003 | cum≈$2.915
+- `22:33:40` **radar** [SCOUT] Per-provider results: _unknown=0, frankfurter=10
+- `22:33:40` **radar** [SCOUT] Raw results: 10 sources from 10 query variations (1 providers: frankfurter)
+- `22:33:40` **radar** [SCOUT] Done in 6688ms: 10 raw â†’ 1 dedup â†’ 1 ranked â†’ 1 saved
+- `22:33:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3233ms | 789+155 tok (92 cache-hit) | $0.0003 | cum≈$2.916
+- `22:33:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 4178ms | 251+222 tok (82 cache-hit) | $0.0003 | cum≈$2.916
+- `22:33:40` **status** [SCOUT] Skipping 7 empty-result providers: openalex, mega-eu, eur-lex, data-europa, europepmc, eurostat, crossref
+- `22:33:40` **status** [HTTP] Retry 1/2 after 1149ms: fetch failed
+- `22:33:40` **status** [HTTP] Retry 2/2 after 1819ms: fetch failed
+- `22:33:40` **status** [HTTP] Retry 1/2 after 1242ms: fetch failed
+- `22:33:40` **status** [HTTP] Retry 2/2 after 2106ms: fetch failed
+- `22:33:40` **radar** [SCOUT] Per-provider results: _unknown=0, imf=60, frankfurter=9
+- `22:33:40` **radar** [SCOUT] Raw results: 69 sources from 12 query variations (2 providers: imf, frankfurter)
+- `22:33:40` **radar** [SCOUT] Done in 13902ms: 69 raw â†’ 6 dedup â†’ 6 ranked â†’ 6 saved
+- `22:33:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2898ms | 786+138 tok (92 cache-hit) | $0.0003 | cum≈$2.916
+- `22:33:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 3812ms | 248+202 tok (82 cache-hit) | $0.0003 | cum≈$2.917
+- `22:33:40` **status** [SCOUT] Skipping 9 empty-result providers: base, crossref, jstor, openalex, mega-eu, eur-lex, data-europa, europepmc, eurostat
+- `22:33:40` **radar** [SCOUT] Per-provider results: _unknown=0, frankfurter=8
+- `22:33:40` **radar** [SCOUT] Raw results: 8 sources from 12 query variations (1 providers: frankfurter)
+- `22:33:40` **radar** [SCOUT] Done in 6811ms: 8 raw â†’ 1 dedup â†’ 1 ranked â†’ 1 saved
+- `22:33:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2756ms | 786+149 tok (92 cache-hit) | $0.0003 | cum≈$2.917
+- `22:33:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 3452ms | 248+202 tok (82 cache-hit) | $0.0003 | cum≈$2.917
+- `22:33:40` **status** [SCOUT] Skipping 4 empty-result providers: base, crossref, jstor, openalex
+- `22:33:40` **radar** [SCOUT] Done in 24010ms: 0 raw â†’ 0 dedup â†’ 0 ranked â†’ 0 saved
+- `22:34:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2879ms | 787+137 tok (92 cache-hit) | $0.0003 | cum≈$2.917
+- `22:34:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 4397ms | 249+278 tok (82 cache-hit) | $0.0004 | cum≈$2.918
+- `22:34:40` **status** [SCOUT] Skipping 10 empty-result providers: base, crossref, jstor, openalex, mega-eu, eur-lex, data-europa, europepmc, mega-un, eurostat
+- `22:34:40` **radar** [SCOUT] Done in 7303ms: 0 raw â†’ 0 dedup â†’ 0 ranked â†’ 0 saved
+- `22:34:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3317ms | 788+160 tok (92 cache-hit) | $0.0003 | cum≈$2.918
+- `22:34:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 4858ms | 250+234 tok (82 cache-hit) | $0.0003 | cum≈$2.918
+- `22:34:40` **degraded** [CIRCUIT BREAKER] openalex tripped after 3× 429 — skipping for 80s (trip #12)
+- `22:34:40` **radar** [SCOUT] Per-provider results: _unknown=0, frankfurter=10, ons-uk=24
+- `22:34:40` **radar** [SCOUT] Raw results: 44 sources from 12 query variations (3 providers: frankfurter, ons-uk, isidore)
+- `22:34:40` **radar** [SCOUT] Done in 9033ms: 44 raw â†’ 13 dedup â†’ 13 ranked â†’ 13 saved
+- `22:34:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3249ms | 785+147 tok (92 cache-hit) | $0.0003 | cum≈$2.919
+- `22:34:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 3802ms | 247+192 tok (82 cache-hit) | $0.0003 | cum≈$2.919
+- `22:34:40` **radar** [SCOUT] Per-provider results: _unknown=0, frankfurter=10, gbif=2
+- `22:34:40` **radar** [SCOUT] Raw results: 12 sources from 12 query variations (2 providers: frankfurter, gbif)
+- `22:34:40` **radar** [SCOUT] Done in 7759ms: 12 raw â†’ 3 dedup â†’ 3 ranked â†’ 3 saved
+- `22:34:40` **radar** [IntelligentScout] Done: 23 sources, diversity=63%, consensus=35%, scenarioRichness=60%, 150153ms
+- `22:34:40` **pipeline** [Pipeline] INTELLIGENT SCOUT: +23 eclectic sources (23 from 9 lenses, diversity=63%, scenarioRichness=60%)
+- `22:34:40` **pipeline** [Pipeline] INTELLIGENT SCOUT lenses: core(5), contrarian(5), cross_domain(8), historical(0), weak_signal(0), scenario(5), provocative(0), ontological(0), dissident(0)
+- `22:34:40` **pipeline** [Pipeline] INDEX: 37 sources
+- `22:34:40` **pipeline** [Pipeline] EMBED: 25 new, 12 cached
+- `22:34:40` **pipeline** [Pipeline] RANK: scoring candidates from 37 SCOUT sources (ceiling 100)
+- `22:34:40` **status** [ENHANCED RANK] T8: 4 load-bearing sources (full-text), 5 abstract, 2 skip
+- `22:34:40` **pipeline** [Pipeline] PERTINENCE SELECTION: kept 11/11 candidates (bar=55.0, top=100.0, cutoff score=100.0)
+- `22:34:40` **pipeline** [Pipeline] SOURCE QUALITY: re-ranked 11 by composite (relevance 60% + quality 40%)
+- `22:34:40` **llm** ✅ glm/glm-4.5-air [enrichment_reasoner] | 6278ms | 1182+345 tok (66 cache-hit) | $0.0006 | cum≈$2.920
+- `22:34:40` **pipeline** [Pipeline] REFUSAL: Evidence fundamentally insufficient — The evidence base is fundamentally insufficient for this topic. The average quality score is very low (31/100), with no sources above 62 quality, and none appear to directly address the rise o
+- `22:34:40` **pipeline** [Pipeline] REFUSAL RETRY: Re-scouting with 3 reformulated queries...
+- `22:34:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2788ms | 784+127 tok (95 cache-hit) | $0.0003 | cum≈$2.920
+- `22:34:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 2984ms | 785+140 tok (92 cache-hit) | $0.0003 | cum≈$2.920
+- `22:34:40` **llm** ✅ glm/glm-4.5-air [query_enhancement] | 3051ms | 785+145 tok (92 cache-hit) | $0.0003 | cum≈$2.921
+- `22:34:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 4170ms | 247+257 tok (82 cache-hit) | $0.0003 | cum≈$2.921
+- `22:34:40` **status** [SCOUT] Skipping 7 empty-result providers: mega-eu, eur-lex, data-europa, europepmc, eurostat, jpl-sbdb, openalex
+- `22:34:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 4741ms | 246+278 tok (85 cache-hit) | $0.0004 | cum≈$2.921
+- `22:34:40` **llm** ✅ glm/glm-4.5-air [reader_v3] | 4870ms | 247+285 tok (82 cache-hit) | $0.0004 | cum≈$2.922
+- `22:34:40` **status** [SCOUT] Skipping 6 empty-result providers: mega-eu, eur-lex, data-europa, europepmc, political-science, eurostat
+- `22:36:40` **radar** [SCOUT] cordis: call deadline 90s exceeded — dropping results
+- `22:36:40` **radar** [SCOUT] Per-provider results: _unknown=0, amnesty=100, frankfurter=9, justsecurity=3, guardian=8, project-syndicate=1, hrw=92, crisis-group=9, bbc=2, heritage=2
+- `22:36:40` **radar** [SCOUT] Raw results: 223 sources from 12 query variations (39 providers: amnesty, hrw, foreign-affairs, atlantic-council, crisis-group, heritage, gmf, csis, hoover, aei, freedom-house, foreign-policy,
+- `22:36:40` **radar** [SCOUT] Relevance filter too strict even at 0.10 (0 results), keeping top 50/129 by score
+- `22:36:40` **radar** [SCOUT] Per-provider results: _unknown=0, amnesty=100, frankfurter=12, hrw=90, heritage=4, foreign-affairs=20
+- `22:36:40` **radar** [SCOUT] Raw results: 225 sources from 12 query variations (33 providers: amnesty, hrw, foreign-affairs, atlantic-council, crisis-group, heritage, gmf, aspen, csis, hoover, aei, clingendael, freedom-ho
+- `22:36:40` **radar** [SCOUT] Relevance filter too strict even at 0.10 (0 results), keeping top 50/110 by score
+- `22:36:40` **radar** [SCOUT] Per-provider results: _unknown=0, amnesty=120, vdem=45, hrw=60
+- `22:36:40` **radar** [SCOUT] Raw results: 221 sources from 12 query variations (30 providers: amnesty, hrw, foreign-affairs, atlantic-council, crisis-group, heritage, gmf, aspen, csis, hoover, aei, clingendael, freedom-ho
+- `22:36:40` **radar** [SCOUT] Relevance filter too strict even at 0.10 (0 results), keeping top 50/81 by score
+- `22:39:40` **radar** [SCOUT] Done in 283836ms: 223 raw â†’ 129 dedup â†’ 50 ranked â†’ 50 saved
+- `22:39:40` **radar** [SCOUT] Done in 283923ms: 225 raw â†’ 110 dedup â†’ 50 ranked â†’ 50 saved
+- `22:39:40` **radar** [SCOUT] Done in 284047ms: 221 raw â†’ 81 dedup â†’ 50 ranked â†’ 50 saved
+- `22:39:40` **status** [ENHANCED RANK] T8: 5 load-bearing sources (full-text), 7 abstract, 3 skip
+- `22:39:40` **pipeline** [Pipeline] REFUSAL RETRY: Found 15 sources (was 11). Proceeding with enriched corpus.
+- `22:39:40` **llm** ✅ glm/glm-4.5-air [enrichment_reasoner] | 9055ms | 1214+485 tok (740 cache-hit) | $0.0008 | cum≈$2.922
+- `22:39:40` **pipeline** [Pipeline] REFUSAL RETRY: ✅ Sufficiency reassessed as enrich (score 35/100)
+- `22:39:40` **llm** ✅ glm/glm-4.5-air [topic_classification] | 2286ms | 992+119 tok (64 cache-hit) | $0.0003 | cum≈$2.923
+- `22:39:40` **pipeline** [Pipeline] LATE RELEVANCE SCREEN: dropped 14/15 low-relevance late additions — 1 proceed to reader
+- `22:39:40` **llm** ✅ glm/glm-4.5-air [topic_classification] | 4538ms | 5245+285 tok (5 cache-hit) | $0.0014 | cum≈$2.924
+- `22:39:40` **pipeline** [Pipeline] FOUNDATIONAL INJECTION: prepared 3 seminal works from political-science KB (will inject after rank)
+- `22:39:40` **pipeline** [Pipeline] FOUNDATIONAL INJECTION: +3 seminal works injected into topSources (now 4 total)
+- `22:39:40` **pipeline** [Pipeline] DOMAIN: political-science (confidence: 0.9, cross=true)
+- `22:39:40` **pipeline** [Pipeline] COLLISION: Party System Transformation × Southern European Exceptionalism × European Integration Crisis
+- `22:39:40` **pipeline** [Pipeline] COMPLEXITY GATE: meta-analysis skipped (domain "political-science" not quantitative-study oriented)
+- `22:39:40` **status** [Pipeline] COMPLEXITY GATE: meta-analysis skipped (domain "political-science" not quantitative-study oriented)
+- `22:39:40` **llm** ✅ glm/glm-4.5-air [casting] | 3301ms | 439+208 tok (65 cache-hit) | $0.0003 | cum≈$2.924
+- `22:39:40` **pipeline** [Pipeline] CASTING: 2 lenses — Party System Transformation × Southern European Exceptionalism × European Integration Crisis
+- `22:39:40` **pipeline** [Pipeline] LAS GATE: small pool (4 sources) — skipping debate, meta-analysis
+- `22:39:40` **status** [Pipeline] LAS GATE: small pool (4 sources) — skipping debate, meta-analysis
+- `22:39:40` **pipeline** [Pipeline] LAS GATE: very small pool + low diversity — skipping devil's advocate (insufficient for epistemic challenge)
+- `22:39:40` **status** [Pipeline] LAS GATE: very small pool + low diversity — skipping devil's advocate (insufficient for epistemic challenge)
+- `22:39:40` **pipeline** [Pipeline] LAS GATE: pool=4, providers=2, debate=false, meta=false, DA=false, foresight_eligible=false
+- `22:39:40` **pipeline** [Pipeline] BRANCH COVERAGE: 0 strong, 0 weak, 5 unsupported
+- `22:39:40` **pipeline** [Pipeline] REFUSAL: corpus_core_evidence_pre_reader: unscreened core sources (need 8), 4 ranked sources (need 8) — refusing before reader spend
+- `22:39:40` **pipeline** [SCOUT/CORDIS] Error: runPipeline(brief) scope closed
+- `22:39:40` **CYCLE_RESULT** [CYCLE] RESULT {
+- `22:39:40` **status** "published": 0,
+- `22:39:40` **status** "held": 2,
+- `22:39:40` **status** "skipped": 2,
+- `22:39:40` **status** "failed": 2,
+- `22:39:40` **status** "status": "held",
+- `22:39:40` **gate** "gate": "hold"
+- `22:39:40` **status** "status": "failed",
