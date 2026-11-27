@@ -177,7 +177,7 @@ export async function runReaderBlock(deps: ReaderBlockDeps): Promise<ReaderBlock
     // binds the analyst's central thesis to the best-supported one. Runs in
     // PARALLEL with extraction on purpose: hypotheses posed before readings
     // land cannot be motivated by them.
-    import('../hypothesis-engine').then(m => m.framingAgent(query)).catch(async (err) => {
+    import('../hypothesis-engine').then(m => m.framingAgent(quantQuery)).catch(async (err) => {
       const { assertExecutionActive } = await import('../../worker/execution-scope');
       assertExecutionActive(); // dead scope must abort, not degrade to unbound
       console.warn(`${label} FRAMING: failed (non-blocking):`, err);

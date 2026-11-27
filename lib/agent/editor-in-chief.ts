@@ -379,6 +379,7 @@ Rules:
 - CROSS-DOMAIN: Where possible, frame the question to invite cross-domain insights. Don't just ask an economics question — ask how economics, anthropology, and philosophy intersect on this issue.
 
 FORECAST QUESTION (required for every selection):
+TODAY'S DATE is ${new Date().toISOString().slice(0, 10)} — every horizon must be a date AFTER today and at most 24 months out.
 alongside researchQuestion, emit "forecastQuestion" — ONE falsifiable question anchored on THIS signal that a forecaster could price and a third party could resolve from public data by a stated date. It must name a metric, an actor/scope and a horizon ("Will X reach Y by DATE?"). Reject-in-spirit: vague themes, questions whose obvious answer is already public, hyper-specific events whose answer is trivially "no".
 
 TOPIC REFERENCE: each topic has an "index" field (integer 0-${Math.min(15, topics.length) - 1}). Return THAT integer as "topicId" — do not copy the opaque "id" string, do not invent ids.

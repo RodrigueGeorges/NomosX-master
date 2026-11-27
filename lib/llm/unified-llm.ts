@@ -234,7 +234,9 @@ const TASK_ASSIGNMENT: Record<LLMTask, TaskAssignment> = {
   query_enhancement:      { provider: "glm", model: GLM_FAST, timeoutMs: 30_000 },
   topic_classification:   { provider: "glm", model: GLM_FAST, timeoutMs: 30_000 },
   casting:                { provider: "glm", model: GLM_FAST, timeoutMs: 30_000 },
-  editor_in_chief:        { provider: "glm", model: GLM_FAST, timeoutMs: 60_000 },
+  // One call per cycle that picks the subjects and drafts the forecast
+  // questions — judgement, not volume.
+  editor_in_chief:        { provider: "glm", model: GLM_WRITER, timeoutMs: 180_000 },
   swarm_persona:          { provider: "glm", model: GLM_FAST, timeoutMs: 30_000 },
 
   // Extraction / verification — Claude §2: DeepSeek V4 Pro verifies text it
@@ -393,7 +395,7 @@ const MODEL_CONFIG: Record<string, Record<string, {
     // TASK_ASSIGNMENT does not route here yet.
     "claude-sonnet-5-5": { contextWindow: 1000000, costPer1kInput: 0.002, costPer1kOutput: 0.010, costPer1kCachedInput: 0.00015 },
     "claude-sonnet-5": { contextWindow: 1000000, costPer1kInput: 0.002, costPer1kOutput: 0.010, costPer1kCachedInput: 0.0002 },
-    "claude-opus-5.5": { contextWindow: 1000000, costPer1kInput: 0.004, costPer1kOutput: 0.02, costPer1kCachedInput: 0.0002 },
+    "claude-opus-5-5": { contextWindow: 1000000, costPer1kInput: 0.004, costPer1kOutput: 0.02, costPer1kCachedInput: 0.0002 },
     "claude-opus-5": { contextWindow: 1000000, costPer1kInput: 0.005, costPer1kOutput: 0.025 },
   },
   kimi: {
@@ -1199,7 +1201,7 @@ function resolveModelForTask(provider: LLMProvider, task: LLMTask): string {
     case "openai":
       return isFast ? "gpt-6-luna" : (env.OPENAI_MODEL || "gpt-6-sol");
     case "anthropic":
-      return isFast ? "claude-sonnet-5" : "claude-opus-5.5";
+      return isFast ? "claude-sonnet-5" : "claude-opus-5-5";
     case "kimi":
       return env.KIMI_MODEL || KIMI_PRO;
     case "google":

@@ -165,6 +165,9 @@ export interface AdvocateReport {
   // Final recommendation
   recommendation: string;
 
+  /** Independent ruling on each major objection (see verifyMajorChallenges). */
+  challengeVerification?: { checked: number; downgraded: number; verdicts: Record<string, number> };
+
   costUsd: number;
   durationMs: number;
 }
@@ -283,6 +286,18 @@ export async function runDevilsAdvocate(
     }
   }
 
+  // Objection verification: the score below is arithmetic on the NUMBER of
+  // majors, and the prompts request a fixed number of objections, so the raw
+  // count measures the prompt, not the note (calibration 2026-11-27: 9 of 12
+  // completed evaluations returned exactly 8 majors, published and held
+  // alike). An independent family rules on each major against the note's own
+  // text and the cited passages; only objections that stand keep counting.
+  const bothLegsComplete = epistemic?.evaluationComplete === true && strategic?.evaluationComplete === true;
+  const verification = bothLegsComplete && process.env.NOMOSX_DA_VERIFY !== '0'
+    ? await verifyMajorChallenges(analysisContent, allChallenges, sources)
+    : null;
+  assertExecutionActive();
+
   const fatalChallenges = allChallenges.filter(c => c.severity === "fatal");
   const majorChallenges = allChallenges.filter(c => c.severity === "major");
   const minorChallenges = allChallenges.filter(c => c.severity === "moderate" || c.severity === "minor");
@@ -298,7 +313,7 @@ export async function runDevilsAdvocate(
   const overallStrength = evaluationComplete ? Math.max(0, 100 - (fatalChallenges.length * 20) - (majorChallenges.length * 8) - (minorChallenges.length * 2)) : 0;
   const publishabilityScore = overallStrength;
 
-  const totalCost = (epistemic?.costUsd || 0) + (strategic?.costUsd || 0) + (benchmark?.costUsd || 0);
+  const totalCost = (epistemic?.costUsd || 0) + (strategic?.costUsd || 0) + (benchmark?.costUsd || 0) + (verification?.costUsd || 0);
   const durationMs = Date.now() - start;
 
   console.log(`[DEVIL'S ADVOCATE] Verdict: ${verdict.toUpperCase()} | Strength: ${overallStrength}/100 | Fatal: ${fatalChallenges.length} | Major: ${majorChallenges.length}`);
@@ -317,6 +332,7 @@ export async function runDevilsAdvocate(
     futureVulnerabilities: strategic?.futureVulnerabilities || [],
     strengths: epistemic?.strengths || [],
     recommendation: evaluationComplete ? buildRecommendation(verdict, fatalChallenges, majorChallenges) : 'HOLD: adversarial evaluation incomplete; no publication clearance.',
+    ...(verification ? { challengeVerification: { checked: verification.checked, downgraded: verification.downgraded, verdicts: verification.verdicts } } : {}),
     costUsd: totalCost,
     durationMs,
   };
@@ -346,15 +362,18 @@ async function runEpistemicChallenge(
   // 38 runs/30d, DA never once returned 'publish', publishability avg 12).
   // Bounded: top 12 sources × ~700 chars keeps the prompt inside budget
   // while letting the judge actually verify citation support.
+  // Sources the note actually cites come first, and each excerpt is the
+  // window of the source that best matches the sentences citing it. The
+  // previous head+tail slice of the first 12 sources left every claim that
+  // cites SRC-13+ unverifiable, which the judge then flagged as non_evidence.
   const excerptBlocks: string[] = [];
-  for (let i = 0; i < Math.min(sources.length, 12); i++) {
+  const cited = citedSourceIndexes(analysisContent, sources.length);
+  const excerptOrder = [...cited, ...sources.map((_, i) => i).filter(i => !cited.includes(i))].slice(0, 16);
+  for (const i of excerptOrder) {
     const s = sources[i] as any;
     const raw = String(s?.excerpt ?? s?.fullText ?? s?.abstract ?? '').trim();
     if (raw.length < 120) continue;
-    // Head+tail slice: claims evidence often sits mid-document.
-    const head = raw.slice(0, 420);
-    const tail = raw.length > 900 ? raw.slice(-280) : '';
-    excerptBlocks.push(`[SRC-${i + 1}] ${s.title}\n${head}${tail ? `\n…\n${tail}` : ''}`);
+    excerptBlocks.push(`[SRC-${i + 1}] ${s.title}\n${bestPassage(raw, citingContext(analysisContent, i + 1), 700)}`);
   }
   const evidenceSection = excerptBlocks.length
     ? `\nEVIDENCE EXCERPTS (verify claims against THESE passages, not just titles):\n${excerptBlocks.join('\n\n---\n\n').slice(0, 14000)}\n`
@@ -429,7 +448,9 @@ Return JSON:
       },
     ],
     temperature: 0.3,
-    maxTokens: 4000,
+    // 4000 truncated kimi-k3.1-pro mid-JSON (finish=length) on 4 of 16
+    // calibration notes, which surfaced as verdict "unavailable".
+    maxTokens: 7000,
     jsonMode: true,
     task: 'elenchus',
     enableCache: true,
@@ -521,7 +542,9 @@ Return JSON:
       },
     ],
     temperature: 0.4,
-    maxTokens: 4000,
+    // 4000 truncated kimi-k3.1-pro mid-JSON (finish=length) on 4 of 16
+    // calibration notes, which surfaced as verdict "unavailable".
+    maxTokens: 7000,
     jsonMode: true,
     task: 'elenchus',
     enableCache: true,
@@ -652,4 +675,137 @@ function buildRecommendation(
     return `REVISE BEFORE PUBLISHING. ${majorChallenges.length} major issues should be addressed to meet think-tank quality standards.`;
   }
   return `CLEARED FOR PUBLICATION. Analysis meets quality standards. ${majorChallenges.length > 0 ? `Consider addressing ${majorChallenges.length} minor issue(s) to strengthen the publication.` : "Strong analysis ready for distribution."}`;
+}
+
+// ─── Evidence selection and objection verification ──────────────────────────
+
+const normText = (t: string) => t.toLowerCase().replace(/[^a-z0-9à-ÿ]+/g, ' ').trim();
+
+/** 0-based indexes of the sources cited as [SRC-N] in the note, most cited first. */
+export function citedSourceIndexes(text: string, sourceCount: number): number[] {
+  const counts = new Map<number, number>();
+  for (const m of text.matchAll(/SRC-(\d+)/g)) {
+    const idx = Number(m[1]) - 1;
+    if (idx >= 0 && idx < sourceCount) counts.set(idx, (counts.get(idx) ?? 0) + 1);
+  }
+  return [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([i]) => i);
+}
+
+/** Text of the note around the citations of [SRC-n], bounded. */
+function citingContext(text: string, n: number, maxChars = 900): string {
+  const out: string[] = [];
+  const re = new RegExp(`SRC-${n}(?!\\d)`, 'g');
+  for (const m of text.matchAll(re)) {
+    const at = m.index ?? 0;
+    out.push(text.slice(Math.max(0, at - 260), at + 40));
+    if (out.join(' ').length >= maxChars) break;
+  }
+  return out.join(' ').slice(0, maxChars);
+}
+
+/** The window of `raw` sharing the most distinct content words with `context`. */
+export function bestPassage(raw: string, context: string, size: number): string {
+  if (raw.length <= size) return raw;
+  const words = new Set(normText(context).split(' ').filter(w => w.length > 4));
+  if (words.size === 0) return raw.slice(0, size);
+  let best = 0, bestScore = -1;
+  const step = Math.max(80, Math.floor(size / 4));
+  for (let start = 0; start < raw.length - size / 2; start += step) {
+    const seen = new Set(normText(raw.slice(start, start + size)).split(' ').filter(w => words.has(w)));
+    if (seen.size > bestScore) { bestScore = seen.size; best = start; }
+  }
+  return `${best > 0 ? '…' : ''}${raw.slice(best, best + size)}${best + size < raw.length ? '…' : ''}`;
+}
+
+/** Where the quoted claim sits in the note, or -1 (quotes are often paraphrased). */
+function locateClaim(text: string, claim: string): number {
+  const probe = claim.replace(/\s+/g, ' ').trim();
+  for (const len of [80, 50, 30]) {
+    if (probe.length < len / 2) continue;
+    const at = text.indexOf(probe.slice(0, len));
+    if (at >= 0) return at;
+  }
+  return -1;
+}
+
+const VERIFY_VERDICTS = ['stands', 'addressed', 'supported', 'not_found'] as const;
+
+/**
+ * Rules on each major objection with a model from another family than the
+ * one that raised it. An objection keeps its 'major' severity only when it
+ * stands: the note does not already qualify the point, the cited passage does
+ * not support the claim as written, and the quoted claim is in the note.
+ * Anything else is downgraded to 'moderate' (still reported, still usable by
+ * the repair loop). Fatal objections are never touched. A failed or
+ * unparseable verification changes nothing.
+ */
+async function verifyMajorChallenges(
+  analysisContent: string,
+  challenges: AdvocateChallenge[],
+  sources: Array<{ title: string; excerpt?: string; fullText?: string; abstract?: string }>,
+): Promise<{ checked: number; downgraded: number; verdicts: Record<string, number>; costUsd: number }> {
+  const majors = challenges.filter(c => c.severity === 'major').slice(0, 12);
+  const empty = { checked: 0, downgraded: 0, verdicts: {} as Record<string, number>, costUsd: 0 };
+  if (majors.length === 0) return empty;
+
+  const items = majors.map((c, i) => {
+    const at = locateClaim(analysisContent, c.claim);
+    const context = at >= 0 ? analysisContent.slice(Math.max(0, at - 500), at + 700) : '';
+    const passages = citedSourceIndexes(context, sources.length).slice(0, 2).map((idx) => {
+      const raw = String(sources[idx]?.excerpt ?? sources[idx]?.fullText ?? sources[idx]?.abstract ?? '').trim();
+      return raw.length >= 120 ? `[SRC-${idx + 1}] ${bestPassage(raw, `${c.claim} ${context}`, 600)}` : '';
+    }).filter(Boolean);
+    return [
+      `OBJECTION ${i}`,
+      `TYPE: ${c.challengeType}`,
+      `QUOTED CLAIM: ${c.claim.slice(0, 400)}`,
+      `OBJECTION: ${c.challenge.slice(0, 500)}`,
+      `QUOTE FOUND IN NOTE: ${at >= 0 ? 'yes' : 'no'}`,
+      `NOTE CONTEXT: ${context ? context.replace(/\s+/g, ' ') : '(quote not located verbatim)'}`,
+      `CITED PASSAGES: ${passages.length ? passages.join('\n') : '(none available)'}`,
+    ].join('\n');
+  });
+
+  try {
+    const res = await callLLM({
+      task: 'fact_check',
+      jsonMode: true,
+      temperature: 0,
+      maxTokens: 1500,
+      traceName: 'da_objection_verification',
+      messages: [
+        {
+          role: 'system',
+          content: `You audit objections raised by a hostile reviewer against a research note. For each objection return exactly one verdict:
+- "stands": the objection is correct and material. The note makes the claim as quoted, does not qualify or limit it in the context shown, and the cited passages do not support it as written.
+- "addressed": the note context itself already states this limitation, hedges the claim, or labels it as a projection or assumption.
+- "supported": a cited passage does support the claim as written.
+- "not_found": neither the quoted claim nor its idea appears in the note context.
+You are not the note's defender. When the material shown does not let you decide, answer "stands".
+Output strict JSON: {"verdicts":[{"i":0,"verdict":"stands|addressed|supported|not_found","reason":"one short sentence"}]}`,
+        },
+        { role: 'user', content: `NOTE OPENING (for orientation):\n${analysisContent.slice(0, 2500)}\n\n${items.join('\n\n---\n\n')}` },
+      ],
+    });
+    const parsed = parseJson<{ verdicts?: Array<{ i?: number; verdict?: string }> }>(res.content);
+    const verdicts: Record<string, number> = {};
+    let downgraded = 0;
+    let checked = 0;
+    for (const v of parsed?.verdicts ?? []) {
+      const target = typeof v?.i === 'number' ? majors[v.i] : undefined;
+      const verdict = VERIFY_VERDICTS.find(x => x === v?.verdict);
+      if (!target || !verdict) continue;
+      checked++;
+      verdicts[verdict] = (verdicts[verdict] ?? 0) + 1;
+      if (verdict !== 'stands') {
+        target.severity = 'moderate';
+        downgraded++;
+      }
+    }
+    console.log(`[DEVIL'S ADVOCATE] Objection verification: ${checked}/${majors.length} ruled, ${downgraded} downgraded (${JSON.stringify(verdicts)})`);
+    return { checked, downgraded, verdicts, costUsd: res.costUsd ?? 0 };
+  } catch (err) {
+    console.warn(`[DEVIL'S ADVOCATE] Objection verification failed — majors kept as raised:`, err instanceof Error ? err.message : err);
+    return empty;
+  }
 }

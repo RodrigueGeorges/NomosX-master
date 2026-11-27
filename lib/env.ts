@@ -20,16 +20,17 @@ const envSchema = z.object({
   OPENAI_MODEL: z.string().default("gpt-6-astra"),
   DEEPSEEK_API_KEY: z.string().optional(),
   DEEPSEEK_BASE_URL: z.string().url().optional().default("https://api.deepseek.com"),
-  // Real model codes on api.deepseek.com: deepseek-chat (V3.x, fast) and
-  // deepseek-reasoner (R1). The previous defaults (deepseek-flash/v4-pro)
-  // do not exist on the public API.
-  DEEPSEEK_MODEL_FAST: z.string().optional().default("deepseek-chat"),
-  DEEPSEEK_MODEL_REASONING: z.string().optional().default("deepseek-reasoner"),
+  // Model codes listed by api.deepseek.com/models (checked 2026-11-27):
+  // deepseek-flash and deepseek-v4-pro.
+  DEEPSEEK_MODEL_FAST: z.string().optional().default("deepseek-flash"),
+  DEEPSEEK_MODEL_REASONING: z.string().optional().default("deepseek-v4-pro"),
 
   // GLM-4.5/4.6 family (z.ai) — OpenAI-compatible, verified live 2026-09.
   GLM_API_KEY: z.string().optional(),
   GLM_BASE_URL: z.string().url().optional().default("https://api.z.ai/api/paas/v4"),
-  GLM_MODEL: z.string().optional().default("glm-4.5"),
+  // No default: a default here shadows the routed writer model in
+  // unified-llm.ts (run 12 wrote every analysis on glm-4.5 because of it).
+  GLM_MODEL: z.string().optional(),
   GLM_MODEL_FAST: z.string().optional().default("glm-4.5-air"),
   
   // Academic APIs (optional keys, have fallback URLs)
