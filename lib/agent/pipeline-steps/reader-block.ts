@@ -164,6 +164,13 @@ export async function runReaderBlock(deps: ReaderBlockDeps): Promise<ReaderBlock
     return merged;
   };
 
+  // Forecast-aware retrieval query: fetcher selection and series ranking
+  // regex-match the query text — without the forecast question appended,
+  // "Will France's GDP contract in Q1 2027" fetches generic macro series
+  // instead of the forecast's metric/actor (audit gap #1).
+  const fqText = ((stats as any).forecastQuestion as string | undefined)?.trim() ?? '';
+  const quantQuery = fqText ? `${query} — forecast target: ${fqText}` : query;
+
   const [readings, framingSettled, quantSettled, quantBridgeSettled] = await Promise.all([
     readInBatches(),
     // FRAMING: pre-registered hypotheses — load-bearing since S39: the judge
@@ -181,7 +188,7 @@ export async function runReaderBlock(deps: ReaderBlockDeps): Promise<ReaderBlock
     // replay so the judge/analyst prompts embed the recorded evidenceBlock.
     deps.frozenQuant
       ? Promise.resolve((deps.frozenQuant.quant ?? { series: [], facts: [], evidenceBlock: '', chartData: [], fetchedProviders: [], durationMs: 0 }) as any)
-      : import('../quant-agent').then(m => m.quantAgent(query, topSources)).catch((err) => {
+      : import('../quant-agent').then(m => m.quantAgent(quantQuery, topSources)).catch((err) => {
         console.warn(`${label} QUANT: failed (non-blocking):`, err);
         recordDegradedStep(stats, 'QUANT', err);
         return { series: [], facts: [], evidenceBlock: '', chartData: [], fetchedProviders: [], durationMs: 0 };
@@ -189,7 +196,7 @@ export async function runReaderBlock(deps: ReaderBlockDeps): Promise<ReaderBlock
     // QUANT BRIDGE: deterministic model layer (parametric costing + FIGARO IO multipliers)
     deps.frozenQuant
       ? Promise.resolve((deps.frozenQuant.quantBridge ?? { models: [] as any[], evidenceBlock: '', usedModels: [] as any[], durationMs: 0 }) as any)
-      : import('../../quant/quant-bridge').then(m => m.runQuantBridge(query, {
+      : import('../../quant/quant-bridge').then(m => m.runQuantBridge(quantQuery, {
         depth: quantDepth ?? (isStrategic ? 'io' : 'none'),
         parametricInput,
       })).catch((err) => {
@@ -216,7 +223,7 @@ export async function runReaderBlock(deps: ReaderBlockDeps): Promise<ReaderBlock
       const { passageContainment } = await import('../claim-passage-contract');
       const best = quant.series
         .filter((s: any) => Array.isArray(s?.points) && s.points.length >= 8)
-        .map((s: any) => ({ s, rel: passageContainment(String(s.label ?? ''), query) }))
+        .map((s: any) => ({ s, rel: passageContainment(String(s.label ?? ''), quantQuery) }))
         .filter((x: any) => x.rel > 0)
         .sort((a: any, b: any) => b.rel - a.rel || b.s.points.length - a.s.points.length)[0]?.s;
       if (best) {
@@ -486,8 +493,29 @@ export async function runReaderBlock(deps: ReaderBlockDeps): Promise<ReaderBlock
   {
     try {
       const { hypothesisJudge } = await import('../hypothesis-engine');
-      const judge = await hypothesisJudge(framing.hypotheses, topSources, readings, quant.evidenceBlock || undefined, query, (stats as any).forecastQuestion);
-      addCost(judge.costUsd, 'HYPOTHESIS JUDGE');
+      // Bounded fast retry: a judge that THROWS or returns neither a bound
+      // thesis nor an explicit absence verdict is transient infrastructure
+      // noise — one immediate re-run beats a 20h HELD-retry wait (audit:
+      // thesis_evaluation_unavailable was the weakest recovery point).
+      // thesisAbsent IS a verdict — never retried.
+      let judge: Awaited<ReturnType<typeof hypothesisJudge>> | null = null;
+      let lastJudgeErr: unknown = null;
+      for (let attempt = 0; attempt < 2 && !judge; attempt++) {
+        try {
+          const j = await hypothesisJudge(framing.hypotheses, topSources, readings, quant.evidenceBlock || undefined, query, (stats as any).forecastQuestion);
+          addCost(j.costUsd, 'HYPOTHESIS JUDGE');
+          if (j.boundThesis || j.thesisAbsent) {
+            judge = j;
+          } else {
+            lastJudgeErr = new Error('hypothesis judge returned no verdict (inconclusive)');
+            if (attempt === 0) console.warn(`${label} HYPOTHESIS JUDGE: inconclusive — retrying once`);
+          }
+        } catch (jErr) {
+          lastJudgeErr = jErr;
+          if (attempt === 0) console.warn(`${label} HYPOTHESIS JUDGE: attempt failed — retrying once:`, jErr);
+        }
+      }
+      if (!judge) throw lastJudgeErr ?? new Error('hypothesis judge unavailable');
       hypothesisVerdictBlock = judge.verdictBlock;
       stats.hypothesisJudge = {
         verdicts: judge.verdicts.map(v => ({ id: v.id, verdict: v.verdict, confidence: v.confidence })),

@@ -76,6 +76,10 @@ export async function editorialTriage(
      *  questions. Injected into the triage prompt and used for a
      *  deterministic under-covered-domain promotion below. */
     agenda?: ResearchAgendaContext;
+    /** Corrective re-triage feedback — question-gate rejection motifs from
+     *  the first pass. The EiC picks DIFFERENT topics and reformulates
+     *  questions that stay on the signal instead of repeating the failure. */
+    gateFeedback?: string;
   }
 ): Promise<EditorialTriageResult> {
   const start = Date.now();
@@ -92,7 +96,7 @@ export async function editorialTriage(
   const recentTitles = await getRecentPublicationTitles();
 
   // Step 2: LLM triage — single call to select + prioritize
-  const triageResult = await llmTriage(topics, recentTitles, maxPubs, options?.agenda);
+  const triageResult = await llmTriage(topics, recentTitles, maxPubs, options?.agenda, options?.gateFeedback);
 
   // Step 2b: DETERMINISTIC DOMAIN DIVERSITY — ensure multi-domain coverage
   // The LLM may over-cluster on one domain. This filter guarantees variety.
@@ -264,7 +268,8 @@ async function llmTriage(
   topics: RadarTopic[],
   recentTitles: string[],
   maxPubs: number,
-  agenda?: ResearchAgendaContext
+  agenda?: ResearchAgendaContext,
+  gateFeedback?: string
 ): Promise<{ selected: TriageSelection[]; costUsd: number }> {
   const topicSummaries = topics.slice(0, 15).map((t, i) => ({
     index: i,
@@ -382,7 +387,7 @@ Return JSON: { "selections": [{ "topicId": <integer index>, "action": "publish_s
         },
         {
           role: 'user',
-          content: `CANDIDATE TOPICS:\n${JSON.stringify(topicSummaries, null, 2)}${recentContext}${agenda?.promptBlock ?? ''}\n\nSelect the best topics for publication.`
+          content: `CANDIDATE TOPICS:\n${JSON.stringify(topicSummaries, null, 2)}${recentContext}${agenda?.promptBlock ?? ''}${gateFeedback ? `\n\nCORRECTIVE PASS — your previous selections were rejected by the question verifier: ${gateFeedback}. Pick DIFFERENT topics from this pool. For every forecastQuestion: stay strictly on the signal's own actors/metric, pick a concrete FUTURE dated horizon (never a past date), and make it concretely resolvable from public data.` : ''}\n\nSelect the best topics for publication.`
         }
       ],
       temperature: 0.15,

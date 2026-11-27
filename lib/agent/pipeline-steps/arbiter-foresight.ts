@@ -95,7 +95,11 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
         // verified forecast question reached the pipeline (non-dispatch runs).
         const fq = deps.forecastQuestion?.trim();
         if (fq) stats.forecastQuestion = fq;
-        const questionSpec = await extractQuestionSpec(fq || query, horizonText || undefined);
+        // Forecasters price the ASKED question — when a verified forecast
+        // question exists it is what gets resolved, so it (not the research
+        // framing) anchors their QUESTION/search prompts (audit gap #3).
+        const forecasterQuestion = fq || query;
+        const questionSpec = await extractQuestionSpec(forecasterQuestion, horizonText || undefined);
         if (questionSpec) {
           stats.questionSpec = questionSpec;
           if (typeof questionSpec.costUsd === 'number') addCost(questionSpec.costUsd, 'QUESTION_SPEC');
@@ -168,7 +172,7 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
           try {
             const { runAgenticForecasters } = await import('../agentic-forecasters');
             agenticResult = await runAgenticForecasters({
-              question: query,
+              question: forecasterQuestion,
               questionSpec,
               uncertainties: allUncertainties,
               cards: swarmCards,
@@ -191,7 +195,7 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
         let swarm: import('../swarm-forecaster').SwarmResult | null = null;
         if (!agenticMode) {
           swarm = await runSwarmVote({
-            question: query,
+            question: forecasterQuestion,
             uncertainties: allUncertainties,
             sourceIds: topSources.map((s: any) => s.id),
             cards: swarmCards,

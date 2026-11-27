@@ -589,10 +589,35 @@ async function collectBreakingItems(
   // retained 9 candidates; spend concentrates on the best three.
   const CYCLE_MAX_NEW_SUBJECTS = Math.max(1, Number(process.env.NOMOSX_CYCLE_MAX_SUBJECTS ?? 3) || 3);
   const preflightTarget = Math.min(maxPublications * 2, triageResult.decisions.length, CYCLE_MAX_NEW_SUBJECTS * 2);
-  for (const decision of triageResult.decisions) {
-    if (viableItems.length >= preflightTarget) break;
-
+  const tryDecision = async (decision: (typeof triageResult.decisions)[number]): Promise<void> => {
     const question = decision.researchQuestion?.trim() || decision.topic.title;
+    const { verifyDispatchQuestion } = await import('./question-verifiers');
+
+    // ── Cheap screen FIRST: question-gate rejections are ~10× more common
+    // than corpus rejections and cost ~$0.02-0.05, while gatherEvidence
+    // fans out to 4-8 providers + sub-angle searches (~$0.05-0.15 + paid
+    // APIs). Run 16: all 3 EiC picks paid the gatherer then died at the
+    // gate — verify the question before paying for evidence. ──
+    let vq = await verifyDispatchQuestion({
+      question,
+      topicTitle: decision.topic.title,
+      signalContext: decision.reasoning,
+      // The EiC's own forecastQuestion is evaluated FIRST — it selected
+      // this topic partly on that question; generation is the fallback.
+      candidateForecastQuestion: (decision as { forecastQuestion?: string }).forecastQuestion,
+    });
+    questionGateCostUsd += vq.costUsd ?? 0;
+    if (!vq.pass) {
+      console.log(`[QUESTION-GATE] ❌ "${question.slice(0, 60)}" — rejected: ${vq.motif} (quality=${vq.checks.quality} ambiguity=${vq.checks.ambiguity} resolvable=${vq.checks.resolvable}) | forecastQ: "${(vq.forecastQuestion ?? '(none generated)').slice(0, 110)}"`);
+      preflightResults.push({
+        question: question.slice(0, 80), viable: false, count: 0,
+        details: `question_gate:${vq.motif}`, semanticScore: 0,
+        semanticReasoning: `rejected by question verifier — ${vq.motif}`, strategy: 'question_gate',
+      });
+      return;
+    }
+
+    // ── Evidence gatherer — only reached by question-verified candidates ──
     const preflightStart = Date.now();
     // A gatherer/provider crash must mark the topic unviable, not kill the cycle
     let check: Awaited<ReturnType<typeof preflightSourceCheck>>;
@@ -610,7 +635,7 @@ async function collectBreakingItems(
         semanticReasoning: 'preflight crashed — treated as unviable',
         strategy: 'error',
       });
-      continue;
+      return;
     }
     const preflightMs = Date.now() - preflightStart;
 
@@ -624,42 +649,80 @@ async function collectBreakingItems(
       strategy: check.strategy,
     });
 
-    if (check.viable) {
-      // If the gatherer reformulated the question, use the reformulated version
-      const finalQuestion = check.reformulatedQuestion || question;
-      // P0-A question gate: verify the forecast question BEFORE any pipeline
-      // spend. The EiC's candidate forecastQuestion is re-verified (or derived
-      // when absent) — a rejection abandons the item with its motif recorded.
-      const { verifyDispatchQuestion } = await import('./question-verifiers');
-      const vq = await verifyDispatchQuestion({
+    if (!check.viable) {
+      console.log(`[PREFLIGHT] ❌ Skipping "${question.slice(0, 60)}" — ${check.academicCount} sources, semantic=${Math.round(check.semanticScore * 100)}%, strategy=${check.strategy} in ${preflightMs}ms. ${check.semanticReasoning}`);
+      return;
+    }
+
+    // If the gatherer reformulated the question, the FINAL dispatch
+    // question changed — re-verify it once (the verified forecast question
+    // is re-derived for the new framing; the EiC candidate is stale).
+    const finalQuestion = check.reformulatedQuestion || question;
+    if (check.reformulatedQuestion && check.reformulatedQuestion !== question) {
+      vq = await verifyDispatchQuestion({
         question: finalQuestion,
         topicTitle: decision.topic.title,
         signalContext: decision.reasoning,
-        // The EiC's own forecastQuestion is evaluated FIRST — it selected
-        // this topic partly on that question; generation is the fallback.
-        candidateForecastQuestion: (decision as { forecastQuestion?: string }).forecastQuestion,
       });
       questionGateCostUsd += vq.costUsd ?? 0;
       if (!vq.pass) {
-        console.log(`[QUESTION-GATE] ❌ "${finalQuestion.slice(0, 60)}" — rejected: ${vq.motif} (quality=${vq.checks.quality} ambiguity=${vq.checks.ambiguity} resolvable=${vq.checks.resolvable}) | forecastQ: "${(vq.forecastQuestion ?? '(none generated)').slice(0, 110)}"`);
+        console.log(`[QUESTION-GATE] ❌ "${finalQuestion.slice(0, 60)}" — reformulated question rejected: ${vq.motif} | forecastQ: "${(vq.forecastQuestion ?? '(none generated)').slice(0, 110)}"`);
         preflightResults.push({
           question: finalQuestion.slice(0, 80), viable: false, count: check.academicCount,
           details: `question_gate:${vq.motif}`, semanticScore: check.semanticScore,
-          semanticReasoning: `rejected by question verifier — ${vq.motif}`, strategy: 'question_gate',
+          semanticReasoning: `reformulated question rejected — ${vq.motif}`, strategy: 'question_gate',
         });
-        continue;
+        return;
       }
-      console.log(`[PREFLIGHT] ✅ "${question.slice(0, 60)}" — ${check.academicCount} sources, semantic=${Math.round(check.semanticScore * 100)}%, strategy=${check.strategy} in ${preflightMs}ms${check.reformulatedQuestion ? ` → reformulated: "${check.reformulatedQuestion.slice(0, 60)}"` : ''} | forecastQ: "${vq.forecastQuestion?.slice(0, 70)}"`);
-      const item = breakingDecisionToItem(decision);
-      if (check.reformulatedQuestion) {
-        item.question = check.reformulatedQuestion;
+    }
+
+    console.log(`[PREFLIGHT] ✅ "${question.slice(0, 60)}" — ${check.academicCount} sources, semantic=${Math.round(check.semanticScore * 100)}%, strategy=${check.strategy} in ${preflightMs}ms${check.reformulatedQuestion ? ` → reformulated: "${check.reformulatedQuestion.slice(0, 60)}"` : ''} | forecastQ: "${vq.forecastQuestion?.slice(0, 70)}"`);
+    const item = breakingDecisionToItem(decision);
+    if (check.reformulatedQuestion) {
+      item.question = check.reformulatedQuestion;
+    }
+    // The VERIFIED forecast question wins over the EiC's raw candidate —
+    // it is what questionSpec, the swarm ballot and the thesis answer.
+    item.forecastQuestion = vq.forecastQuestion;
+    viableItems.push(item);
+  };
+
+  for (const decision of triageResult.decisions) {
+    if (viableItems.length >= preflightTarget) break;
+    await tryDecision(decision);
+  }
+
+  // ── Agentic closure: every selected candidate died at the question gate.
+  // Feed the rejection motifs back and let the EiC pick ALTERNATES from the
+  // untried radar pool — a think tank iterates instead of ending empty.
+  // Bounded: at most one corrective triage, max 2 new candidates, and only
+  // when the first pass produced zero viable items. ──
+  let correctiveTriageCostUsd = 0;
+  if (viableItems.length === 0) {
+    const gateMotifs = [...new Set(
+      preflightResults
+        .filter(r => r.strategy === 'question_gate')
+        .map(r => (r.details ?? '').replace(/^question_gate:/, ''))
+        .filter(Boolean)
+    )].join(', ');
+    if (gateMotifs) {
+      const norm = (t: string) => t.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 50);
+      const tried = new Set(triageResult.decisions.map(d => norm(d.topic.title)));
+      const alternates = radarResult.topics.filter(t => !tried.has(norm(t.title)));
+      if (alternates.length > 0) {
+        console.log(`[ThinkTank] QUESTION-GATE corrective re-triage: ${alternates.length} untried topics | first-pass motifs: ${gateMotifs.slice(0, 160)}`);
+        const retryTriage = await editorialTriage(alternates, {
+          maxPublications: Math.min(2, maxPublications),
+          budgetUsd,
+          agenda,
+          gateFeedback: gateMotifs,
+        });
+        correctiveTriageCostUsd = retryTriage.costUsd;
+        for (const decision of retryTriage.decisions) {
+          if (viableItems.length >= preflightTarget) break;
+          await tryDecision(decision);
+        }
       }
-      // The VERIFIED forecast question wins over the EiC's raw candidate —
-      // it is what questionSpec, the swarm ballot and the thesis answer.
-      item.forecastQuestion = vq.forecastQuestion;
-      viableItems.push(item);
-    } else {
-      console.log(`[PREFLIGHT] ❌ Skipping "${question.slice(0, 60)}" — ${check.academicCount} sources, semantic=${Math.round(check.semanticScore * 100)}%, strategy=${check.strategy} in ${preflightMs}ms. ${check.semanticReasoning}`);
     }
   }
 
@@ -668,7 +731,7 @@ async function collectBreakingItems(
 
   return {
     items: [...watchItems, ...heldRetryItems, ...viableItems],
-    decideCostUsd: triageResult.costUsd + questionGateCostUsd,
+    decideCostUsd: triageResult.costUsd + correctiveTriageCostUsd + questionGateCostUsd,
     questionGate: { costUsd: questionGateCostUsd, rejected: preflightResults.filter(r => !r.viable && r.strategy === 'question_gate').length },
     phases: {
       detect: { durationMs: detectMs, topicsFound: radarResult.topics.length, stats: radarResult.stats, predictionTriggersFired: watchItems.length },
@@ -841,6 +904,13 @@ async function persistHeldDiagnostic(
     const evidenceQueries = [...new Set([...daQueries, ...deferred])]
       .filter(q => typeof q === 'string' && q.length > 10)
       .slice(0, 8);
+    // Degraded steps are silent quality loss — a HELD whose cause was an
+    // unavailable evaluator/provider must say so or the retry repeats blind
+    // (audit: degradedSteps never reached the retry feedback).
+    const degraded = (pstats.degradedSteps as Array<{ step?: string; error?: string }> | undefined) ?? [];
+    for (const d of degraded.slice(0, 5)) {
+      if (d?.step) reasons.push(`degraded step ${d.step}${d.error ? `: ${String(d.error).slice(0, 120)}` : ''}`);
+    }
     const verticalId = item.verticalId
       ?? await prisma.signal
         .findUnique({ where: { id: item.signalId! }, select: { verticalId: true } })
@@ -1366,11 +1436,32 @@ export async function executeDispatchQueue(
     } else if (result.status === "failed") {
       failed++;
       errors.push(`"${item.question.slice(0, 40)}": ${result.error ?? "unknown"}`);
+      // Deterministic query-validation rejects can NEVER succeed — HELD
+      // would burn both retry slots re-paying a full pipeline for the same
+      // doomed input. Terminal REJECT, same taxonomy as duplicates.
+      const permanentReject = /Query too short|Query too vague|Query is not a research question/i.test(result.error ?? '');
+      if (permanentReject && item.signalId) {
+        await prisma.signal
+          .update({ where: { id: item.signalId }, data: { status: "REJECTED" } })
+          .catch(() => undefined);
+        try {
+          const vId = item.verticalId
+            ?? (await prisma.signal.findUnique({ where: { id: item.signalId }, select: { verticalId: true } }))?.verticalId;
+          if (vId) await prisma.editorialDecision.create({
+            data: {
+              signalId: item.signalId,
+              verticalId: vId,
+              decision: 'REJECT',
+              reasons: [`permanent query rejection: ${(result.error ?? '').slice(0, 200)}`],
+              checks: { terminal: 'query_validation' },
+            },
+          });
+        } catch { /* non-blocking */ }
       // A crash-failed signal is also held — and the HOLD decision MUST be
       // persisted here too: the held-retry collection bounds retries by the
       // count of HOLD decisions. A failure that leaves no decision would be
       // retried forever (count never increments → budget never consumed).
-      if (item.signalId) {
+      } else if (item.signalId) {
         await prisma.signal
           .update({ where: { id: item.signalId }, data: { status: "HELD" } })
           .catch(() => undefined);
