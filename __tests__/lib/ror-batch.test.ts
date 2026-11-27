@@ -4,12 +4,7 @@
  * Prevents the per-query fan-out that exhausted the execution HTTP budget.
  */
 
-// Both module ids are mocked: the stale openalex.js stub re-exporting
-// './openalex' resolves back to itself and self-recurses under jest.mock.
 jest.mock('../../lib/providers/openalex', () => ({
-  searchOpenAlex: jest.fn(),
-}));
-jest.mock('../../lib/providers/openalex.js', () => ({
   searchOpenAlex: jest.fn(),
 }));
 
