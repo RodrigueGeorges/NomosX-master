@@ -56,7 +56,11 @@ export interface CorpusQuotaReport {
 }
 
 // ── Policy-question detection ────────────────────────────────────────────
-const POLICY_RE = /\b(regulation|directive|policy|CBAM|carbon border|ETS|emissions trading|sanction|tariff|quota|subsidy|mandate|ban|treaty|agreement|climate|emission|decarboni|energy transition|industrial policy|export control|rare earth|chip act|inflation reduction|carbon price|cap.and.trade|free allocation|border adjustment|local content|carbon leakage)\b/i;
+// Instrument-scoped terms only — bare "policy"/"agreement"/"climate" made
+// ANY question mentioning policy responses a mandatory-EUR-Lex case
+// (run-15: a recession→policy-responses question refused on reg=0/2).
+// Climate/energy/trade domains are still caught by POLICY_DOMAIN_RE.
+const POLICY_RE = /\b(regulation|directive|CBAM|carbon border|ETS|emissions trading|sanction|tariff|mandate|ban|treaty|export control|rare earth|chip act|inflation reduction|carbon price|cap.and.trade|free allocation|border adjustment|local content|carbon leakage|industrial policy|subsidy|import quota|export quota)\b/i;
 const POLICY_ACTION_RE = /\b(20\d{2}|by |will |impact|effect|reduce|cut|increase|comply|adopt|phase|implement|apply|enforce|exempt)\b/i;
 // Policy-relevant domains: forecast- or topic-phrased questions in these
 // domains ("renewables reach 50% of capacity by 2030", "mineral resource
