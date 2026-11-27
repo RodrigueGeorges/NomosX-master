@@ -5,7 +5,7 @@
 
 import {  prisma  } from '../db';
 import { randomUUID, createHash } from 'node:crypto';
-import { assertExecutionActive, withExecutionDeadline } from '../worker/execution-scope';
+import { assertExecutionActive, withExecutionDeadline, withExecutionDetached } from '../worker/execution-scope';
 import { hasRunHeadroom, hasRunHeadroomWithReserve, remainingRunMs } from './pipeline-steps/time-budget';
 import { recordDegradedStep } from './degraded-steps';
 import { BRAND_BRIEF_FOOTER, BRAND_MANIFESTO } from '@/lib/brand/public-copy';
@@ -2336,13 +2336,15 @@ export async function runPipeline(
           trustScore: s?.trustScore ?? undefined,
           qualityScore: (s as Record<string, unknown> | undefined)?.qualityScore as number | undefined,
         });
-        void flushAllTraces();
+        // Detached: the trace/score flush must outlive the pipeline scope —
+        // run-12 logged 'runAndPublishInquiry scope closed' on every flush.
+        void withExecutionDetached(() => flushAllTraces());
         return result;
       } catch (innerErr) {
         tracePipelineEnd(executionId, trimmedQuery.slice(0, 500), 0, Date.now() - t0, {
           status: 'FAILED',
         });
-        void flushAllTraces();
+        void withExecutionDetached(() => flushAllTraces());
         throw innerErr;
       }
       },
