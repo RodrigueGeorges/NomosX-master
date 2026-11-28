@@ -283,6 +283,18 @@ function breakingDecisionToItem(decision: EditorialDecision): ThinkTankDispatchI
       crossChannelBoost: decision.topic.crossChannelBoost ?? 0,
       channels: decision.topic.channels ?? [],
       originalHeadline: decision.topic.title,
+      // The article that made the radar pick this topic — seeded into the
+      // corpus via signal.sourceIds in ensureSignalForItem so breaking
+      // dispatches don't get judged on academic-only evidence (prod
+      // forensic 2026-11-28: thesis_insufficient on a CURRENT event while
+      // the triggering news never reached the reader).
+      triggeringArticle: decision.topic.url ? {
+        title: decision.topic.title,
+        url: decision.topic.url,
+        source: decision.topic.source,
+        publishedAt: decision.topic.publishedAt?.toISOString() ?? null,
+        summary: decision.topic.summary?.slice(0, 500) ?? null,
+      } : undefined,
     },
   };
 }
@@ -980,9 +992,14 @@ async function ensureSignalForItem(
         status: { in: ['NEW', 'HELD'] },
         detectedAt: { gte: new Date(Date.now() - 30 * 86400_000) },
       },
-      select: { id: true },
+      select: { id: true, sourceIds: true },
     });
-    if (existing) { item.signalId = existing.id; return; }
+    if (existing) {
+      item.signalId = existing.id;
+      if (existing.sourceIds.length) return;
+      await seedTriggeringArticle(item);
+      return;
+    }
     const meta = item.metadata ?? {};
     const priority = Math.max(55, Math.round(
       Number(meta.priority ?? meta.radarScore ?? meta.confidence ?? 60) || 60,
@@ -1004,8 +1021,43 @@ async function ensureSignalForItem(
       select: { id: true },
     });
     item.signalId = sig.id;
+    await seedTriggeringArticle(item);
   } catch {
     // Non-blocking — an unbacked item just isn't lifecycle-tracked.
+  }
+}
+
+/** Persist the radar topic's triggering article as a Source row and link it
+ * on the item's signal — the orchestrator then seeds it into the corpus
+ * (seedSourceIds < 8 keeps the scout running). Non-blocking: a seeding
+ * failure must not block dispatch. */
+async function seedTriggeringArticle(item: ThinkTankDispatchItem): Promise<void> {
+  const art = item.metadata?.triggeringArticle as
+    | { title?: string; url?: string; source?: string; publishedAt?: string | null; summary?: string | null }
+    | undefined;
+  if (!art?.url || !item.signalId) return;
+  try {
+    const dup = await prisma.source.findFirst({ where: { url: art.url }, select: { id: true } });
+    const pub = art.publishedAt ? new Date(art.publishedAt) : null;
+    const pubOk = pub && !isNaN(pub.getTime()) ? pub : null;
+    const src = dup ?? await prisma.source.create({
+      data: {
+        provider: 'radar-seed',
+        type: 'news-article',
+        title: (art.title ?? item.question).slice(0, 500),
+        abstract: art.summary ?? null,
+        url: art.url,
+        publishedDate: pubOk,
+        year: pubOk ? pubOk.getUTCFullYear() : new Date().getUTCFullYear(),
+        language: 'en',
+        qualityScore: 40,
+        raw: { radarSeed: true, source: art.source ?? null },
+      },
+      select: { id: true },
+    });
+    await prisma.signal.update({ where: { id: item.signalId }, data: { sourceIds: { push: src.id } } });
+  } catch (err) {
+    console.warn('[ThinkTank] triggering-article seed failed (non-blocking):', err instanceof Error ? err.message : err);
   }
 }
 
