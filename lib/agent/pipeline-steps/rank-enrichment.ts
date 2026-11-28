@@ -258,7 +258,7 @@ export async function runRankAndEnrichment(deps: RankEnrichmentDeps): Promise<Ra
       if (parsed?.scores && Object.keys(parsed.scores).length > 0) {
         const dropIdx = new Set<number>();
         const tangIdx = new Set<number>();
-        let correctEarly = 0;
+        const coreIds = new Set<string>();
         screened.forEach((s: any, i: number) => {
           const sc = parsed.scores?.[String(i)];
           if (sc === 0) {
@@ -266,13 +266,14 @@ export async function runRankAndEnrichment(deps: RankEnrichmentDeps): Promise<Ra
             rejectedSourceIds.add(s.id);
           } else if (sc === 1) {
             tangIdx.add(i);
-          } else if (typeof sc === 'number' && sc >= 2) {
-            correctEarly++;
+          } else if ((sc === 2 || sc === 3) && s.id) {
+            coreIds.add(s.id);
           }
         });
         // Strict triage (CTO lever 2): tangential sources carry no usable
         // evidence — drop them once the corpus holds ≥8 core sources.
         // Below that floor they stay: evidence mass beats precision.
+        const correctEarly = coreIds.size;
         const TANGENTIAL_FLOOR = 8;
         const dropTangential = correctEarly >= TANGENTIAL_FLOOR;
         if (dropTangential) {
@@ -299,8 +300,8 @@ export async function runRankAndEnrichment(deps: RankEnrichmentDeps): Promise<Ra
         // dominated by ambiguous docs must not sail through as if relevant:
         // one bounded re-scout for core evidence, merged through re-rank.
         const ambiguousCount = screened.filter((_s, i) => parsed.scores?.[String(i)] === 1).length;
-        const correctCount = screened.filter((_s, i) => Number(parsed.scores?.[String(i)]) >= 2).length;
-        stats.relevanceScreen = { ...(stats.relevanceScreen ?? {}), correct: correctCount, ambiguous: ambiguousCount };
+        const correctCount = correctEarly;
+        stats.relevanceScreen = { ...(stats.relevanceScreen ?? {}), coreIds: [...coreIds], correct: correctCount, ambiguous: ambiguousCount };
         if (!deps.skipRetrieval && ambiguousCount >= Math.max(5, correctCount)) {
           const cragQuery = `${query} — primary evidence, official records, empirical data`;
           console.log(`${label} RELEVANCE SCREEN: corpus dominated by tangential evidence (${ambiguousCount} ambiguous vs ${correctCount} core) — CRAG re-scout for core evidence`);
@@ -672,6 +673,10 @@ export async function runRankAndEnrichment(deps: RankEnrichmentDeps): Promise<Ra
       const { screenSourcesForRelevance } = await import('./relevance-screen');
       const res = await screenSourcesForRelevance({ query, candidates: unscreened, label, addCost });
       if (res) {
+        // Only extend an initial screen; a late-only sample cannot measure the whole corpus.
+        if (stats.relevanceScreen?.coreIds) {
+          stats.relevanceScreen.coreIds = [...new Set([...stats.relevanceScreen.coreIds, ...res.coreIds])];
+        }
         unscreened.forEach((s: any) => screenedSourceIds.add(s.id));
         // Same strict triage as the main screen: tangential late additions
         // drop once ≥8 core sources exist among the screened batch.
@@ -734,6 +739,9 @@ export async function runRankAndEnrichment(deps: RankEnrichmentDeps): Promise<Ra
               const { screenSourcesForRelevance } = await import('./relevance-screen');
               const sres = await screenSourcesForRelevance({ query, candidates: unscreenedFresh, label, addCost });
               if (sres) {
+                if (stats.relevanceScreen?.coreIds) {
+                  stats.relevanceScreen.coreIds = [...new Set([...stats.relevanceScreen.coreIds, ...sres.coreIds])];
+                }
                 unscreenedFresh.forEach((s: any) => screenedSourceIds.add(s.id));
                 const dropFresh = new Set(sres.dropIds);
                 if (sres.correctCount >= 8) sres.tangentialIds.forEach(id => dropFresh.add(id));

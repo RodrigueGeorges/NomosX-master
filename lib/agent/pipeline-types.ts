@@ -932,6 +932,8 @@ export interface PipelineStats {
 
   // Late-addition relevance screens (rank-enrichment merges + gap-fill)
   relevanceScreen?: {
+    coreIds?: string[];
+    coreCount?: number;
     screened?: number;
     dropped?: number;
     restoredAtFloor?: boolean;

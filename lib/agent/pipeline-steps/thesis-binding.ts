@@ -39,13 +39,21 @@ export async function verifyThesisBindingStage(deps: ThesisBindingDeps, stage: s
   const bound = (stats as any).thesisBinding;
   const current = getAnalysis();
   const verdict = typeof current?.verdict === 'string' ? current.verdict : '';
-  if (!bound?.statement || verdict.trim().length < 20) return;
-  if (bound.checkedVerdict === verdict) return; // unchanged verdict — no re-spend
+  if (!bound?.statement) return;
+  if (bound.evaluationComplete && bound.checkedVerdict === verdict && bound.checkedStatement === bound.statement) return;
+  // A forecast rebind changes the contract even when the analyst text is identical.
+  bound.evaluationComplete = false;
+  bound.adhered = undefined;
+  bound.checkedVerdict = undefined;
+  bound.checkedStatement = undefined;
+  bound.adherenceReason = 'No current adherence evaluation';
+  if (verdict.trim().length < 20) return;
   try {
     const { checkThesisAdherence } = await import('../hypothesis-engine');
     const adh = await checkThesisAdherence(verdict, bound.statement);
     addCost(adh.costUsd, 'THESIS BINDING');
     bound.checkedVerdict = adh.evaluationComplete ? verdict : undefined;
+    bound.checkedStatement = adh.evaluationComplete ? bound.statement : undefined;
     bound.adhered = adh.adhered;
     bound.evaluationComplete = adh.evaluationComplete;
     bound.adherenceReason = adh.reason.slice(0, 200);
