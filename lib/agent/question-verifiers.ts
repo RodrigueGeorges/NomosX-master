@@ -83,18 +83,41 @@ const STOPWORDS = new Set(('the a an and or of to in for on at by with from as i
  *  latest plausible resolution date or null. Handles "by 2030", "in 2027",
  *  "within 18 months", "end of 2024", "Q3 2026", "by end of 2025". */
 export function extractHorizonDate(text: string, today = new Date()): Date | null {
-  const t = text.toLowerCase();
+  const lower = text.toLowerCase();
+  // Prefer an explicit deadline to a baseline date elsewhere in the question.
+  const deadline = lower.match(/\bby\s+(?:(?:the\s+)?end\s+of\s+)?(?=(?:q[1-4]|\d|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec))/);
+  const t = deadline ? lower.slice(deadline.index! + deadline[0].length) : lower;
   const now = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+  const months = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
+  const calendarDay = (year: number, month: number, day: number) => {
+    const date = new Date(Date.UTC(year, month, day));
+    return date.getUTCFullYear() === year && date.getUTCMonth() === month && date.getUTCDate() === day ? date : null;
+  };
+  const start = deadline ? '^' : '\\b';
+  const iso = t.match(new RegExp(`${start}(20\\d{2})-(\\d{2})-(\\d{2})\\b`));
+  if (iso) return calendarDay(+iso[1], +iso[2] - 1, +iso[3]);
+  const monthNames = months.map(m => `${m.slice(0, 3)}(?:${m.slice(3)})?`).join('|');
+  const monthDate = t.match(new RegExp(`${start}(?:(\\d{1,2})\\s+)?(${monthNames})\\.?\\s+(?:(\\d{1,2})(?:st|nd|rd|th)?[,]?\\s+)?(20\\d{2})\\b`));
+  if (monthDate) {
+    const month = months.findIndex(m => m.startsWith(monthDate[2]));
+    const day = monthDate[1] || monthDate[3];
+    return day ? calendarDay(+monthDate[4], month, +day) : new Date(Date.UTC(+monthDate[4], month + 1, 0));
+  }
   let best: Date | null = null;
   const consider = (d: Date | null) => { if (d && (!best || d > best)) best = d; };
   // explicit year
   const y = t.match(/\b(20[2-4]\d)\b/);
-  if (y) consider(new Date(Date.UTC(Number(y[1]), 11, 31)));
   // quarter
-  const q = t.match(/\bq([1-4])\s*(?:of\s*)?(20[2-4]\d)?/);
+  const q = t.match(new RegExp(`${start}q([1-4])\\s*(?:of\\s*)?(20[2-4]\\d)?`));
   if (q) {
     const yr = q[2] ? Number(q[2]) : now.getUTCFullYear() + (Number(q[1]) <= now.getUTCMonth() / 3 + 1 ? 1 : 0);
-    consider(new Date(Date.UTC(yr, Number(q[1]) * 3, 0)));
+    const quarterEnd = new Date(Date.UTC(yr, Number(q[1]) * 3, 0));
+    if (deadline) return quarterEnd;
+    consider(quarterEnd);
+  } else if (y) {
+    const yearEnd = new Date(Date.UTC(Number(y[1]), 11, 31));
+    if (deadline && y.index === 0) return yearEnd;
+    consider(yearEnd);
   }
   // "within|in N months|weeks|days"
   const rel = t.match(/\b(?:within|in)\s+(\d{1,3})\s+(month|week|day)s?\b/);

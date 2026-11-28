@@ -10,7 +10,7 @@ jest.mock('@/lib/llm/unified-llm', () => ({
 }));
 
 import { callLLM } from '@/lib/llm/unified-llm';
-import { verifyDispatchQuestion } from '@/lib/agent/question-verifiers';
+import { extractHorizonDate, verifyDispatchQuestion } from '@/lib/agent/question-verifiers';
 
 const mockCall = callLLM as jest.Mock;
 
@@ -26,6 +26,15 @@ const GOOD = JSON.stringify({
 });
 
 beforeEach(() => mockCall.mockReset());
+
+it.each([
+  ["By June 2026, will France's credit rating change?", '2026-06-30'],
+  ['Compared with June 2026, will output rise by Q1 2027?', '2027-03-31'],
+  ['By 2027-02-04, will output rise?', '2027-02-04'],
+  ['By 2030, will output exceed its June 2026 baseline?', '2030-12-31'],
+])('uses the stated resolution horizon: %s', (question, expected) => {
+  expect(extractHorizonDate(question, new Date('2026-11-28'))?.toISOString().slice(0, 10)).toBe(expected);
+});
 
 describe('verifyDispatchQuestion', () => {
   it('passes a well-formed falsifiable question and returns the forecastQuestion', async () => {

@@ -579,7 +579,12 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   // ~$0.45 of reader spend. Runs without a relevance screen (fixed-corpus
   // replay) skip the core-count arm; the source-count floor is deterministic
   // and applies to every path.
-  const screenedCoreCount = (stats as any).relevanceScreen?.coreCount;
+  const screen = stats.relevanceScreen;
+  if (screen?.coreIds) {
+    const retained = new Set(topSources.map(s => s.id));
+    screen.coreCount = new Set(screen.coreIds.filter(id => retained.has(id))).size;
+  }
+  const screenedCoreCount = screen?.coreCount;
   const preReaderMinCore = Number(process.env.PRE_READER_MIN_CORE ?? 8);
   const preReaderMinSources = Number(process.env.PRE_READER_MIN_SOURCES ?? (isStrategic ? 15 : 8));
   const coreEvidenceShort = typeof screenedCoreCount === 'number' && screenedCoreCount < preReaderMinCore;
@@ -1091,7 +1096,8 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   // shape as the analysis-failure refusal above.
   const tbPostGap = (stats as any).thesisBinding;
   const earlyAbortEnabled = process.env.NOMOSX_EARLY_ADHERENCE_ABORT === '1';
-  if (earlyAbortEnabled && tbPostGap?.statement) {
+  // Forecast binding happens at the arbiter; a pre-rebind miss is not terminal.
+  if (earlyAbortEnabled && tbPostGap?.statement && !opts.forecastQuestion?.trim()) {
     await verifyThesisBinding('post-gapfill');
     const tbNow = (stats as any).thesisBinding;
     if (tbNow?.evaluationComplete === true && tbNow.adhered === false) {

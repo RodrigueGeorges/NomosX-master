@@ -21,6 +21,7 @@ export interface RelevanceScreenResult {
   tangentialIds: Set<string>;
   /** Candidates scored ≥2 (relevant/core evidence). */
   correctCount: number;
+  coreIds: Set<string>;
   /** How many candidates were actually scored. */
   screened: number;
   costUsd?: number;
@@ -65,14 +66,14 @@ export async function screenSourcesForRelevance(opts: {
     if (!parsed?.scores || Object.keys(parsed.scores).length === 0) return null;
     const dropIds = new Set<string>();
     const tangentialIds = new Set<string>();
-    let correctCount = 0;
+    const coreIds = new Set<string>();
     batch.forEach((s: any, i: number) => {
       const score = parsed.scores?.[String(i)];
       if (score === 0 && s?.id) dropIds.add(s.id);
       else if (score === 1 && s?.id) tangentialIds.add(s.id);
-      else if (typeof score === 'number' && score >= 2) correctCount++;
+      else if ((score === 2 || score === 3) && s?.id) coreIds.add(s.id);
     });
-    return { dropIds, tangentialIds, correctCount, screened: batch.length, costUsd: rel.costUsd };
+    return { dropIds, tangentialIds, coreIds, correctCount: coreIds.size, screened: batch.length, costUsd: rel.costUsd };
   } catch (err) {
     console.warn(`${label} RELEVANCE SCREEN: failed (non-blocking):`, err);
     return null;

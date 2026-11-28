@@ -43,11 +43,14 @@ it('aborts the actual pipeline execution and scopes timeout cleanup to its own i
   expect(jest.getTimerCount()).toBe(0);
 });
 
-it.each(['corpus_insufficient', 'thesis_insufficient', 'thesis_evaluation_unavailable'])('persists %s before any scenario/context or analyst spend', async reason => {
+it.each(['corpus_insufficient', 'thesis_insufficient', 'thesis_evaluation_unavailable', 'corpus_core_evidence_pre_reader'])('persists %s before any scenario/context or analyst spend', async reason => {
   const stats: any = {
     thesisBinding: reason === 'thesis_evaluation_unavailable' ? { unavailable: true } : { absent: 'no_supportable_thesis' },
   };
   const sources = Array.from({ length: 8 }, (_, i) => ({ id: `s${i}`, abstract: 'Evidence '.repeat(30) }));
+  stats.relevanceScreen = reason === 'corpus_core_evidence_pre_reader'
+    ? { coreCount: 9, coreIds: [...sources.slice(0, 7).map(s => s.id), 's0', 'removed-by-rerank'] }
+    : { coreCount: 7, coreIds: sources.map(s => s.id) };
   jest.mocked(runPipelineInit).mockResolvedValue({
     isStrategic: false, label: 'Test', stats, pipelineStart: Date.now(), rejectionHandler: () => {},
     ctx: {}, providers: [], perProvider: 5, flags: {}, cost: { runningCostUsd: 0.042 },
@@ -60,6 +63,7 @@ it.each(['corpus_insufficient', 'thesis_insufficient', 'thesis_evaluation_unavai
   const result = await runPipeline('A sufficiently detailed research question?', 'brief', { executionId: 'early-refusal' });
   expect(buildAnalystContext).not.toHaveBeenCalled();
   expect(runAnalystExecution).not.toHaveBeenCalled();
+  expect(stats.relevanceScreen.coreCount).toBe(reason === 'corpus_core_evidence_pre_reader' ? 7 : 8);
   expect(result.stats.structuredRefusal?.reason).toContain(reason);
   expect(prisma.pipelineRun.update).toHaveBeenCalledWith(expect.objectContaining({
     where: { id: 'early-refusal' }, data: expect.objectContaining({
