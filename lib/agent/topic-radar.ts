@@ -78,6 +78,7 @@ export interface RadarSweepResult {
     newsWiresFetched?: number;
     socialFetched?: number;
     eventSourcesFetched?: number;
+    apitubeFetched?: number;
   };
 }
 
@@ -270,7 +271,7 @@ export async function runTopicRadar(options?: {
     crossSourceSignals?: { clustersDetected: number; topScore: number };
     breakingFetched?: number; volumeSpikes?: number;
     newsWiresFetched?: number; socialFetched?: number;
-    eventSourcesFetched?: number;
+    eventSourcesFetched?: number; apitubeFetched?: number;
   } = {
     gdeltFetched: 0, rssFetched: 0, academicFetched: 0,
     policyFetched: 0, institutionalFetched: 0, dbSignals: 0,
@@ -279,7 +280,7 @@ export async function runTopicRadar(options?: {
   };
 
   // 8 parallel sweeps: baseline + breaking(3h) + volume-spikes + wires + social pulse
-  const [gdeltR, rssR, academicR, dbR, breakingR, spikesR, wiresR, socialR, gdacsR, bnewsR] = await Promise.allSettled([
+  const [gdeltR, rssR, academicR, dbR, breakingR, spikesR, wiresR, socialR, gdacsR, bnewsR, apitubeR] = await Promise.allSettled([
     sweepGDELT(),
     sweepRSS(),
     includeAcademic ? sweepAcademic() : Promise.resolve([]),
@@ -290,6 +291,7 @@ export async function runTopicRadar(options?: {
     sweepSocialPulse(),
     sweepGDACS(),
     sweepBingNewsRSS(),
+    sweepApitubeGeopolitics(),
   ]);
 
   const all: RadarTopic[] = [];
@@ -304,6 +306,7 @@ export async function runTopicRadar(options?: {
   const eventSourcesFetched = (gdacsR.status === 'fulfilled' ? gdacsR.value.length : 0) + (bnewsR.status === 'fulfilled' ? bnewsR.value.length : 0);
   if (gdacsR.status === 'fulfilled')    { all.push(...gdacsR.value); }
   if (bnewsR.status === 'fulfilled')     { all.push(...bnewsR.value); }
+  if (apitubeR.status === 'fulfilled')   { all.push(...apitubeR.value);  stats.apitubeFetched  = apitubeR.value.length; }
   stats.eventSourcesFetched = eventSourcesFetched;
 
   // Capture the input before clustering mutates scores. Cache hits are not new windows.
@@ -314,7 +317,7 @@ export async function runTopicRadar(options?: {
       const { writeRadarWindow } = await import('./radar-window');
       windowFile = await writeRadarWindow(windowDir, start, { maxTopics, includeAcademic }, {
         gdelt: gdeltR, rss: rssR, academic: academicR, db: dbR, breaking: breakingR,
-        spikes: spikesR, wires: wiresR, social: socialR, gdacs: gdacsR, bingNews: bnewsR,
+        spikes: spikesR, wires: wiresR, social: socialR, gdacs: gdacsR, bingNews: bnewsR, apitube: apitubeR,
       });
     } catch (err) {
       console.warn('[TOPIC RADAR V3] Window capture failed; continuing sweep:', err);
@@ -466,7 +469,7 @@ export async function runTopicRadar(options?: {
   // Store in TTL cache
   _cachedResult = { result, expiresAt: Date.now() + CACHE_TTL_MS };
 
-  console.log(`[TOPIC RADAR V3] ✅ ${stats.totalRaw} raw → ${stats.afterDedup} deduped → ${top.length} topics in ${stats.durationMs}ms | gdelt:${stats.gdeltFetched} breaking:${stats.breakingFetched} spikes:${stats.volumeSpikes} wires:${stats.newsWiresFetched} social:${stats.socialFetched} rss:${stats.rssFetched} academic:${stats.academicFetched} db:${stats.dbSignals} events:${stats.eventSourcesFetched ?? 0}`);
+  console.log(`[TOPIC RADAR V3] ✅ ${stats.totalRaw} raw → ${stats.afterDedup} deduped → ${top.length} topics in ${stats.durationMs}ms | gdelt:${stats.gdeltFetched} breaking:${stats.breakingFetched} spikes:${stats.volumeSpikes} wires:${stats.newsWiresFetched} social:${stats.socialFetched} rss:${stats.rssFetched} academic:${stats.academicFetched} db:${stats.dbSignals} events:${stats.eventSourcesFetched ?? 0} apitube:${stats.apitubeFetched ?? 0}`);
   return result;
 }
 
@@ -1134,4 +1137,35 @@ async function sweepSocialPulse(): Promise<RadarTopic[]> {
   } catch { /* non-blocking — reddit may 403 datacenter IPs */ }
 
   return out;
+}
+
+// ─── GDELT fallback: APITube geopolitics (shared-IP 429s killed GDELT on
+// Railway — 0 fetched across 8 captured windows 2026-11-28). Paid-scout
+// gated; returns [] in FREE RUN or without APITUBE_API_KEY. ───
+const APITUBE_GEOPOLITICS_QUERY =
+  'war OR sanctions OR coup OR ceasefire OR nuclear OR military strike OR armed conflict '+
+  'OR election crisis OR border dispute OR terrorism OR cyber attack';
+
+async function sweepApitubeGeopolitics(): Promise<RadarTopic[]> {
+  try {
+    const { searchAPITube } = await import('../providers/apitube-provider');
+    const items = await searchAPITube(APITUBE_GEOPOLITICS_QUERY, 25);
+    return items.slice(0, 25).map((item: any, i: number) => {
+      const pub = item.publishedDate ? new Date(item.publishedDate) : null;
+      return {
+        id: `apitube:${hashStr(item.url || item.title)}`,
+        title: cleanText(item.title || 'Untitled'),
+        summary: `[geopolitics] ${cleanText(item.abstract || '').slice(0, 300)}`,
+        url: item.url,
+        source: (item.institutions?.[0] as string) || 'APITube',
+        sourceType: 'news' as const,
+        publishedAt: pub && !isNaN(pub.getTime()) ? pub : null,
+        score: clampScore(70 + (24 - i) * 0.8 + recencyDecay(pub) + urgencyKeywordBonus(item.title || '')),
+        vertical: 'geopolitics',
+      };
+    });
+  } catch (err) {
+    console.warn('[TOPIC RADAR V3] APITube sweep failed (non-blocking):', err);
+    return [];
+  }
 }

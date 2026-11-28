@@ -20,7 +20,7 @@ import { isFreeRun } from '@/lib/free-run';
 import { runAndPublishInquiry, type InquiryPublishResult } from "./inquiry-orchestrator";
 import { publicationTypeToDepth } from "./inquiry-funnel-utils";
 import { runTopicRadar } from "./topic-radar";
-import { editorialTriage, type EditorialDecision } from "./editor-in-chief";
+import { editorialTriage, diversifyTriagePool, type EditorialDecision } from "./editor-in-chief";
 import type { InquiryDepth } from "@/lib/types/inquiry";
 // Search providers are now used by the evidence-gatherer module directly
 
@@ -502,7 +502,7 @@ async function collectBreakingItems(
   const errors: string[] = [];
   const detectStart = Date.now();
 
-  const radarResult = await runTopicRadar({ maxTopics: 15, includeAcademic: true });
+  const radarResult = await runTopicRadar({ maxTopics: 40, includeAcademic: true });
   const detectMs = Date.now() - detectStart;
 
   // ── PREDICTION WATCH (P2/7): close the forecast loop ──
@@ -554,6 +554,10 @@ async function collectBreakingItems(
   // without running out of options. Bounded by the radar output itself —
   // the old hard cap of 6 meant --max=10 still only ever triaged 6 topics.
   const candidatePool = Math.min(maxPublications * 3, radarResult.topics.length);
+  // Paired-window sim: vertical round-robin surfaces publishable subjects
+  // the score order never reaches (20-30% pool overlap only). The full
+  // radar list still feeds corrective re-triage; only this view diversifies.
+  const triageTopics = diversifyTriagePool(radarResult.topics, { k: 15, minScore: 40 });
   const decideStart = Date.now();
   // Research agenda — the desk's cumulative coverage account. Built once
   // per cycle (2 indexed DB reads, no LLM); empty/failure = triage
@@ -563,7 +567,7 @@ async function collectBreakingItems(
   if (agenda.deficitSlugs.length > 0) {
     console.log(`[ThinkTank] AGENDA: under-covered domains: ${agenda.deficitSlugs.join(', ')} (${agenda.coverage.map(c => `${c.slug}:${c.pubsInWindow}`).join(' ')})`);
   }
-  const triageResult = await editorialTriage(radarResult.topics, {
+  const triageResult = await editorialTriage(triageTopics, {
     maxPublications: candidatePool,
     budgetUsd,
     agenda,
@@ -1259,8 +1263,9 @@ export async function executeDispatchQueue(
       if (process.env.NOMOSX_VIABILITY_PROBE !== '0' && process.env.NODE_ENV !== 'test') {
         try {
           const { probeTopicViability } = await import('./topic-viability');
-          const probe = await probeTopicViability(item.question);
-          console.log(`[ThinkTank] VIABILITY "${item.question.slice(0, 60)}": relevant=${probe.relevant} (raw oa=${probe.raw.openAlex} cr=${probe.raw.crossref} tt=${probe.raw.thinkTanks}) ${probe.durationMs}ms${probe.error ? ` err=${probe.error.slice(0, 80)}` : ''}`);
+          const target = item.forecastQuestion?.trim() || item.question;
+          const probe = await probeTopicViability(target);
+          console.log(`[ThinkTank] VIABILITY "${target.slice(0, 60)}": relevant=${probe.relevant} (raw oa=${probe.raw.openAlex} cr=${probe.raw.crossref} tt=${probe.raw.thinkTanks} terms=${probe.terms.join(',')}) ${probe.durationMs}ms${probe.error ? ` err=${probe.error.slice(0, 80)}` : ''}`);
           if (!probe.viable) {
             skipped++;
             console.log(`[ThinkTank] SKIPPED low-surface topic (${probe.relevant} relevant hits < ${probe.threshold}): "${item.question.slice(0, 80)}"`);
