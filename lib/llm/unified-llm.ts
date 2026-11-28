@@ -1420,10 +1420,17 @@ async function callOpenAICompatible(
   const glmExtraBody: Record<string, unknown> = {};
   if (provider === "glm" && !glmAlwaysThinks) {
     glmExtraBody.thinking = { type: thinkingEnabled ? "enabled" : "disabled" };
+  } else if (provider === "glm" && glmAlwaysThinks && !thinkingEnabled) {
+    // glm-5.3+ cannot disable thinking — but `effort:'low'` is a VERIFIED
+    // working param (live 200). Without it the default effort burns the
+    // whole max_tokens budget on reasoning_content and content returns
+    // truncated/empty — the exact failure that killed analyst pass 1
+    // (16000/16000 tokens → pass1_zero_mechanisms).
+    glmExtraBody.thinking = { type: "enabled", effort: "low" };
   }
-  // glmAlwaysThinks: send nothing — the model's default is thinking-on and
-  // an explicit `enabled` or effort level risks another 400 on a param
-  // shape we can't verify offline.
+  // glmAlwaysThinks + thinkingEnabled: send nothing — real reasoning tasks
+  // get the model's default effort; an explicit `enabled` without effort
+  // risks another 400 on a param shape we can't verify offline.
 
   // Temperature handling per provider:
   // - Kimi K3: fixed at 1.0, must NOT be passed explicitly (API returns error)
