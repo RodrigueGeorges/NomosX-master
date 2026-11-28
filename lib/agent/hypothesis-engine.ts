@@ -145,14 +145,35 @@ Return JSON:
 
 function thesisEvidenceContext(sources: any[], readings?: any[]): string {
   const byId = new Map((readings ?? []).filter(r => r?.sourceId).map(r => [r.sourceId, r]));
+  const PER_SOURCE_BUDGET = 2000;
   return sources.slice(0, 25).map((s, i) => {
     const reading = byId.get(s.id);
-    const extracted = ['claims', 'results', 'limitations'].map(field => {
+    const parts: string[] = [];
+    // Probative material in priority order — the judge must be able to
+    // SEE the evidence that could bind a claim, not just abstracts:
+    // 1. verbatim verified spans (mechanisms[].statedSpan — substring-verified
+    //    against the source text by the reader)
+    const spans = (reading?.mechanisms ?? [])
+      .filter((m: any) => m?.spanVerified && typeof m?.statedSpan === 'string')
+      .map((m: any) => String(m.statedSpan).trim())
+      .filter((span: string) => span.length > 40)
+      .slice(0, 3);
+    if (spans.length) parts.push(`verbatim: ${spans.map((span: string) => `"${span.slice(0, 350)}"`).join(' | ')}`);
+    // 2. actual numbers (effect sizes, key metrics — the support a judge
+    //    needs for "≥2 independent documents" verdicts)
+    const q = reading?.quantitative;
+    const nums = [
+      ...(q?.effectSizes ?? []).slice(0, 2).map((e: any) => `${e.context}: ${e.measure}=${e.value}`),
+      ...(q?.keyMetrics ?? []).slice(0, 2).map((k: any) => `${k.name}=${k.value}${k.unit ? k.unit : ''} (${k.context})`),
+    ];
+    if (nums.length) parts.push(`data: ${nums.join('; ').slice(0, 300)}`);
+    // 3. extracted results / claims / contributions / limitations
+    for (const field of ['results', 'claims', 'keyContributions', 'limitations']) {
       const values = Array.isArray(reading?.[field]) ? reading[field].filter((v: unknown) => typeof v === 'string').slice(0, 3) : [];
-      return values.length ? `${field}: ${values.join('; ').slice(0, 350)}` : '';
-    }).filter(Boolean).join('; ');
-    const content = extracted || s.abstract || s.fullText || 'No content';
-    return `[SRC-${i + 1}] ${s.title} (${s.year || 'N/A'}, ${s.provider})\n  Key content: ${String(content).slice(0, 1200)}`;
+      if (values.length) parts.push(`${field}: ${values.join('; ').slice(0, 350)}`);
+    }
+    const content = parts.join('\n  ') || s.abstract || s.fullText || 'No content';
+    return `[SRC-${i + 1}] ${s.title} (${s.year || 'N/A'}, ${s.provider})\n  ${String(content).slice(0, PER_SOURCE_BUDGET)}`;
   }).join('\n');
 }
 
