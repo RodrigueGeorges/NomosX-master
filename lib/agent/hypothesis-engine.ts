@@ -28,6 +28,10 @@ export interface Hypothesis {
   statement: string;          // Falsifiable claim
   rationale: string;          // Why this hypothesis matters for the question
   evidenceNeeded: string[];   // What evidence would confirm/refute it
+  /** True for factors derived from the readings AFTER they landed (ids F1+).
+   *  Still registered before judgement — bindable, but origin 'post_read'. */
+  postRead?: boolean;
+  derivedFrom?: string[];
 }
 
 export interface FramingOutput {
@@ -58,7 +62,7 @@ export interface JudgeOutput {
   /** How the bound thesis was chosen — 'registered' (a pre-posed hypothesis
    *  won) or 'corpus_derived' (no registered hypothesis was supported, so
    *  the corpus itself was asked what it defensibly claims). */
-  thesisOrigin?: 'registered' | 'corpus_derived';
+  thesisOrigin?: 'registered' | 'corpus_derived' | 'post_read';
   /** True when registered verdicts AND corpus derivation both found nothing
    *  supportable — the corpus cannot yield a defensible position. The
    *  pipeline should refuse early rather than spend the analyst tail on a
@@ -140,16 +144,38 @@ Return JSON:
 // 2. HYPOTHESIS JUDGE
 // ============================================================================
 
-function thesisEvidenceContext(sources: any[], readings?: any[]): string {
+export function thesisEvidenceContext(sources: any[], readings?: any[]): string {
   const byId = new Map((readings ?? []).filter(r => r?.sourceId).map(r => [r.sourceId, r]));
+  const PER_SOURCE_BUDGET = 2000;
   return sources.slice(0, 25).map((s, i) => {
     const reading = byId.get(s.id);
-    const extracted = ['claims', 'results', 'limitations'].map(field => {
+    const parts: string[] = [];
+    // Probative material in priority order — the judge must be able to
+    // SEE the evidence that could bind a claim, not just abstracts:
+    // 1. verbatim verified spans (mechanisms[].statedSpan — substring-verified
+    //    against the source text by the reader)
+    const spans = (reading?.mechanisms ?? [])
+      .filter((m: any) => m?.spanVerified && typeof m?.statedSpan === 'string')
+      .map((m: any) => String(m.statedSpan).trim())
+      .filter((span: string) => span.length > 40)
+      .slice(0, 3);
+    if (spans.length) parts.push(`verbatim: ${spans.map((span: string) => `"${span.slice(0, 350)}"`).join(' | ')}`);
+    // 2. actual numbers (effect sizes, key metrics — the support a judge
+    //    needs for "≥2 independent documents" verdicts)
+    const q = reading?.quantitative;
+    const nums = [
+      ...(q?.effectSizes ?? []).slice(0, 2).map((e: any) => `${e.context}: ${e.measure}=${e.value}`),
+      ...(q?.keyMetrics ?? []).slice(0, 2).map((k: any) => `${k.name}=${k.value}${k.unit ? k.unit : ''} (${k.context})`),
+    ];
+    if (nums.length) parts.push(`data: ${nums.join('; ').slice(0, 300)}`);
+    // 3. extracted results / claims / contributions / limitations
+    // Keep caveats ahead of optional summaries so a rich reading cannot truncate them away.
+    for (const field of ['limitations', 'results', 'claims', 'keyContributions']) {
       const values = Array.isArray(reading?.[field]) ? reading[field].filter((v: unknown) => typeof v === 'string').slice(0, 3) : [];
-      return values.length ? `${field}: ${values.join('; ').slice(0, 350)}` : '';
-    }).filter(Boolean).join('; ');
-    const content = extracted || s.abstract || s.fullText || 'No content';
-    return `[SRC-${i + 1}] ${s.title} (${s.year || 'N/A'}, ${s.provider})\n  Key content: ${String(content).slice(0, 1200)}`;
+      if (values.length) parts.push(`${field}: ${values.join('; ').slice(0, 350)}`);
+    }
+    const content = parts.join('\n  ') || s.abstract || s.fullText || 'No content';
+    return `[SRC-${i + 1}] ${s.title} (${s.year || 'N/A'}, ${s.provider})\n  ${String(content).slice(0, PER_SOURCE_BUDGET)}`;
   }).join('\n');
 }
 
@@ -172,6 +198,98 @@ function supportingDocuments(evidence: string[], sources: any[]): number {
   return count;
 }
 
+/**
+ * Post-read factors — the audit's étape 3 replacement for blind
+ * pre-registered hypotheses. Calibration: 118/135 registered verdicts came
+ * back inconclusive because hypotheses posed before reading never bind —
+ * the corpus simply doesn't answer them. Factors are posed AFTER the
+ * readings land and MUST cite the [SRC-N] they derive from, so the judge
+ * evaluates evidence-linked candidates instead of guesses.
+ *
+ * Registered before judgement (F-ids live in the hypotheses array), so the
+ * judge treats them identically — a factor-bound thesis reports origin
+ * 'post_read'. Deterministic sanity: factors citing no grounded [SRC-N]
+ * are dropped before the judge sees them.
+ */
+export async function postReadFactors(opts: {
+  query: string;
+  forecastQuestion?: string;
+  sources: any[];      // topSources — [SRC-N] index base (same order as the judge sees)
+  readings?: any[];
+}): Promise<{ factors: Hypothesis[]; costUsd: number }> {
+  const empty = { factors: [] as Hypothesis[], costUsd: 0 };
+  const evidence = thesisEvidenceContext(opts.sources, opts.readings);
+  if (opts.sources.length === 0 || evidence.length < 100) return empty;
+
+  const target = opts.forecastQuestion?.trim() || opts.query;
+  try {
+    const response = await callLLM({
+      messages: [{
+        role: 'system',
+        content: `You are a research director extracting the claims a corpus most directly supports — AFTER the reading is done, not before. Factors must be falsifiable statements the evidence could confirm or refute, each explicitly tied to the sources it derives from. You never assert what the evidence does not carry.`,
+      }, {
+        role: 'user',
+        content: `RESEARCH TARGET: ${target}
+
+EVIDENCE BASE:
+${evidence}
+
+TASK: Derive 3-5 factors — the claims this evidence most directly supports or most sharply bears on for the research target.
+
+Rules:
+1. Each factor is a falsifiable statement (a finding, mechanism, or trajectory — not a theme)
+2. For a forecast target, prefer factors that determine the outcome: base rates, actor incentives, constraints, leading indicators
+3. Every factor MUST name the [SRC-N] it derives from — a factor the evidence does not ground is worthless
+4. Span: at least one low-altitude factor an ordinary report could settle, at most one ambitious causal claim
+5. evidenceNeeded lists what would confirm or refute the factor BEYOND the cited sources
+
+Return JSON:
+{
+  "factors": [
+    {
+      "id": "F1",
+      "statement": "Falsifiable claim",
+      "rationale": "Why this determines the answer",
+      "derivedFrom": ["[SRC-2]", "[SRC-5]"],
+      "evidenceNeeded": ["Type of evidence needed"]
+    }
+  ]
+}`,
+      }],
+      temperature: 0.2,
+      jsonMode: true,
+      maxTokens: 2500,
+      enableCache: true,
+      task: 'topic_classification',
+    });
+
+    const parsed = parseJson(response.content) as any;
+    const limit = Math.min(25, opts.sources.length);
+    const factors: Hypothesis[] = (parsed?.factors ?? []).slice(0, 5).flatMap((f: any, i: number) => {
+      const statement = String(f?.statement ?? '').trim();
+      if (statement.length < 20) return [];
+      const refs = [...(Array.isArray(f?.derivedFrom) ? f.derivedFrom : []), statement]
+        .flatMap(value => [...String(value).matchAll(/\[SRC-(\d+)\]/g)].map(m => Number(m[1])));
+      if (!refs.length || refs.some(n => n < 1 || n > limit)) return [];
+      // A factor citing no grounded source is a blind hypothesis wearing
+      // factor clothes — exactly what this step exists to replace.
+      return [{
+        id: `F${i + 1}`,
+        statement,
+        rationale: String(f?.rationale ?? '').slice(0, 300),
+        evidenceNeeded: (Array.isArray(f?.evidenceNeeded) ? f.evidenceNeeded : []).map(String).slice(0, 4),
+        postRead: true,
+        derivedFrom: [...new Set(refs)].map(n => `[SRC-${n}]`),
+      }];
+    });
+    console.log(`[POST-READ FACTORS] ${factors.length} evidence-linked factors derived (${opts.readings?.length ?? 0} readings)`);
+    return { factors, costUsd: response.costUsd ?? 0 };
+  } catch (err) {
+    console.warn('[POST-READ FACTORS] derivation failed (non-blocking):', err instanceof Error ? err.message : err);
+    return empty;
+  }
+}
+
 export async function hypothesisJudge(
   hypotheses: Hypothesis[],
   sources: any[],
@@ -187,7 +305,7 @@ export async function hypothesisJudge(
   const sourceContext = thesisEvidenceContext(sources, readings);
 
   const hypothesisList = hypotheses.map(h =>
-    `${h.id}: "${h.statement}"\n  Evidence needed: ${h.evidenceNeeded.join('; ')}`
+    `${h.id}: "${h.statement}"\n  Evidence needed: ${h.evidenceNeeded.join('; ')}${h.postRead && h.derivedFrom?.length ? `\n  Candidate passages to verify (not proof): ${h.derivedFrom.join(', ')}` : ''}`
   ).join('\n\n');
 
   try {
@@ -276,7 +394,7 @@ Return JSON:
     let thesisAbsent = false;
     let thesisUnavailable = false;
     if (boundThesis) {
-      thesisOrigin = 'registered';
+      thesisOrigin = byId.get(boundThesis.id)?.postRead === true ? 'post_read' : 'registered';
     } else {
       // Bottom-up fallback: the top-down hypotheses were all inconclusive —
       // maybe the corpus supports a DIFFERENT claim. Ask it directly before
@@ -304,7 +422,9 @@ Return JSON:
           console.log(`[HYPOTHESIS JUDGE] Corpus-derived thesis bound: "${derived.claim.slice(0, 100)}" (${boundThesis.supportingSourceCount} distinct documents)`);
         } else if (derived?.evaluationComplete && derived.defensible === false) {
           thesisAbsent = true;
-          console.warn(`[HYPOTHESIS JUDGE] No supportable thesis — registered verdicts inconclusive AND corpus derivation found nothing defensible`);
+          // Refusals must be auditable — the reasoning is the only way to tell
+          // a calibrated "nothing defensible" from a judge that misread the base.
+          console.warn(`[HYPOTHESIS JUDGE] No supportable thesis — registered verdicts inconclusive AND corpus derivation found nothing defensible | reasoning: ${derived.reasoning?.slice(0, 300) || 'none'}`);
         } else {
           thesisUnavailable = true;
         }
