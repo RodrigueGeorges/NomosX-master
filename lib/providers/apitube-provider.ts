@@ -40,8 +40,12 @@ export async function searchAPITube(query: string, limit = 20): Promise<any[]> {
       return [];
     }
 
+    // Fields arrive untyped from the wire — coerce so downstream cleanText
+    // never sees a non-string (prod 2026-11-28: text.replace crash killed
+    // the whole sweep channel).
+    const str = (v: any): string => (typeof v === 'string' && v.trim() ? v : '');
     return articles.slice(0, limit).map((item: any, idx: number) => {
-      const url = item.href || item.url || item.link || '';
+      const url = str(item.href) || str(item.url) || str(item.link);
       const slug = url.replace(/[^a-z0-9]/gi, '-').slice(0, 50).toLowerCase();
 
       const publishedDate = item.published_at || item.publishedAt || item.date || null;
@@ -74,13 +78,13 @@ export async function searchAPITube(query: string, limit = 20): Promise<any[]> {
       if (srcName) institutions.push(srcName);
 
       // Build abstract from summary or content
-      const abstract = item.summary || item.body?.slice(0, 500) || item.description || item.content?.slice(0, 500) || null;
+      const abstract = str(item.summary) || str(item.body?.slice(0, 500)) || str(item.description) || str(item.content?.slice(0, 500)) || null;
 
       return {
         id: `apitube:${slug || idx}`,
         provider: 'apitube',
         type: 'news-article',
-        title: item.title || item.headline || 'Untitled',
+        title: str(item.title) || str(item.headline) || 'Untitled',
         abstract,
         url,
         year,
