@@ -545,7 +545,7 @@ async function collectBreakingItems(
     return {
       items: [...watchItems, ...heldRetryItems],
       decideCostUsd: 0,
-      phases: { detect: { durationMs: detectMs, topicsFound: 0 } },
+      phases: { detect: { durationMs: detectMs, topicsFound: 0, windowFile: radarResult.windowFile } },
       errors,
     };
   }
@@ -734,7 +734,7 @@ async function collectBreakingItems(
     decideCostUsd: triageResult.costUsd + correctiveTriageCostUsd + questionGateCostUsd,
     questionGate: { costUsd: questionGateCostUsd, rejected: preflightResults.filter(r => !r.viable && r.strategy === 'question_gate').length },
     phases: {
-      detect: { durationMs: detectMs, topicsFound: radarResult.topics.length, stats: radarResult.stats, predictionTriggersFired: watchItems.length },
+      detect: { durationMs: detectMs, topicsFound: radarResult.topics.length, stats: radarResult.stats, predictionTriggersFired: watchItems.length, windowFile: radarResult.windowFile },
       agenda: {
         windowDays: agenda.windowDays,
         coverage: agenda.coverage.map(c => ({ slug: c.slug, pubs: c.pubsInWindow, deficit: Number(c.deficit.toFixed(2)) })),
@@ -1552,15 +1552,37 @@ export async function runThinkTankCycle(
     `[ThinkTank] Cycle mode=${options.mode} cadence=${cadence.remainingSlots}/${cadence.weeklyMax} dryRun=${!!options.dryRun}`
   );
 
-  if (options.mode === "weekly" && cadence.remainingSlots <= 0 && !options.bypassCadence) {
-    console.log("[ThinkTank] Weekly cadence full — silence is respected");
-    return emptyResult(options.mode, cadence, started);
-  }
-
   let items: ThinkTankDispatchItem[] = [];
   let decideCostUsd = 0;
   let phases: Record<string, unknown> | undefined;
   let maxExecutions: number;
+  const dispatchBudgetUsd = options.budgetUsd ?? (options.mode === "breaking" ? DEFAULT_BREAKING_BUDGET_USD : undefined);
+  const triageBudgetUsd = options.mode === 'weekly' ? Number(process.env.WEEKLY_BUDGET_USD ?? 10) : dispatchBudgetUsd;
+  const captureDesk = async (state: 'no_slots' | 'empty_queue' | 'ready', limit: number) => {
+    const directory = process.env.NOMOSX_RADAR_WINDOW_DIR;
+    if (!directory) return;
+    try {
+      const { writeDeskSnapshot } = await import('./radar-window');
+      const detect = phases?.detect as { windowFile?: string } | undefined;
+      await writeDeskSnapshot(directory, {
+        state, startedAt: new Date(started).toISOString(), mode: options.mode,
+        windowFile: detect?.windowFile ?? null, resumed: !!options.resume?.items.length,
+        dryRun: !!options.dryRun, bypassCadence: !!options.bypassCadence,
+        cadence: { ...cadence, verticalPubCounts: Object.fromEntries(cadence.verticalPubCounts) },
+        triageBudgetUsd, dispatchBudgetUsd: dispatchBudgetUsd ?? null, decideCostUsd, maxExecutions: limit,
+        queue: items.map(({ question, forecastQuestion, strategy, signalId, verticalId, retryAttempt, depth }) =>
+          ({ question, forecastQuestion, strategy, signalId, verticalId, retryAttempt, depth })),
+        doneKeys: options.resume?.doneKeys ?? [],
+      });
+    } catch (err) {
+      console.warn('[ThinkTank] Desk snapshot failed; continuing cycle:', err);
+    }
+  };
+  if (options.mode === "weekly" && cadence.remainingSlots <= 0 && !options.bypassCadence) {
+    await captureDesk('no_slots', 0);
+    console.log("[ThinkTank] Weekly cadence full — silence is respected");
+    return emptyResult(options.mode, cadence, started);
+  }
 
   // Durable resume — a reclaimed job carries its dispatch list; skip the
   // radar/collection phases entirely and resume at the first unfinished item.
@@ -1575,6 +1597,7 @@ export async function runThinkTankCycle(
       `[ThinkTank] Resuming cycle mode=${options.mode} — ${items.length} stored item(s), ${resume.doneKeys.length} already done`
     );
     if (maxExecutions <= 0) {
+      await captureDesk('no_slots', 0);
       console.log("[ThinkTank] No slots left on resume — closing cycle");
       return emptyResult(options.mode, cadence, started);
     }
@@ -1594,6 +1617,7 @@ export async function runThinkTankCycle(
       maxExecutions = Math.min(maxExecutions, cadence.remainingSlots);
     }
     if (maxExecutions <= 0) {
+      await captureDesk('no_slots', 0);
       console.log("[ThinkTank] No weekly slots left for breaking publish");
       return { ...emptyResult(options.mode, cadence, started), phases, decideCostUsd };
     }
@@ -1607,6 +1631,7 @@ export async function runThinkTankCycle(
   }
 
   if (items.length === 0) {
+    await captureDesk('empty_queue', maxExecutions);
     return {
       ...emptyResult(options.mode, cadence, started),
       phases,
@@ -1622,6 +1647,7 @@ export async function runThinkTankCycle(
     maxExecutions = 1;
   }
 
+  await captureDesk('ready', maxExecutions);
   console.log(`[ThinkTank] Dispatching ${items.length} item(s), max execute=${maxExecutions}`);
 
   // Durable cycle state — items list + done keys persisted on the Job row so
@@ -1641,7 +1667,6 @@ export async function runThinkTankCycle(
   });
 
   const delegateStart = Date.now();
-  const dispatchBudgetUsd = options.budgetUsd ?? (options.mode === "breaking" ? DEFAULT_BREAKING_BUDGET_USD : undefined);
   const dispatch = await executeDispatchQueue(items, cadence, maxExecutions, !!options.dryRun, dispatchBudgetUsd,
     options.onProgress
       ? {
