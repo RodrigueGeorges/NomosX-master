@@ -1315,8 +1315,12 @@ export async function executeDispatchQueue(
       if (process.env.NOMOSX_VIABILITY_PROBE !== '0' && process.env.NODE_ENV !== 'test') {
         try {
           const { probeTopicViability } = await import('./topic-viability');
-          const target = item.forecastQuestion?.trim() || item.question;
-          const probe = await probeTopicViability(target);
+          // Primary surface = the subject question (what the funnel actually
+          // scouts); the forecastQuestion's verification vocabulary is an
+          // alternate surface, not the primary one — probing it alone skips
+          // gate-passed topics with a real footprint.
+          const target = item.question;
+          const probe = await probeTopicViability(item.question, item.forecastQuestion?.trim() || undefined);
           console.log(`[ThinkTank] VIABILITY "${target.slice(0, 60)}": relevant=${probe.relevant} (raw oa=${probe.raw.openAlex} cr=${probe.raw.crossref} tt=${probe.raw.thinkTanks} terms=${probe.terms.join(',')}) ${probe.durationMs}ms${probe.error ? ` err=${probe.error.slice(0, 80)}` : ''}`);
           if (!probe.viable) {
             skipped++;
