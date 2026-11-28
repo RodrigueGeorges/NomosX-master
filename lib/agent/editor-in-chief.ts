@@ -287,7 +287,14 @@ async function llmTriage(
     ? `\nALREADY PUBLISHED (last 48h):\n${recentTitles.map(t => `- ${t}`).join('\n')}`
     : '\nNo recent publications.';
 
-  try {
+  let triageCost = 0;
+
+  // Primary attempt uses TASK_ASSIGNMENT routing (kimi). On structurally
+  // invalid selections — not just on an unparseable response — retry once
+  // with the other provider family explicitly. The deterministic fallback
+  // stays the LAST resort: paired-window sim (2026-11-28) showed its picks
+  // fail the question gate ~69% of the time.
+  const attempt = async (provider?: 'kimi' | 'glm'): Promise<TriageSelection[]> => {
     const result = await callLLM({
       messages: [
         {
@@ -396,11 +403,16 @@ Return JSON: { "selections": [{ "topicId": <integer index>, "action": "publish_s
       jsonMode: true,
       enableCache: true,
       task: 'editor_in_chief',
+      ...(provider ? { provider } : {}),
     });
 
+    triageCost += result.costUsd;
     const parsed = parseJson<any>(result.content);
-    if (!parsed) return { selected: [], costUsd: result.costUsd };
-    const selections: TriageSelection[] = (parsed.selections || [])
+    if (!Array.isArray(parsed?.selections) || parsed.selections.some((s: any) =>
+      !['monitor', 'skip', 'publish_signal', 'publish_memo', 'publish_brief', 'publish_strategic'].includes(s?.action))) {
+      throw new Error('Invalid editorial selections');
+    }
+    return parsed.selections
       .filter((s: any) => s.action === 'publish_signal' || s.action === 'publish_memo' || s.action === 'publish_brief' || s.action === 'publish_strategic')
       .map((s: any) => ({
         topicId: s.topicId,
@@ -413,8 +425,18 @@ Return JSON: { "selections": [{ "topicId": <integer index>, "action": "publish_s
         contrarianSignal: typeof s.contrarianSignal === 'number' ? s.contrarianSignal : undefined,
       }))
       .slice(0, maxPubs);
+  };
 
-    return { selected: selections, costUsd: result.costUsd };
+  try {
+    let selections: TriageSelection[];
+    try {
+      selections = await attempt();
+    } catch (primaryErr) {
+      console.warn('[EDITOR-IN-CHIEF] Primary triage invalid — retrying with glm:', primaryErr instanceof Error ? primaryErr.message : primaryErr);
+      selections = await attempt('glm');
+    }
+    if (!selections.length) console.log('[EDITOR-IN-CHIEF] No publish action in triage decisions');
+    return { selected: selections, costUsd: triageCost };
   } catch (err) {
     console.warn('[EDITOR-IN-CHIEF] LLM triage failed, falling back to source-type-based selection:', err);
     // Fallback: top N by score, with format selected by EDITORIAL ANGLE (sourceType)
@@ -438,7 +460,7 @@ Return JSON: { "selections": [{ "topicId": <integer index>, "action": "publish_s
         priority: t.score,
       };
     });
-    return { selected: fallback, costUsd: 0 };
+    return { selected: fallback, costUsd: triageCost };
   }
 }
 
@@ -469,4 +491,27 @@ function getAgeLabel(date: Date | null): string {
   if (hours < 24) return `${Math.round(hours)}h ago`;
   if (hours < 48) return 'yesterday';
   return `${Math.round(hours / 24)}d ago`;
+}
+
+/** Reorder a radar pool so the triage sees the strongest topic of each
+ * vertical before repeats. Paired-window sim (2026-11-28): a vertical
+ * round-robin pool shares only 20-30% of picks with the raw score order —
+ * it surfaces publishable subjects score-ranking never reaches. Fills
+ * remaining slots by score; below-floor topics are appended last, never
+ * dropped (the EiC decides, not the pool builder). */
+export function diversifyTriagePool(topics: RadarTopic[], opts?: { k?: number; minScore?: number }): RadarTopic[] {
+  const k = opts?.k ?? 15;
+  const floor = opts?.minScore ?? 40;
+  const byScore = [...topics].sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+  const eligible = byScore.filter(t => (t.score ?? 0) >= floor);
+  const buckets = new Map<string, RadarTopic[]>();
+  for (const t of eligible) {
+    const key = t.vertical || 'untagged';
+    (buckets.get(key) ?? buckets.set(key, []).get(key)!).push(t);
+  }
+  const out: RadarTopic[] = [];
+  for (let i = 0; out.length < Math.min(k, eligible.length) && i < 500; i++)
+    for (const b of buckets.values()) if (b[i]) out.push(b[i]);
+  const picked = new Set(out);
+  return [...out, ...byScore.filter(t => !picked.has(t))].slice(0, k);
 }
