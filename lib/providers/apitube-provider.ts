@@ -9,7 +9,7 @@ import { fetchFromProvider } from '../http-client';
 import { paidScoutAllowed } from '../free-run';
 
 const APITUBE_API_KEY = process.env.APITUBE_API_KEY || "";
-const APITUBE_ENDPOINT = "https://api.apitube.io/v1/news/articles";
+const APITUBE_ENDPOINT = "https://api.apitube.io/v1/news/everything";
 
 export async function searchAPITube(query: string, limit = 20): Promise<any[]> {
   if (!paidScoutAllowed() || !APITUBE_API_KEY) {
@@ -18,10 +18,14 @@ export async function searchAPITube(query: string, limit = 20): Promise<any[]> {
   }
 
   try {
+    // /v1/news/everything — boolean query syntax, results envelope,
+    // per_page capped by plan (Free=10). 1 point per request.
     const params = new URLSearchParams({
-      q: query,
-      limit: String(Math.min(limit, 50)),
-      sort: 'date_desc',
+      query,
+      per_page: String(Math.min(limit, 10)),
+      'language.code': 'en',
+      'published_at.start': 'NOW-3DAYS',
+      'sort.by': 'published_at',
     });
 
     const data: any = await fetchFromProvider('apitube', `${APITUBE_ENDPOINT}?${params}`, { timeout: 15000, retries: 2, headers: { 'X-API-Key': APITUBE_API_KEY, 'Accept': 'application/json' } });
@@ -37,7 +41,7 @@ export async function searchAPITube(query: string, limit = 20): Promise<any[]> {
     }
 
     return articles.slice(0, limit).map((item: any, idx: number) => {
-      const url = item.url || item.link || '';
+      const url = item.href || item.url || item.link || '';
       const slug = url.replace(/[^a-z0-9]/gi, '-').slice(0, 50).toLowerCase();
 
       const publishedDate = item.published_at || item.publishedAt || item.date || null;
@@ -64,12 +68,13 @@ export async function searchAPITube(query: string, limit = 20): Promise<any[]> {
       }
 
       const institutions: string[] = [];
-      if (item.source || item.publisher) {
-        institutions.push(item.source || item.publisher);
-      }
+      const srcName = typeof item.source === 'object' && item.source !== null
+        ? (item.source.name || item.source.domain || '')
+        : (item.source || item.publisher || '');
+      if (srcName) institutions.push(srcName);
 
       // Build abstract from summary or content
-      const abstract = item.summary || item.description || item.content?.slice(0, 500) || null;
+      const abstract = item.summary || item.body?.slice(0, 500) || item.description || item.content?.slice(0, 500) || null;
 
       return {
         id: `apitube:${slug || idx}`,

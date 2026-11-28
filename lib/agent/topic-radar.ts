@@ -1142,9 +1142,10 @@ async function sweepSocialPulse(): Promise<RadarTopic[]> {
 // ─── GDELT fallback: APITube geopolitics (shared-IP 429s killed GDELT on
 // Railway — 0 fetched across 8 captured windows 2026-11-28). Paid-scout
 // gated; returns [] in FREE RUN or without APITUBE_API_KEY. ───
+// APITube boolean query syntax — multi-word phrases must be quoted.
 const APITUBE_GEOPOLITICS_QUERY =
-  'war OR sanctions OR coup OR ceasefire OR nuclear OR military strike OR armed conflict '+
-  'OR election crisis OR border dispute OR terrorism OR cyber attack';
+  'war OR sanctions OR coup OR ceasefire OR nuclear OR "military strike" OR "armed conflict" '+
+  'OR "election crisis" OR "border dispute" OR terrorism OR "cyber attack"';
 
 async function sweepApitubeGeopolitics(): Promise<RadarTopic[]> {
   try {
