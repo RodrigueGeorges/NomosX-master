@@ -59,6 +59,7 @@ export interface RadarTopic {
 }
 
 export interface RadarSweepResult {
+  windowFile?: string;
   topics: RadarTopic[];
   stats: {
     gdeltFetched: number;
@@ -305,6 +306,21 @@ export async function runTopicRadar(options?: {
   if (bnewsR.status === 'fulfilled')     { all.push(...bnewsR.value); }
   stats.eventSourcesFetched = eventSourcesFetched;
 
+  // Capture the input before clustering mutates scores. Cache hits are not new windows.
+  const windowDir = process.env.NOMOSX_RADAR_WINDOW_DIR;
+  let windowFile: string | undefined;
+  if (windowDir) {
+    try {
+      const { writeRadarWindow } = await import('./radar-window');
+      windowFile = await writeRadarWindow(windowDir, start, { maxTopics, includeAcademic }, {
+        gdelt: gdeltR, rss: rssR, academic: academicR, db: dbR, breaking: breakingR,
+        spikes: spikesR, wires: wiresR, social: socialR, gdacs: gdacsR, bingNews: bnewsR,
+      });
+    } catch (err) {
+      console.warn('[TOPIC RADAR V3] Window capture failed; continuing sweep:', err);
+    }
+  }
+
   // ── CROSS-SOURCE SIGNAL DETECTION (V3.1) — corroboration + velocity ──
   let signalClusters: { topic: string; items: any[]; totalScore: number; corroborationScore: number }[] = [];
   try {
@@ -445,7 +461,7 @@ export async function runTopicRadar(options?: {
   console.log(`[TOPIC RADAR V3] Signal distribution: ${breakingCount} breaking, ${emergingCount} emerging, ${routineCount} routine`);
 
   stats.durationMs = Date.now() - start;
-  const result: RadarSweepResult = { topics: top, stats };
+  const result: RadarSweepResult = { topics: top, stats, ...(windowFile && { windowFile }) };
 
   // Store in TTL cache
   _cachedResult = { result, expiresAt: Date.now() + CACHE_TTL_MS };
